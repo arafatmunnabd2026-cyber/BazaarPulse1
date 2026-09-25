@@ -1,0 +1,7 @@
+{
+  "name": "BazaarPulse - Multi-Vendor E-Commerce Platform",
+  "description": "Daraz-like full-stack multi-vendor e-commerce platform with Admin Control Center, Vendor Dashboard, Customer Storefront, and AI capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
