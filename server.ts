@@ -616,14 +616,11 @@ app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, (req, res) =>
   const { id } = req.params;
   const db = getDb();
   
-  const productIndex = db.products.findIndex((p: any) => String(p.id) === String(id));
-  if (productIndex === -1) {
-    return res.status(404).json({ error: 'Product not found', id });
-  }
-
-  db.products.splice(productIndex, 1);
+  const initialLen = db.products.length;
+  db.products = db.products.filter((p: any) => String(p.id) !== String(id));
   saveDb(db);
-  res.json({ success: true, message: 'Product deleted successfully' });
+  
+  res.json({ success: true, deleted: initialLen !== db.products.length, message: 'Product deleted successfully' });
 });
 
 // Vendor approval/suspension by Admin

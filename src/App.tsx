@@ -1259,22 +1259,27 @@ function CustomerView({
             }`}
           >
             <div className="font-semibold text-gray-900 text-sm">All Products</div>
-            <div className="text-xs text-gray-500 mt-1">{data.products.length} items</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {data.products.filter((p: any) => p.status === 'active').length} items
+            </div>
           </button>
-          {data.categories.map((cat: any) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`p-4 rounded-xl border text-center transition-all bg-white shadow-sm ${
-                selectedCategory === cat.id 
-                  ? 'border-[#f85606] ring-1 ring-[#f85606]' 
-                  : 'border-gray-200 hover:border-[#f85606]'
-              }`}
-            >
-              <div className="font-semibold text-gray-900 text-sm truncate">{cat.name}</div>
-              <div className="text-xs text-gray-500 mt-1">{cat.count} items</div>
-            </button>
-          ))}
+          {data.categories.map((cat: any) => {
+            const activeCount = data.products.filter((p: any) => p.categoryId === cat.id && p.status === 'active').length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`p-4 rounded-xl border text-center transition-all bg-white shadow-sm ${
+                  selectedCategory === cat.id 
+                    ? 'border-[#f85606] ring-1 ring-[#f85606]' 
+                    : 'border-gray-200 hover:border-[#f85606]'
+                }`}
+              >
+                <div className="font-semibold text-gray-900 text-sm truncate">{cat.name}</div>
+                <div className="text-xs text-gray-500 mt-1">{activeCount} items</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
