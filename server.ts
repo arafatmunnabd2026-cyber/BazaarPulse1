@@ -9,6 +9,18 @@ import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { OAuth2Client } from 'google-auth-library';
 import { createClient } from '@supabase/supabase-js';
+
+// --- Supabase Client Configuration ---
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Supabase URL or Anon Key is missing in environment variables!');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// ----------------------------------------------------
+
 import { 
   authMiddleware, 
   verifyAdmin, 
@@ -1909,70 +1921,33 @@ app.post('/api/orders', async (req, res) => {
     const paymentStatus = req.body.paymentMethod === 'Cash on Delivery' ? 'pending' : 'paid';
     const items = req.body.items || [];
     
-    if (isDbConfigured) {
-      const result = await pool.query(
-        `INSERT INTO orders 
-         (id, status, payment_status, payment_method, total_amount, items, customer_id, customer_name, customer_email, address, phone)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         RETURNING *`,
-        [
-          orderId,
-          status,
-          paymentStatus,
-          req.body.paymentMethod,
-          Number(req.body.totalAmount),
-          JSON.stringify(items),
-          req.body.customerId || null,
-          req.body.customerName || null,
-          req.body.customerEmail || null,
-          req.body.shippingAddress || req.body.address || null,
-          req.body.customerPhone || req.body.phone || null
-        ]
-      );
-      
-      // Update vendor balances & total sales
-      for (const item of items) {
-        const vendorId = item.vendorId;
-        if (vendorId) {
-          const itemTotal = Number(item.price) * Number(item.quantity);
-          const vRes = await pool.query('SELECT commission_rate FROM vendors WHERE id = $1', [vendorId]);
-          const commissionRate = vRes.rows[0]?.commission_rate || 10;
-          const commission = itemTotal * (Number(commissionRate) / 100);
-          
-          await pool.query(
-            'UPDATE vendors SET balance = balance + $1, total_sales = total_sales + $2 WHERE id = $3',
-            [itemTotal - commission, itemTotal, vendorId]
-          );
-        }
-      }
-      
-      res.json({ success: true, order: result.rows[0] });
-    } else {
-      const db = await getDb();
-      const newOrder = {
-        id: orderId,
-        status,
-        paymentStatus,
-        createdAt: new Date().toISOString(),
-        ...req.body
-      };
-      db.orders.unshift(newOrder);
+    // Supabase টেবিলের কলামগুলোর সাথে মিলিয়ে অবজেক্ট তৈরি করা
+    const orderData = {
+      id: orderId,
+      user_id: req.body.customerId || req.body.userId || 'guest',
+      total_amount: Number(req.body.totalAmount),
+      status: status,
+      payment_status: paymentStatus,
+      payment_method: req.body.paymentMethod || 'Cash on Delivery',
+      shipping_address: req.body.shippingAddress || req.body.address || '',
+      phone: req.body.customerPhone || req.body.phone || '',
+      items: items
+    };
 
-      // Update vendor balances & total sales offline
-      newOrder.items.forEach((item: any) => {
-        const vendor = db.vendors.find((v: any) => v.id === item.vendorId);
-        if (vendor) {
-          const itemTotal = item.price * item.quantity;
-          const commission = itemTotal * ((vendor.commissionRate || 10) / 100);
-          vendor.balance += (itemTotal - commission);
-          vendor.totalSales += itemTotal;
-        }
-      });
+    // সরাসরি Supabase-এর orders টেবিলে ইনসার্ট করা
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([orderData])
+      .select();
 
-      saveDb(db);
-      res.json({ success: true, order: newOrder });
+    if (error) {
+      console.error('Supabase order insert error:', error);
+      throw error;
     }
+
+    res.json({ success: true, order: data?.[0] || orderData });
   } catch (error: any) {
+    console.error('Error creating order:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
