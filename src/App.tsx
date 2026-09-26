@@ -4112,7 +4112,10 @@ function AdminControlCenter({
                                 try {
                                   const res = await fetch(`/api/orders/${o.id}/status`, {
                                     method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: { 
+                                      'Content-Type': 'application/json',
+                                      'Authorization': authToken ? `Bearer ${authToken}` : ''
+                                    },
                                     body: JSON.stringify({ status: newStatus })
                                   });
                                   const json = await res.json();
