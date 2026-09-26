@@ -1727,71 +1727,7 @@ app.get('/api/cart', authMiddleware, async (req, res) => {
   }
 });
 
-// 2. Add / Update Cart Item
-app.post('/api/cart', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { productId, quantity, size = '', color = '' } = req.body;
-    
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    
-    if (isDbConfigured) {
-      const checkRes = await pool.query(
-        'SELECT * FROM cart WHERE user_id = $1 AND product_id = $2 AND size = $3 AND color = $4',
-        [userId, productId, size, color]
-      );
-      
-      if (checkRes.rowCount! > 0) {
-        await pool.query(
-          'UPDATE cart SET quantity = quantity + $1 WHERE user_id = $2 AND product_id = $3 AND size = $4 AND color = $5',
-          [quantity || 1, userId, productId, size, color]
-        );
-      } else {
-        await pool.query(
-          'INSERT INTO cart (user_id, product_id, quantity, size, color) VALUES ($1, $2, $3, $4, $5)',
-          [userId, productId, quantity || 1, size, color]
-        );
-      }
-      
-      const fullCartRes = await pool.query('SELECT * FROM cart WHERE user_id = $1', [userId]);
-      const cart = fullCartRes.rows.map(item => ({
-        userId: item.user_id,
-        productId: item.product_id,
-        quantity: item.quantity,
-        size: item.size,
-        color: item.color,
-        addedAt: item.added_at
-      }));
-      res.json({ success: true, cart });
-    } else {
-      const db = await getDb();
-      const existingIdx = db.cartItems.findIndex(item => 
-        item.userId === userId && 
-        item.productId === productId && 
-        item.size === size && 
-        item.color === color
-      );
-      
-      if (existingIdx > -1) {
-        db.cartItems[existingIdx].quantity += (quantity || 1);
-      } else {
-        db.cartItems.push({
-          userId,
-          productId,
-          quantity: quantity || 1,
-          size,
-          color,
-          addedAt: new Date().toISOString()
-        });
-      }
-      
-      saveDb(db);
-      res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
-    }
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+
 
 // 3. Sync Full Cart (Migration from localStorage to DB on login)
 app.post('/api/cart/sync', authMiddleware, async (req, res) => {
