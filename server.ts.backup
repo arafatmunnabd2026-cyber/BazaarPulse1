@@ -323,13 +323,9 @@ async function initDatabase() {
         email VARCHAR(255) UNIQUE NOT NULL,
         role VARCHAR(50) DEFAULT 'customer',
         avatar TEXT,
-        password TEXT,
         status VARCHAR(50) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      
-      -- Ensure password column exists if the table was already created
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
       
       CREATE TABLE IF NOT EXISTS categories (
         id VARCHAR(255) PRIMARY KEY,
@@ -2228,7 +2224,6 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 3. User Sync API Route (Handles user registration/login sync)
 app.post('/api/sync-user', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -2237,13 +2232,10 @@ app.post('/api/sync-user', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name and email are required' });
     }
 
-    const userId = 'user_' + Date.now() + Math.random().toString(36).substring(2, 7);
-
     const { data, error } = await supabase
       .from('users')
       .upsert(
         { 
-          id: userId,
           name: name, 
           email: email, 
           password: password || '', 
@@ -2262,42 +2254,6 @@ app.post('/api/sync-user', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Error syncing user:', err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 4. Cart Add/Sync API Route
-app.post('/api/cart', async (req, res) => {
-  try {
-    const { userId, productId, quantity, size, color } = req.body;
-
-    if (!userId || !productId) {
-      return res.status(400).json({ success: false, message: 'User ID and Product ID are required' });
-    }
-
-    const { data, error } = await supabase
-      .from('cart')
-      .upsert(
-        {
-          user_id: userId,
-          product_id: productId,
-          quantity: quantity || 1,
-          size: size || '',
-          color: color || ''
-        },
-        { onConflict: 'user_id,product_id,size,color' }
-      )
-      .select();
-
-    if (error) throw error;
-
-    res.status(200).json({
-      success: true,
-      message: 'Cart updated successfully',
-      cart: data
-    });
-  } catch (err: any) {
-    console.error('Error updating cart:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
