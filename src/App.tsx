@@ -2908,24 +2908,24 @@ function AdminControlCenter({
   return (
     <div className="min-h-screen bg-slate-100 pb-20">
       {/* Admin Header */}
-      <header className="bg-slate-900 text-white shadow-md sticky top-[41px] z-30">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-500 p-2 rounded-xl text-white font-black text-lg">🛡️</div>
+            <div className="bg-orange-500 p-2.5 rounded-xl text-white font-black text-lg">🛡️</div>
             <div>
-              <h2 className="font-bold text-lg">BazaarPulse Admin Control Center</h2>
-              <p className="text-xs text-slate-400">Platform Governance & Financial Oversight</p>
+              <h2 className="font-extrabold text-xl tracking-tight text-white">BazaarPulse Admin Control Center</h2>
+              <p className="text-xs text-slate-400 font-medium">Platform Governance & Financial Oversight</p>
             </div>
           </div>
-          <div className="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">
-            Global Commission: <span className="font-bold text-orange-400">{data.adminSettings.globalCommissionRate}%</span>
+          <div className="text-xs bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-700 self-start sm:self-auto shadow-inner">
+            Global Commission Rate: <span className="font-extrabold text-orange-400 text-sm ml-1">{data.adminSettings.globalCommissionRate}%</span>
           </div>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
-        <div className="flex gap-2 border-b border-slate-200 pb-3">
+      {/* Tabs with proper vertical margin and structure */}
+      <div className="max-w-7xl mx-auto px-4 mt-10 sm:mt-12">
+        <div className="flex flex-wrap gap-3 border-b border-slate-200 pb-4">
           <button
             onClick={() => setAdminTab('overview')}
             className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
