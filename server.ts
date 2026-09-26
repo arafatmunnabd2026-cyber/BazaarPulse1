@@ -488,8 +488,8 @@ app.post('/api/auth/google', async (req, res) => {
       name: payload.name,
       email: payload.email,
       avatar: payload.picture, // Include Google profile picture
-      role: 'customer', // Default role
-      status: 'active'
+      role: 'customer' as const, // Default role
+      status: 'active' as const
     };
     
     const token = generateToken(user, '7d');

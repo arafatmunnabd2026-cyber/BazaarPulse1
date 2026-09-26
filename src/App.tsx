@@ -48,10 +48,10 @@ export default function App() {
     const hash = window.location.hash.replace('#', '');
     const pathname = window.location.pathname;
 
-    if (hash === 'admin' || hash === 'vendor') {
+    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
       return `/${hash}`;
     }
-    if (pathname === '/admin' || pathname === '/vendor') {
+    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
       return pathname;
     }
     return '/';
@@ -129,6 +129,13 @@ export default function App() {
     }
   }, [authUser]);
 
+  // Auto-redirect from /admin/login to /admin if already admin
+  useEffect(() => {
+    if (authUser?.role === 'admin' && currentPath === '/admin/login') {
+      navigateTo('/admin');
+    }
+  }, [authUser, currentPath]);
+
   const notify = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
@@ -198,9 +205,9 @@ export default function App() {
       let targetPath = '/';
       
       // Prioritize pathname for clean URLs, fallback to hash for legacy links
-      if (pathname === '/admin' || pathname === '/vendor') {
+      if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
         targetPath = pathname;
-      } else if (hash === 'admin' || hash === 'vendor') {
+      } else if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
         targetPath = `/${hash}`;
       }
       
