@@ -363,10 +363,12 @@ app.post('/api/auth/login', (req, res) => {
   let targetUser;
 
   // Check if we are logging in as admin (by role or by matching the new admin email)
-  const isLoggingInAsAdmin = (role === 'admin' || (email && email.toLowerCase() === 'arafatmunna14620022@gmail.com'));
+  const cleanEmail = email?.trim().toLowerCase();
+  const cleanPassword = password?.trim();
+  const isLoggingInAsAdmin = (role === 'admin' || cleanEmail === 'arafatmunna14620022@gmail.com');
   
   if (isLoggingInAsAdmin) {
-    if (email?.toLowerCase() !== 'arafatmunna14620022@gmail.com' || password !== '@01756482001') {
+    if (cleanEmail !== 'arafatmunna14620022@gmail.com' || cleanPassword !== '@01756482001') {
       return res.status(401).json({
         success: false,
         error: 'Invalid administrative email or security credential.',
