@@ -905,9 +905,8 @@ function CustomerView({
             {/* Profile / Account Action Button */}
             <div className="relative">
               {authUser ? (
-                <button
-                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2 hover:bg-slate-100 p-1.5 rounded-full transition-all border border-slate-200"
+                <div
+                  className="flex items-center gap-2 p-1.5 rounded-full border border-slate-200"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/20 shadow-sm bg-slate-100 flex items-center justify-center">
                     {authUser.avatar ? (
@@ -916,115 +915,25 @@ function CustomerView({
                       <User className="w-5 h-5 text-slate-400" />
                     )}
                   </div>
-                  <div className="hidden md:flex flex-col items-start leading-tight">
+                  <div className="hidden md:flex flex-col items-start leading-tight pr-2">
                     <span className="text-[11px] font-black text-slate-900 truncate max-w-[100px]">{authUser.name}</span>
                     <span className="text-[9px] text-slate-500 truncate max-w-[100px]">{authUser.email}</span>
                   </div>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+                </div>
               ) : (
                 <button
-                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  onClick={onOpenLogin}
                   className="flex items-center gap-2 hover:bg-slate-100 p-1.5 rounded-full transition-all border border-slate-200"
                 >
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
                     <User className="w-5 h-5 text-slate-400" />
                   </div>
-                  <div className="hidden md:flex flex-col items-start leading-tight">
+                  <div className="hidden md:flex flex-col items-start leading-tight pr-2">
                     <span className="text-[11px] font-black text-slate-900">Guest User</span>
-                    <span className="text-[9px] text-slate-500 uppercase tracking-tighter font-bold">Unauthenticated</span>
+                    <span className="text-[9px] text-slate-500 uppercase tracking-tighter font-bold">Sign In</span>
                   </div>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
               )}
-
-              <AnimatePresence>
-                {isProfileDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                    >
-                      {authUser ? (
-                        <>
-                          <div className="p-4 bg-slate-50 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm">
-                                {authUser.avatar ? (
-                                  <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-white flex items-center justify-center">
-                                    <User className="w-6 h-6 text-slate-400" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-black text-slate-900 truncate">{authUser.name}</p>
-                                <p className="text-[10px] text-slate-500 truncate">{authUser.email}</p>
-                              </div>
-                            </div>
-                            <div className="mt-3 flex items-center gap-1.5">
-                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                authUser.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                authUser.role === 'vendor' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                                'bg-blue-100 text-blue-700 border-blue-200'
-                              }`}>
-                                {authUser.role}
-                              </span>
-                              {authUser.status !== 'active' && (
-                                <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 uppercase">
-                                  {authUser.status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="p-2">
-                            {authUser.role === 'admin' && (
-                              <button onClick={() => { navigateTo('/admin'); setIsProfileDropdownOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                                <Shield className="w-4 h-4 text-purple-600" />
-                                <span>Admin Panel</span>
-                              </button>
-                            )}
-                            {authUser.role === 'vendor' && (
-                              <button onClick={() => { navigateTo('/vendor'); setIsProfileDropdownOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                                <Store className="w-4 h-4 text-emerald-600" />
-                                <span>Vendor Dashboard</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => { handleLogout(); setIsProfileDropdownOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                              <LogOut className="w-4 h-4" />
-                              <span>Sign Out</span>
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="p-4">
-                          <div className="text-center mb-4">
-                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 border border-slate-200">
-                              <User className="w-6 h-6 text-slate-400" />
-                            </div>
-                            <h4 className="text-sm font-black text-slate-900">Guest Browsing</h4>
-                            <p className="text-[10px] text-slate-500 mt-1">Sign in to track orders and manage your profile</p>
-                          </div>
-                          <button
-                            onClick={() => { onOpenLogin(); setIsProfileDropdownOpen(false); }}
-                            className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <LogIn className="w-4 h-4" />
-                            <span>Sign In / Register</span>
-                          </button>
-                        </div>
-                      )}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
             </div>
           </div>
         </div>
