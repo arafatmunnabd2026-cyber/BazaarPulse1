@@ -443,16 +443,8 @@ export default function App() {
             {/* Account Profile / Switcher Dropdown */}
             {authUser ? (
               <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors"
-                  title="Switch User Account or Test Role Permissions"
-                >
-                  <User className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="max-w-[120px] truncate">{authUser.name}</span>
-                  <span className="text-[10px] text-slate-400 uppercase font-mono">({authUser.role})</span>
-                </button>
-
+                {/* Account Profile / Switcher Dropdown removed as requested */}
+                
                 <button
                   onClick={handleLogout}
                   className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
@@ -915,13 +907,7 @@ function CustomerView({
           <div className="flex items-center gap-3">
             {authUser ? (
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 font-bold">
-                  <User className="w-3.5 h-3.5" />
-                  <span>{authUser.name}</span>
-                  <span className="bg-black/20 text-white px-1.5 py-0.2 rounded text-[10px] uppercase font-mono">
-                    {authUser.role}
-                  </span>
-                </span>
+                {/* No user display */}
                 
                 {authUser.role === 'admin' && (
                   <button 
