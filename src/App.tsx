@@ -738,7 +738,60 @@ function CustomerView({
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<{ product: any; quantity: number; size?: string; color?: string }[]>([]);
+  
+  // Initialize cart from localStorage for persistence
+  const [cart, setCart] = useState<{ product: any; quantity: number; size?: string; color?: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('bazaarpulse_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('bazaarpulse_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Sync cart with database when user logs in
+  useEffect(() => {
+    if (authUser) {
+      const syncCart = async () => {
+        try {
+          const res = await fetch('/api/cart/sync', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+            },
+            body: JSON.stringify({ 
+              items: cart.map(i => ({
+                productId: i.product.id,
+                quantity: i.quantity,
+                size: i.size,
+                color: i.color
+              }))
+            })
+          });
+          const json = await res.json();
+          if (json.success && Array.isArray(json.cart)) {
+            // Map backend cart back to frontend structure (including product details)
+            const syncedCart = json.cart.map((item: any) => {
+              const product = data?.products?.find((p: any) => p.id === item.productId);
+              return product ? { product, quantity: item.quantity, size: item.size, color: item.color } : null;
+            }).filter(Boolean);
+            
+            setCart(syncedCart as any);
+          }
+        } catch (e) {
+          console.error('Failed to sync cart with database', e);
+        }
+      };
+      syncCart();
+    }
+  }, [authUser]);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
@@ -777,7 +830,7 @@ function CustomerView({
     return matchesCat && matchesSearch && p.status === 'active';
   });
 
-  const addToCart = (product: any, qty: number = 1, size?: string, color?: string) => {
+  const addToCart = async (product: any, qty: number = 1, size?: string, color?: string) => {
     setCart(prev => {
       const existing = prev.find(item => 
         item.product.id === product.id && 
@@ -793,7 +846,49 @@ function CustomerView({
       }
       return [...prev, { product, quantity: qty, size, color }];
     });
+    
     notify(`Added "${product.title.substring(0, 25)}..." to cart`);
+
+    // Sync with database if logged in
+    if (authUser) {
+      try {
+        await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ productId: product.id, quantity: qty, size, color })
+        });
+      } catch (e) {
+        console.error('Failed to sync add item to database', e);
+      }
+    }
+  };
+
+  const removeFromCart = async (productId: string, size?: string, color?: string) => {
+    if (!productId) return;
+    
+    // 1. Update local state
+    setCart(prev => (prev || []).filter(item => 
+      !(item?.product?.id === productId && item?.size === size && item?.color === color)
+    ));
+    
+    // 2. Sync with database if logged in
+    if (authUser) {
+      try {
+        await fetch('/api/cart', {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ productId, size, color })
+        });
+      } catch (e) {
+        console.error('Failed to remove item from database', e);
+      }
+    }
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -1154,7 +1249,7 @@ function CustomerView({
                       )}
                     </div>
                     <button 
-                      onClick={() => setCart(cart.filter((_, i) => i !== idx))}
+                      onClick={() => item?.product?.id && removeFromCart(item.product.id, item.size, item.color)}
                       className="text-red-500 hover:bg-red-50 p-2 rounded-lg"
                     >
                       <Trash2 className="w-4 h-4" />

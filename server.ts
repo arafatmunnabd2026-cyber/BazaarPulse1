@@ -54,6 +54,7 @@ interface InitialData {
     maintenanceMode: boolean;
   };
   reviews: any[];
+  cartItems: { userId: string; productId: string; quantity: number; size?: string; color?: string; addedAt: string }[];
 }
 
 const defaultData: InitialData = {
@@ -315,7 +316,8 @@ const defaultData: InitialData = {
   reviews: [
     { id: 'r1', productId: 'p1', customerName: 'Tanvir R.', rating: 5, comment: 'Amazing sound quality and battery lasts forever! Super fast delivery.', date: '2026-03-22' },
     { id: 'r2', productId: 'p3', customerName: 'Sadia M.', rating: 5, comment: 'The fabric is extremely soft and premium. Fit is true to size.', date: '2026-03-24' }
-  ]
+  ],
+  cartItems: []
 };
 
 // Helper to load db
@@ -326,7 +328,9 @@ function getDb(): InitialData {
   }
   try {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
+    const db = JSON.parse(content);
+    if (!db.cartItems) db.cartItems = [];
+    return db;
   } catch (e) {
     return defaultData;
   }
@@ -840,6 +844,105 @@ app.patch('/api/orders/:id/status', authMiddleware, (req, res, next) => {
   return res.status(403).json({ error: 'Access denied.', code: 'FORBIDDEN' });
 }, handleOrderStatusUpdate);
 
+// --- Persistent Shopping Cart Routes ---
+
+// 1. Get User Cart
+app.get('/api/cart', authMiddleware, (req, res) => {
+  const db = getDb();
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  const userCart = db.cartItems.filter(item => item.userId === userId);
+  res.json({ success: true, cart: userCart });
+});
+
+// 2. Add / Update Cart Item
+app.post('/api/cart', authMiddleware, (req, res) => {
+  const db = getDb();
+  const userId = req.user?.id;
+  const { productId, quantity, size, color } = req.body;
+  
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  const existingIdx = db.cartItems.findIndex(item => 
+    item.userId === userId && 
+    item.productId === productId && 
+    item.size === size && 
+    item.color === color
+  );
+  
+  if (existingIdx > -1) {
+    db.cartItems[existingIdx].quantity += (quantity || 1);
+  } else {
+    db.cartItems.push({
+      userId,
+      productId,
+      quantity: quantity || 1,
+      size,
+      color,
+      addedAt: new Date().toISOString()
+    });
+  }
+  
+  saveDb(db);
+  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+});
+
+// 3. Sync Full Cart (Migration from localStorage to DB on login)
+app.post('/api/cart/sync', authMiddleware, (req, res) => {
+  const db = getDb();
+  const userId = req.user?.id;
+  const { items } = req.body; 
+  
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  if (Array.isArray(items)) {
+    items.forEach((newItem: any) => {
+      const existingIdx = db.cartItems.findIndex(item => 
+        item.userId === userId && 
+        item.productId === newItem.productId && 
+        item.size === newItem.size && 
+        item.color === newItem.color
+      );
+      
+      if (existingIdx > -1) {
+        db.cartItems[existingIdx].quantity = Math.max(db.cartItems[existingIdx].quantity, newItem.quantity);
+      } else {
+        db.cartItems.push({
+          userId,
+          productId: newItem.productId,
+          quantity: newItem.quantity,
+          size: newItem.size,
+          color: newItem.color,
+          addedAt: newItem.addedAt || new Date().toISOString()
+        });
+      }
+    });
+  }
+  
+  saveDb(db);
+  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+});
+
+// 4. Remove Item from Cart
+app.delete('/api/cart', authMiddleware, (req, res) => {
+  const db = getDb();
+  const userId = req.user?.id;
+  const { productId, size, color } = req.body;
+  
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  
+  db.cartItems = db.cartItems.filter(item => 
+    !(item.userId === userId && 
+      item.productId === productId && 
+      item.size === size && 
+      item.color === color)
+  );
+  
+  saveDb(db);
+  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+});
+
 // Order creation & status update
 app.post('/api/orders', (req, res) => {
   const db = getDb();
@@ -851,6 +954,11 @@ app.post('/api/orders', (req, res) => {
     ...req.body
   };
   db.orders.unshift(newOrder);
+
+  // Clear persistent cart for this user if they are logged in
+  if (req.body.customerId) {
+    db.cartItems = db.cartItems.filter(item => item.userId !== req.body.customerId);
+  }
 
   // Update vendor balances & total sales
   newOrder.items.forEach((item: any) => {
