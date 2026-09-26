@@ -1023,21 +1023,41 @@ Customer question: "${message}"`;
   }
 });
 
-// Vite middleware integration for development
-if (process.env.NODE_ENV !== 'production') {
+// Vite middleware integration for development vs static serving for production / Render
+const isDev = process.env.NODE_ENV === 'development' && !process.env.RENDER;
+
+if (isDev) {
   const { createServer: createViteServer } = await import('vite');
   const vite = await createViteServer({
     server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true' }
   });
   app.use(vite.middlewares);
 } else {
-  app.use(express.static(path.join(__dirname, 'dist')));
+  // Vite/React build output directory
+  const distPath = fs.existsSync(path.resolve(__dirname, 'dist'))
+    ? path.resolve(__dirname, 'dist')
+    : path.resolve(process.cwd(), 'dist');
+
+  // 1. Serve static files from the Vite/React build directory ('dist') using express.static
+  app.use(express.static(distPath));
+
+  // 2. Catch-all route to serve 'index.html' for any frontend route (SPA routing & page refreshes)
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    // Avoid intercepting unmatched API calls
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API route not found', path: req.path });
+    }
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend build not found. Please ensure "npm run build" has completed.');
+    }
   });
 }
 
-const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 BazaarPulse Multi-Vendor Server running on http://localhost:${PORT}`);
+// 3. Ensure Express listens correctly on process.env.PORT || 3000 for Render deployment
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
