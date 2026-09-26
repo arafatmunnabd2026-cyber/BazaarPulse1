@@ -3188,6 +3188,8 @@ function AdminControlCenter({
     sizes: [] as string[],
     colors: [] as string[]
   });
+  const [customSizesText, setCustomSizesText] = useState('');
+  const [customColorsText, setCustomColorsText] = useState('');
 
   // Stats calculation
   const totalGMV = data.orders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
@@ -3267,6 +3269,8 @@ function AdminControlCenter({
           sizes: [],
           colors: []
         });
+        setCustomSizesText('');
+        setCustomColorsText('');
         refreshData();
       }
     } catch (err) {
@@ -3486,7 +3490,9 @@ function AdminControlCenter({
                     <input
                       type="text"
                       placeholder="Or type custom sizes (comma separated, e.g. 38, 40, 42)"
+                      value={customSizesText}
                       onChange={e => {
+                        setCustomSizesText(e.target.value);
                         const customVals = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
                         const standardsSelected = newAdminProduct.sizes.filter(s => ['S', 'M', 'L', 'XL', 'XXL'].includes(s));
                         setNewAdminProduct({ ...newAdminProduct, sizes: [...standardsSelected, ...customVals] });
@@ -3527,7 +3533,9 @@ function AdminControlCenter({
                     <input
                       type="text"
                       placeholder="Or type custom colors (comma separated, e.g. Green, Yellow, Orange)"
+                      value={customColorsText}
                       onChange={e => {
+                        setCustomColorsText(e.target.value);
                         const customVals = e.target.value.split(',').map(c => c.trim()).filter(Boolean);
                         const standardsSelected = newAdminProduct.colors.filter(c => ['Black', 'White', 'Blue', 'Red'].includes(c));
                         setNewAdminProduct({ ...newAdminProduct, colors: [...standardsSelected, ...customVals] });

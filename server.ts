@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
+import pg from 'pg';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -20,7 +22,10 @@ const __dirname = path.dirname(__filename);
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
+
+// 1. Express setup with JSON body parser and CORS
 app.use(express.json());
+app.use(cors());
 
 // Initialize Gemini SDK if API key is available
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -289,155 +294,609 @@ const defaultData: InitialData = {
   cartItems: []
 };
 
-// Helper to load db
-function getDb(): InitialData {
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2));
-    return defaultData;
+// 2. PostgreSQL Connection Pool Setup
+const isDbConfigured = !!process.env.DATABASE_URL;
+const { Pool } = pg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: isDbConfigured ? { rejectUnauthorized: false } : false
+});
+
+// Database Migration & Initialization Helper
+async function initDatabase() {
+  if (!isDbConfigured) {
+    console.log('Skipping Database Initialization: DATABASE_URL is not set.');
+    return;
+  }
+  
+  try {
+    const client = await pool.connect();
+    console.log('Connected to PostgreSQL. Initializing database schema...');
+    
+    // Create necessary relational database tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        role VARCHAR(50) DEFAULT 'customer',
+        avatar TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS categories (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL,
+        icon VARCHAR(100)
+      );
+      
+      CREATE TABLE IF NOT EXISTS vendors (
+        id VARCHAR(255) PRIMARY KEY,
+        store_name VARCHAR(255),
+        owner_name VARCHAR(255),
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        status VARCHAR(50) DEFAULT 'approved',
+        commission_rate NUMERIC DEFAULT 10,
+        balance NUMERIC DEFAULT 0,
+        total_sales NUMERIC DEFAULT 0,
+        rating NUMERIC DEFAULT 0,
+        joined_date VARCHAR(100),
+        logo TEXT
+      );
+      
+      CREATE TABLE IF NOT EXISTS products (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NOT NULL,
+        price NUMERIC NOT NULL,
+        discount_price NUMERIC,
+        stock INTEGER DEFAULT 0,
+        category_id VARCHAR(100),
+        category_name VARCHAR(255),
+        vendor_id VARCHAR(255),
+        vendor_name VARCHAR(255),
+        images JSONB DEFAULT '[]'::jsonb,
+        description TEXT,
+        rating NUMERIC DEFAULT 5.0,
+        reviews_count INTEGER DEFAULT 0,
+        total_sold INTEGER DEFAULT 0,
+        is_flash_sale BOOLEAN DEFAULT false,
+        flash_sale_ends VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'active',
+        sizes JSONB DEFAULT '[]'::jsonb,
+        colors JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS orders (
+        id VARCHAR(255) PRIMARY KEY,
+        status VARCHAR(50) DEFAULT 'processing',
+        payment_status VARCHAR(50) DEFAULT 'pending',
+        payment_method VARCHAR(100),
+        total_amount NUMERIC NOT NULL,
+        items JSONB DEFAULT '[]'::jsonb,
+        customer_id VARCHAR(255),
+        customer_name VARCHAR(255),
+        customer_email VARCHAR(255),
+        address TEXT,
+        phone VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS cart (
+        user_id VARCHAR(255) NOT NULL,
+        product_id VARCHAR(255) NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        size VARCHAR(100) DEFAULT '' NOT NULL,
+        color VARCHAR(100) DEFAULT '' NOT NULL,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, product_id, size, color)
+      );
+      
+      CREATE TABLE IF NOT EXISTS withdrawals (
+        id VARCHAR(255) PRIMARY KEY,
+        vendor_id VARCHAR(255),
+        vendor_name VARCHAR(255),
+        amount NUMERIC NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        bank_details TEXT,
+        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        processed_at TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS reviews (
+        id VARCHAR(255) PRIMARY KEY,
+        product_id VARCHAR(255) NOT NULL,
+        customer_name VARCHAR(255),
+        rating INTEGER,
+        comment TEXT,
+        date VARCHAR(100)
+      );
+      
+      CREATE TABLE IF NOT EXISTS admin_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        global_commission_rate NUMERIC DEFAULT 10,
+        platform_name VARCHAR(255) DEFAULT 'BazaarPulse',
+        hero_banner_title VARCHAR(255),
+        hero_banner_subtitle TEXT,
+        campaign_banner JSONB,
+        banners JSONB,
+        maintenance_mode BOOLEAN DEFAULT false,
+        CONSTRAINT single_row CHECK (id = 1)
+      );
+    `);
+    
+    // Seed initial database state if users table is empty
+    const userCheck = await client.query('SELECT COUNT(*) FROM users');
+    if (parseInt(userCheck.rows[0].count || '0') === 0) {
+      console.log('Seeding initial marketplace data into PostgreSQL...');
+      
+      // Seed initial mock file data if available
+      let initialData = defaultData;
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          initialData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        } catch (e) {
+          initialData = defaultData;
+        }
+      }
+      
+      // Users
+      for (const u of initialData.users || []) {
+        await client.query(
+          'INSERT INTO users (id, name, email, role, avatar, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (email) DO NOTHING',
+          [u.id, u.name, u.email, u.role, u.avatar, u.status || 'active']
+        );
+      }
+      
+      // Categories
+      for (const c of initialData.categories || []) {
+        await client.query(
+          'INSERT INTO categories (id, name, slug, icon) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
+          [c.id, c.name, c.slug, c.icon]
+        );
+      }
+      
+      // Vendors
+      for (const v of initialData.vendors || []) {
+        await client.query(
+          'INSERT INTO vendors (id, store_name, owner_name, email, phone, status, commission_rate, balance, total_sales, rating, joined_date, logo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (id) DO NOTHING',
+          [v.id, v.storeName, v.ownerName, v.email, v.phone, v.status, v.commissionRate, v.balance, v.totalSales, v.rating, v.joinedDate, v.logo]
+        );
+      }
+      
+      // Products
+      for (const p of initialData.products || []) {
+        await client.query(
+          'INSERT INTO products (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ON CONFLICT (id) DO NOTHING',
+          [
+            p.id, p.title, p.slug, p.price, p.discountPrice || null, p.stock, 
+            p.categoryId || null, p.categoryName || null, p.vendorId || null, p.vendorName || null, 
+            JSON.stringify(p.images || []), p.description || '', p.rating || 5.0, p.reviewsCount || 0, 
+            p.totalSold || 0, p.isFlashSale || false, p.flashSaleEnds || null, p.status || 'active',
+            JSON.stringify(p.sizes || []), JSON.stringify(p.colors || [])
+          ]
+        );
+      }
+      
+      // Admin Settings
+      const settings = initialData.adminSettings || defaultData.adminSettings;
+      await client.query(
+        'INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, campaign_banner, banners, maintenance_mode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING',
+        [
+          1, 
+          settings.globalCommissionRate || 10, 
+          settings.platformName || 'BazaarPulse',
+          settings.heroBannerTitle || '',
+          settings.heroBannerSubtitle || '',
+          JSON.stringify(settings.campaignBanner || {}),
+          JSON.stringify(settings.banners || []),
+          settings.maintenanceMode || false
+        ]
+      );
+      
+      // Withdrawals
+      for (const w of initialData.withdrawals || []) {
+        await client.query(
+          'INSERT INTO withdrawals (id, vendor_id, vendor_name, amount, status, bank_details, requested_at, processed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING',
+          [w.id, w.vendorId, w.vendorName, w.amount, w.status, w.bankDetails, w.requestedAt, w.processedAt || null]
+        );
+      }
+      
+      // Reviews
+      for (const r of initialData.reviews || []) {
+        await client.query(
+          'INSERT INTO reviews (id, product_id, customer_name, rating, comment, date) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING',
+          [r.id, r.productId, r.customerName, r.rating, r.comment, r.date]
+        );
+      }
+      
+      console.log('PostgreSQL database seeded successfully!');
+    }
+    
+    client.release();
+  } catch (err) {
+    console.error('Error during PostgreSQL schema generation:', err);
+  }
+}
+
+// Execute DB schema generation
+initDatabase();
+
+// 3. Test Database Connection Route
+app.get('/api/test-db', async (req, res) => {
+  if (!isDbConfigured) {
+    return res.status(400).json({
+      success: false,
+      error: 'DATABASE_URL environment variable is not defined.'
+    });
   }
   try {
-    const content = fs.readFileSync(DB_FILE, 'utf-8');
-    const db = JSON.parse(content);
-    if (!db.cartItems) db.cartItems = [];
-    return db;
-  } catch (e) {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW() as now, version();');
+    client.release();
+    res.json({
+      success: true,
+      message: 'Successfully connected to Supabase PostgreSQL database!',
+      timestamp: result.rows[0].now,
+      version: result.rows[0].version
+    });
+  } catch (err: any) {
+    console.error('Database connection test failed:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to connect to the database.',
+      details: err.message
+    });
+  }
+});
+
+// Helper to fetch entire data structure (replaces getDb from JSON)
+async function getDb(): Promise<InitialData> {
+  if (!isDbConfigured) {
+    // Graceful offline fallback to database.json file
+    if (!fs.existsSync(DB_FILE)) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2));
+      return defaultData;
+    }
+    try {
+      const content = fs.readFileSync(DB_FILE, 'utf-8');
+      const db = JSON.parse(content);
+      if (!db.cartItems) db.cartItems = [];
+      return db;
+    } catch (e) {
+      return defaultData;
+    }
+  }
+  
+  try {
+    const client = await pool.connect();
+    
+    const usersRes = await client.query('SELECT * FROM users');
+    const categoriesRes = await client.query('SELECT * FROM categories');
+    const vendorsRes = await client.query('SELECT * FROM vendors');
+    const productsRes = await client.query('SELECT * FROM products ORDER BY created_at DESC');
+    const ordersRes = await client.query('SELECT * FROM orders ORDER BY created_at DESC');
+    const withdrawalsRes = await client.query('SELECT * FROM withdrawals ORDER BY requested_at DESC');
+    const reviewsRes = await client.query('SELECT * FROM reviews');
+    const cartRes = await client.query('SELECT * FROM cart');
+    const settingsRes = await client.query('SELECT * FROM admin_settings WHERE id = 1');
+    
+    client.release();
+    
+    const users = usersRes.rows;
+    const categories = categoriesRes.rows;
+    const vendors = vendorsRes.rows.map(v => ({
+      id: v.id,
+      storeName: v.store_name,
+      ownerName: v.owner_name,
+      email: v.email,
+      phone: v.phone,
+      status: v.status,
+      commissionRate: Number(v.commission_rate),
+      balance: Number(v.balance),
+      totalSales: Number(v.total_sales),
+      rating: Number(v.rating),
+      joinedDate: v.joined_date,
+      logo: v.logo
+    }));
+    
+    const products = productsRes.rows.map(p => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      price: Number(p.price),
+      discountPrice: p.discount_price ? Number(p.discount_price) : undefined,
+      stock: p.stock,
+      categoryId: p.category_id,
+      categoryName: p.category_name,
+      vendorId: p.vendor_id,
+      vendorName: p.vendor_name,
+      images: typeof p.images === 'string' ? JSON.parse(p.images) : p.images || [],
+      description: p.description,
+      rating: Number(p.rating),
+      reviewsCount: p.reviews_count,
+      totalSold: p.total_sold,
+      isFlashSale: p.is_flash_sale,
+      flashSaleEnds: p.flash_sale_ends,
+      status: p.status,
+      sizes: typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes || [],
+      colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors || []
+    }));
+    
+    const orders = ordersRes.rows.map(o => ({
+      id: o.id,
+      status: o.status,
+      paymentStatus: o.payment_status,
+      paymentMethod: o.payment_method,
+      totalAmount: Number(o.total_amount),
+      items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items || [],
+      customerName: o.customer_name,
+      customerEmail: o.customer_email,
+      address: o.address,
+      phone: o.phone,
+      createdAt: o.created_at
+    }));
+    
+    const withdrawals = withdrawalsRes.rows.map(w => ({
+      id: w.id,
+      vendorId: w.vendor_id,
+      vendorName: w.vendor_name,
+      amount: Number(w.amount),
+      status: w.status,
+      bankDetails: w.bank_details,
+      requestedAt: w.requested_at,
+      processedAt: w.processed_at
+    }));
+    
+    const reviews = reviewsRes.rows.map(r => ({
+      id: r.id,
+      productId: r.product_id,
+      customerName: r.customer_name,
+      rating: r.rating,
+      comment: r.comment,
+      date: r.date
+    }));
+    
+    const cartItems = cartRes.rows.map(c => ({
+      userId: c.user_id,
+      productId: c.product_id,
+      quantity: c.quantity,
+      size: c.size,
+      color: c.color,
+      addedAt: c.added_at
+    }));
+    
+    const rawSettings = settingsRes.rows[0] || {};
+    const adminSettings = {
+      globalCommissionRate: Number(rawSettings.global_commission_rate || 10),
+      platformName: rawSettings.platform_name || 'BazaarPulse',
+      heroBannerTitle: rawSettings.hero_banner_title || '',
+      heroBannerSubtitle: rawSettings.hero_banner_subtitle || '',
+      campaignBanner: typeof rawSettings.campaign_banner === 'string' ? JSON.parse(rawSettings.campaign_banner) : rawSettings.campaign_banner || {},
+      banners: typeof rawSettings.banners === 'string' ? JSON.parse(rawSettings.banners) : rawSettings.banners || [],
+      maintenanceMode: !!rawSettings.maintenance_mode
+    };
+    
+    return {
+      users,
+      categories,
+      vendors,
+      products,
+      orders,
+      withdrawals,
+      reviews,
+      cartItems,
+      adminSettings
+    };
+  } catch (err) {
+    console.error('Failed to query PostgreSQL, falling back to local file:', err);
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      } catch (e) {}
+    }
     return defaultData;
   }
 }
 
+// Helper to save offline fallback state
 function saveDb(data: InitialData) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('Error writing offline DB file fallback:', e);
+  }
 }
 
 // --- Authentication & Token Generation Routes ---
 
 // 1. Issue JWT token by role or test credentials
-app.post('/api/auth/token', (req, res) => {
-  const { role = 'customer', vendorId, status = 'approved', name, email } = req.body;
-  
-  let payload: any = {
-    id: 'u-' + Date.now(),
-    name: name || 'Demo User',
-    email: email || `${role}@bazaarpulse.com`,
-    role,
-    status
-  };
+app.post('/api/auth/token', async (req, res) => {
+  try {
+    const { role = 'customer', vendorId, status = 'approved', name, email } = req.body;
+    
+    let payload: any = {
+      id: 'u-' + Date.now(),
+      name: name || 'Demo User',
+      email: email || `${role}@bazaarpulse.com`,
+      role,
+      status
+    };
 
-  if (role === 'admin') {
-    payload = {
-      id: 'u1',
-      name: 'Platform Administrator',
-      email: 'arafatmunna14620022@gmail.com',
-      role: 'admin',
-      status: 'active'
-    };
-  } else if (role === 'vendor') {
-    const isPending = vendorId === 'v3' || status === 'pending';
-    payload = {
-      id: vendorId === 'v3' ? 'u3' : 'u2',
-      name: vendorId === 'v3' ? 'Gadget Galaxy' : 'TechHaven Electronics',
-      email: vendorId === 'v3' ? 'vendor3@gadgetgalaxy.com' : 'vendor1@techhaven.com',
-      role: 'vendor',
-      status: isPending ? 'pending' : (status || 'approved'),
-      vendorId: vendorId || 'v1'
-    };
-  } else if (role === 'customer') {
-    payload = {
-      id: 'u4',
-      name: 'Rahim Ahmed',
-      email: 'customer@gmail.com',
-      role: 'customer',
-      status: 'active'
-    };
+    if (role === 'admin') {
+      let adminName = 'Platform Administrator';
+      let adminAvatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150';
+      if (isDbConfigured) {
+        const adminRes = await pool.query('SELECT name, avatar FROM users WHERE LOWER(email) = $1', ['arafatmunna14620022@gmail.com']);
+        if (adminRes.rowCount! > 0) {
+          if (adminRes.rows[0].name) adminName = adminRes.rows[0].name;
+          if (adminRes.rows[0].avatar) adminAvatar = adminRes.rows[0].avatar;
+        }
+      }
+      payload = {
+        id: 'u1',
+        name: adminName,
+        email: 'arafatmunna14620022@gmail.com',
+        role: 'admin',
+        status: 'active',
+        avatar: adminAvatar
+      };
+    } else if (role === 'vendor') {
+      const isPending = vendorId === 'v3' || status === 'pending';
+      payload = {
+        id: vendorId === 'v3' ? 'u3' : 'u2',
+        name: vendorId === 'v3' ? 'Gadget Galaxy' : 'TechHaven Electronics',
+        email: vendorId === 'v3' ? 'vendor3@gadgetgalaxy.com' : 'vendor1@techhaven.com',
+        role: 'vendor',
+        status: isPending ? 'pending' : (status || 'approved'),
+        vendorId: vendorId || 'v1'
+      };
+    } else if (role === 'customer') {
+      payload = {
+        id: 'u4',
+        name: 'Rahim Ahmed',
+        email: 'customer@gmail.com',
+        role: 'customer',
+        status: 'active'
+      };
+    }
+
+    if (isDbConfigured) {
+      // Ensure user is present in user directory
+      const cleanEmail = payload.email.trim().toLowerCase();
+      const checkUser = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
+      if (checkUser.rowCount === 0) {
+        await pool.query(
+          'INSERT INTO users (id, name, email, role, avatar, status) VALUES ($1, $2, $3, $4, $5, $6)',
+          [payload.id, payload.name, payload.email, payload.role, payload.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', payload.status]
+        );
+      }
+    }
+
+    const token = generateToken(payload, '7d');
+    res.json({ success: true, token, user: payload });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  const token = generateToken(payload, '7d');
-  res.json({ success: true, token, user: payload });
 });
 
 // Real login authentication endpoint
-app.post('/api/auth/login', (req, res) => {
-  const { email, password, role } = req.body;
-  const db = getDb();
-
-  let targetUser;
-
-  // Check if we are logging in as admin (by role or by matching the new admin email)
-  const cleanEmail = email?.trim().toLowerCase();
-  const cleanPassword = password?.trim();
-  const isLoggingInAsAdmin = (role === 'admin' || cleanEmail === 'arafatmunna14620022@gmail.com');
-  
-  if (isLoggingInAsAdmin) {
-    if (cleanEmail !== 'arafatmunna14620022@gmail.com' || cleanPassword !== '@01756482001') {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid administrative email or security credential.',
-        code: 'AUTH_FAILED'
-      });
-    }
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanPassword = password?.trim();
+    const isLoggingInAsAdmin = (role === 'admin' || cleanEmail === 'arafatmunna14620022@gmail.com');
     
-    targetUser = { 
-      id: 'u1', 
-      name: 'Platform Administrator', 
-      email: 'arafatmunna14620022@gmail.com', 
-      role: 'admin', 
-      status: 'active' 
-    };
-  } else {
-    // Non-admin flow
-    targetUser = db.users.find((u: any) => (email && u.email.toLowerCase() === email.toLowerCase() && u.role !== 'admin'));
-    
-    if (!targetUser && role && role !== 'admin') {
-      targetUser = db.users.find((u: any) => u.role === role);
+    let targetUser;
+
+    if (isLoggingInAsAdmin) {
+      if (cleanEmail !== 'arafatmunna14620022@gmail.com' || cleanPassword !== '@01756482001') {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid administrative email or security credential.',
+          code: 'AUTH_FAILED'
+        });
+      }
+      
+      if (isDbConfigured) {
+        const adminRes = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', ['arafatmunna14620022@gmail.com']);
+        if (adminRes.rowCount === 0) {
+          const insertRes = await pool.query(
+            'INSERT INTO users (id, name, email, role, avatar, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            ['u1', 'Platform Administrator', 'arafatmunna14620022@gmail.com', 'admin', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', 'active']
+          );
+          targetUser = insertRes.rows[0];
+        } else {
+          targetUser = adminRes.rows[0];
+        }
+      } else {
+        targetUser = { id: 'u1', name: 'Platform Administrator', email: 'arafatmunna14620022@gmail.com', role: 'admin', status: 'active' };
+      }
+    } else {
+      if (isDbConfigured) {
+        const userRes = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1 AND role != $2', [cleanEmail, 'admin']);
+        targetUser = userRes.rows[0];
+        
+        if (!targetUser && role && role !== 'admin') {
+          const roleRes = await pool.query('SELECT * FROM users WHERE role = $1', [role]);
+          targetUser = roleRes.rows[0];
+        }
+        
+        if (!targetUser) {
+          // Dynamic inserts to ensure test accounts are always accessible
+          if (cleanEmail === 'vendor1@techhaven.com' || role === 'vendor') {
+            const ins = await pool.query(
+              'INSERT INTO users (id, name, email, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+              ['u2', 'TechHaven Electronics', 'vendor1@techhaven.com', 'vendor', 'approved']
+            );
+            targetUser = ins.rows[0];
+          } else if (cleanEmail === 'vendor3@gadgetgalaxy.com') {
+            const ins = await pool.query(
+              'INSERT INTO users (id, name, email, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+              ['u3', 'Gadget Galaxy', 'vendor3@gadgetgalaxy.com', 'vendor', 'pending']
+            );
+            targetUser = ins.rows[0];
+          } else if (cleanEmail === 'customer@gmail.com' || role === 'customer') {
+            const ins = await pool.query(
+              'INSERT INTO users (id, name, email, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+              ['u4', 'Rahim Ahmed', 'customer@gmail.com', 'customer', 'active']
+            );
+            targetUser = ins.rows[0];
+          }
+        }
+      } else {
+        const db = await getDb();
+        targetUser = db.users.find((u: any) => (email && u.email.toLowerCase() === email.toLowerCase() && u.role !== 'admin'));
+        if (!targetUser && role && role !== 'admin') {
+          targetUser = db.users.find((u: any) => u.role === role);
+        }
+      }
     }
 
     if (!targetUser) {
-      if (email === 'vendor1@techhaven.com' || role === 'vendor') {
-        targetUser = { id: 'u2', name: 'TechHaven Electronics', email: 'vendor1@techhaven.com', role: 'vendor', status: 'approved', vendorId: 'v1' };
-      } else if (email === 'vendor3@gadgetgalaxy.com') {
-        targetUser = { id: 'u3', name: 'Gadget Galaxy', email: 'vendor3@gadgetgalaxy.com', role: 'vendor', status: 'pending', vendorId: 'v3' };
-      } else if (email === 'customer@gmail.com' || role === 'customer') {
-        targetUser = { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', status: 'active' };
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials. User not found.',
+        code: 'AUTH_FAILED'
+      });
+    }
+
+    let userStatus = targetUser.status || 'active';
+    let vendorId = targetUser.vendorId || (targetUser.role === 'vendor' ? 'v1' : undefined);
+
+    if (targetUser.role === 'vendor' && isDbConfigured) {
+      const vRes = await pool.query('SELECT * FROM vendors WHERE email = $1 OR id = $2', [targetUser.email, targetUser.vendorId]);
+      if (vRes.rowCount! > 0) {
+        userStatus = vRes.rows[0].status;
+        vendorId = vRes.rows[0].id;
       }
     }
-  }
 
-  if (!targetUser) {
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid credentials. User not found.',
-      code: 'AUTH_FAILED'
+    const payload = {
+      id: targetUser.id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role,
+      status: userStatus,
+      vendorId,
+      avatar: targetUser.avatar
+    };
+
+    const token = generateToken(payload, '7d');
+    res.json({
+      success: true,
+      token,
+      user: payload
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  // Verify vendor approval status from vendors table if applicable
-  let userStatus = targetUser.status || 'active';
-  let vendorId = targetUser.vendorId;
-
-  if (targetUser.role === 'vendor') {
-    const v = db.vendors.find((item: any) => item.email.toLowerCase() === targetUser.email.toLowerCase() || item.id === targetUser.vendorId);
-    if (v) {
-      userStatus = v.status;
-      vendorId = v.id;
-    }
-  }
-
-  const payload = {
-    id: targetUser.id,
-    name: targetUser.name,
-    email: targetUser.email,
-    role: targetUser.role,
-    status: userStatus,
-    vendorId,
-    avatar: targetUser.avatar
-  };
-
-  const token = generateToken(payload, '7d');
-  res.json({
-    success: true,
-    token,
-    user: payload
-  });
 });
 
 // Google Sign-In verification
@@ -453,15 +912,36 @@ app.post('/api/auth/google', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid Google token' });
     }
     
-    // Simulate finding/creating user in database
-    const user = {
-      id: payload.sub,
-      name: payload.name,
-      email: payload.email,
-      avatar: payload.picture, // Include Google profile picture
-      role: 'customer' as const, // Default role
-      status: 'active' as const
-    };
+    let user;
+    if (isDbConfigured) {
+      const email = payload.email.toLowerCase();
+      const isAdminEmail = (email === 'arafatmunna14620022@gmail.com');
+      const existingUser = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', [email]);
+      if (existingUser.rowCount! > 0) {
+        const userRole = isAdminEmail ? 'admin' : existingUser.rows[0].role;
+        const updateRes = await pool.query(
+          'UPDATE users SET name = $1, avatar = $2, role = $3 WHERE LOWER(email) = $4 RETURNING *',
+          [payload.name, payload.picture || existingUser.rows[0].avatar, userRole, email]
+        );
+        user = updateRes.rows[0];
+      } else {
+        const userRole = isAdminEmail ? 'admin' : 'customer';
+        const insertRes = await pool.query(
+          'INSERT INTO users (id, name, email, avatar, role, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [payload.sub, payload.name, email, payload.picture, userRole, 'active']
+        );
+        user = insertRes.rows[0];
+      }
+    } else {
+      user = {
+        id: payload.sub,
+        name: payload.name,
+        email: payload.email,
+        avatar: payload.picture,
+        role: (payload.email.toLowerCase() === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer') as any,
+        status: 'active' as any
+      };
+    }
     
     const token = generateToken(user, '7d');
     res.json({ success: true, token, user });
@@ -477,7 +957,6 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 // 3. Security Diagnostic / RBAC Test endpoint
-// Allows testing RBAC rules with any token and role combination
 app.post('/api/auth/test-rbac', (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -535,135 +1014,326 @@ app.post('/api/auth/test-rbac', (req, res) => {
 });
 
 // --- Public Platform Data Overview ---
-app.get('/api/platform/data', (req, res) => {
-  const db = getDb();
-  res.json(db);
+app.get('/api/platform/data', async (req, res) => {
+  try {
+    const db = await getDb();
+    res.json(db);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ==========================================
 // 1. ADMIN PROTECTED ROUTES (/api/admin/*)
-// Protected with: authMiddleware & verifyAdmin
 // ==========================================
 
-// Admin stats overview - strictly admin only
-app.get('/api/admin/stats', authMiddleware, verifyAdmin, (req, res) => {
-  const db = getDb();
-  const totalGMV = db.orders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const totalCommission = Math.round(totalGMV * 0.1);
-  const activeVendors = db.vendors.filter((v: any) => v.status === 'approved').length;
-  const pendingVendors = db.vendors.filter((v: any) => v.status === 'pending').length;
-  const totalProducts = db.products.length;
-  const totalOrders = db.orders.length;
+// Admin stats overview
+app.get('/api/admin/stats', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const gmvRes = await pool.query('SELECT COALESCE(SUM(total_amount), 0) as total FROM orders');
+      const totalGMV = Number(gmvRes.rows[0].total);
+      const totalCommission = Math.round(totalGMV * 0.1);
+      
+      const activeRes = await pool.query("SELECT COUNT(*) FROM vendors WHERE status = 'approved'");
+      const activeVendors = parseInt(activeRes.rows[0].count);
+      
+      const pendingRes = await pool.query("SELECT COUNT(*) FROM vendors WHERE status = 'pending'");
+      const pendingVendors = parseInt(pendingRes.rows[0].count);
+      
+      const prodRes = await pool.query('SELECT COUNT(*) FROM products');
+      const totalProducts = parseInt(prodRes.rows[0].count);
+      
+      const orderRes = await pool.query('SELECT COUNT(*) FROM orders');
+      const totalOrders = parseInt(orderRes.rows[0].count);
+      
+      res.json({
+        totalGMV,
+        totalCommission,
+        activeVendors,
+        pendingVendors,
+        totalProducts,
+        totalOrders
+      });
+    } else {
+      const db = await getDb();
+      const totalGMV = db.orders.reduce((sum, o) => sum + o.totalAmount, 0);
+      const totalCommission = Math.round(totalGMV * 0.1);
+      const activeVendors = db.vendors.filter((v: any) => v.status === 'approved').length;
+      const pendingVendors = db.vendors.filter((v: any) => v.status === 'pending').length;
+      const totalProducts = db.products.length;
+      const totalOrders = db.orders.length;
 
-  res.json({
-    totalGMV,
-    totalCommission,
-    activeVendors,
-    pendingVendors,
-    totalProducts,
-    totalOrders
-  });
-});
-
-// Update Admin Settings - strictly admin only
-app.put('/api/admin/settings', authMiddleware, verifyAdmin, (req, res) => {
-  const db = getDb();
-  db.adminSettings = { ...db.adminSettings, ...req.body };
-  saveDb(db);
-  res.json({ success: true, adminSettings: db.adminSettings });
-});
-
-// Update Campaign Banner Strip - strictly admin only
-app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, (req, res) => {
-  const db = getDb();
-  if (!db.adminSettings.campaignBanner) {
-    db.adminSettings.campaignBanner = {
-      badge: 'PAYDAY SALE',
-      title: 'Mega Discounts up to 70% Off',
-      subtitle: 'Grab top deals across all categories with lightning fast delivery',
-      buttonText: 'Grab Deals Now',
-      linkText: '#flash-sale'
-    };
+      res.json({
+        totalGMV,
+        totalCommission,
+        activeVendors,
+        pendingVendors,
+        totalProducts,
+        totalOrders
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-  db.adminSettings.campaignBanner = {
-    ...db.adminSettings.campaignBanner,
-    ...req.body
-  };
-  saveDb(db);
-  res.json({ success: true, campaignBanner: db.adminSettings.campaignBanner });
 });
 
-// Admin Product Add & Delete Endpoints - strictly admin only
-app.post('/api/admin/products', authMiddleware, verifyAdmin, (req, res) => {
-  const db = getDb();
-  const cat = db.categories.find((c: any) => c.id === req.body.categoryId);
-  const newProduct = {
-    id: 'p-' + Date.now(),
-    title: req.body.title,
-    price: Number(req.body.price),
-    originalPrice: Number(req.body.originalPrice),
-    discount: req.body.discount || '',
-    categoryId: req.body.categoryId || 'general',
-    categoryName: cat ? cat.name : 'General',
-    images: [req.body.image || 'https://via.placeholder.com/150'],
-    stock: Number(req.body.stock) || 10,
-    status: 'active',
-    sizes: req.body.sizes || [],
-    colors: req.body.colors || [],
-    createdAt: new Date().toISOString()
-  };
-  
-  db.products.unshift(newProduct);
-  saveDb(db);
-  res.json({ success: true, product: newProduct });
+// Update Admin Settings
+app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode } = req.body;
+      
+      const currentRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
+      const curr = currentRes.rows[0] || {};
+      
+      const rate = globalCommissionRate !== undefined ? Number(globalCommissionRate) : Number(curr.global_commission_rate || 10);
+      const name = platformName !== undefined ? platformName : curr.platform_name || 'BazaarPulse';
+      const title = heroBannerTitle !== undefined ? heroBannerTitle : curr.hero_banner_title || '';
+      const subtitle = heroBannerSubtitle !== undefined ? heroBannerSubtitle : curr.hero_banner_subtitle || '';
+      const activeBanners = banners !== undefined ? JSON.stringify(banners) : (curr.banners || '[]');
+      const maint = maintenanceMode !== undefined ? !!maintenanceMode : !!curr.maintenance_mode;
+      const campaign = curr.campaign_banner || '{}';
+
+      const result = await pool.query(
+        `INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, banners, maintenance_mode, campaign_banner)
+         VALUES (1, $1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET
+         global_commission_rate = EXCLUDED.global_commission_rate,
+         platform_name = EXCLUDED.platform_name,
+         hero_banner_title = EXCLUDED.hero_banner_title,
+         hero_banner_subtitle = EXCLUDED.hero_banner_subtitle,
+         banners = EXCLUDED.banners,
+         maintenance_mode = EXCLUDED.maintenance_mode
+         RETURNING *`,
+        [rate, name, title, subtitle, activeBanners, maint, campaign]
+      );
+
+      const s = result.rows[0];
+      res.json({
+        success: true,
+        adminSettings: {
+          globalCommissionRate: Number(s.global_commission_rate),
+          platformName: s.platform_name,
+          heroBannerTitle: s.hero_banner_title,
+          heroBannerSubtitle: s.hero_banner_subtitle,
+          banners: typeof s.banners === 'string' ? JSON.parse(s.banners) : s.banners || [],
+          maintenanceMode: !!s.maintenance_mode,
+          campaignBanner: typeof s.campaign_banner === 'string' ? JSON.parse(s.campaign_banner) : s.campaign_banner || {}
+        }
+      });
+    } else {
+      const db = await getDb();
+      db.adminSettings = { ...db.adminSettings, ...req.body };
+      saveDb(db);
+      res.json({ success: true, adminSettings: db.adminSettings });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, (req, res) => {
-  const { id } = req.params;
-  const db = getDb();
-  
-  const initialLen = db.products.length;
-  db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-  saveDb(db);
-  
-  res.json({ success: true, deleted: initialLen !== db.products.length, message: 'Product deleted successfully' });
+// Update Campaign Banner Strip
+app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const currentRes = await pool.query('SELECT campaign_banner FROM admin_settings WHERE id = 1');
+      const curr = currentRes.rows[0]?.campaign_banner 
+        ? (typeof currentRes.rows[0].campaign_banner === 'string' ? JSON.parse(currentRes.rows[0].campaign_banner) : currentRes.rows[0].campaign_banner)
+        : {
+            badge: 'PAYDAY SALE',
+            title: 'Mega Discounts up to 70% Off',
+            subtitle: 'Grab top deals across all categories with lightning fast delivery',
+            buttonText: 'Grab Deals Now',
+            linkText: '#flash-sale'
+          };
+      
+      const updatedCampaign = { ...curr, ...req.body };
+      
+      const result = await pool.query(
+        'UPDATE admin_settings SET campaign_banner = $1 WHERE id = 1 RETURNING *',
+        [JSON.stringify(updatedCampaign)]
+      );
+      
+      res.json({ success: true, campaignBanner: updatedCampaign });
+    } else {
+      const db = await getDb();
+      if (!db.adminSettings.campaignBanner) {
+        db.adminSettings.campaignBanner = {
+          badge: 'PAYDAY SALE',
+          title: 'Mega Discounts up to 70% Off',
+          subtitle: 'Grab top deals across all categories with lightning fast delivery',
+          buttonText: 'Grab Deals Now',
+          linkText: '#flash-sale'
+        };
+      }
+      db.adminSettings.campaignBanner = {
+        ...db.adminSettings.campaignBanner,
+        ...req.body
+      };
+      saveDb(db);
+      res.json({ success: true, campaignBanner: db.adminSettings.campaignBanner });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Admin Product Add & Delete Endpoints
+app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const { title, price, originalPrice, discount, categoryId, image, stock, sizes, colors, description } = req.body;
+      
+      const catRes = await pool.query('SELECT name FROM categories WHERE id = $1', [categoryId]);
+      const categoryName = catRes.rows[0]?.name || 'General';
+      
+      const newId = 'p-' + Date.now();
+      const slug = (title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      
+      const result = await pool.query(
+        `INSERT INTO products 
+         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, sizes, colors, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         RETURNING *`,
+        [
+          newId,
+          title,
+          slug,
+          Number(price),
+          Number(originalPrice),
+          Number(stock) || 10,
+          categoryId || 'general',
+          categoryName,
+          'v1',
+          'Platform Administrator',
+          JSON.stringify([image || 'https://via.placeholder.com/150']),
+          description || '',
+          JSON.stringify(sizes || []),
+          JSON.stringify(colors || []),
+          'active'
+        ]
+      );
+      
+      res.json({ success: true, product: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const cat = db.categories.find((c: any) => c.id === req.body.categoryId);
+      const newProduct = {
+        id: 'p-' + Date.now(),
+        title: req.body.title,
+        price: Number(req.body.price),
+        originalPrice: Number(req.body.originalPrice),
+        discount: req.body.discount || '',
+        categoryId: req.body.categoryId || 'general',
+        categoryName: cat ? cat.name : 'General',
+        images: [req.body.image || 'https://via.placeholder.com/150'],
+        stock: Number(req.body.stock) || 10,
+        status: 'active',
+        sizes: req.body.sizes || [],
+        colors: req.body.colors || [],
+        createdAt: new Date().toISOString()
+      };
+      
+      db.products.unshift(newProduct);
+      saveDb(db);
+      res.json({ success: true, product: newProduct });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+      res.json({ success: true, deleted: result.rowCount! > 0, message: 'Product deleted successfully' });
+    } else {
+      const db = await getDb();
+      const initialLen = db.products.length;
+      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
+      saveDb(db);
+      res.json({ success: true, deleted: initialLen !== db.products.length, message: 'Product deleted successfully' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Vendor approval/suspension by Admin
-const handleVendorStatusUpdate = (req: any, res: any) => {
-  const { id } = req.params;
-  const { status } = req.body; // approved, suspended, rejected
-  const db = getDb();
-  const vendor = db.vendors.find((v: any) => v.id === id);
-  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-  
-  vendor.status = status;
-  saveDb(db);
-  res.json({ success: true, vendor });
+const handleVendorStatusUpdate = async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // approved, suspended, rejected
+    
+    if (isDbConfigured) {
+      const result = await pool.query(
+        'UPDATE vendors SET status = $1 WHERE id = $2 RETURNING *',
+        [status, id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Vendor not found' });
+      res.json({ success: true, vendor: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const vendor = db.vendors.find((v: any) => v.id === id);
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+      vendor.status = status;
+      saveDb(db);
+      res.json({ success: true, vendor });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 app.patch('/api/admin/vendors/:id/status', authMiddleware, verifyAdmin, handleVendorStatusUpdate);
 app.patch('/api/vendors/:id/status', authMiddleware, verifyAdmin, handleVendorStatusUpdate);
 
 // Withdrawal approval/rejection by Admin
-const handleWithdrawalStatusUpdate = (req: any, res: any) => {
-  const { id } = req.params;
-  const { status } = req.body; // approved, rejected
-  const db = getDb();
-  const w = db.withdrawals.find((item: any) => item.id === id);
-  if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
+const handleWithdrawalStatusUpdate = async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // approved, rejected
+    
+    if (isDbConfigured) {
+      const wRes = await pool.query('SELECT * FROM withdrawals WHERE id = $1', [id]);
+      const w = wRes.rows[0];
+      if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
 
-  if (w.status === 'pending' && status === 'approved') {
-    const vendor = db.vendors.find((v: any) => v.id === w.vendorId);
-    if (vendor) {
-      vendor.balance -= w.amount;
+      if (w.status === 'pending' && status === 'approved') {
+        await pool.query(
+          'UPDATE vendors SET balance = balance - $1 WHERE id = $2',
+          [Number(w.amount), w.vendor_id]
+        );
+      }
+
+      const result = await pool.query(
+        "UPDATE withdrawals SET status = $1, processed_at = NOW() WHERE id = $2 RETURNING *",
+        [status, id]
+      );
+      res.json({ success: true, withdrawal: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const w = db.withdrawals.find((item: any) => item.id === id);
+      if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
+
+      if (w.status === 'pending' && status === 'approved') {
+        const vendor = db.vendors.find((v: any) => v.id === w.vendorId);
+        if (vendor) {
+          vendor.balance -= w.amount;
+        }
+      }
+
+      w.status = status;
+      w.processedAt = new Date().toISOString();
+      saveDb(db);
+      res.json({ success: true, withdrawal: w });
     }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  w.status = status;
-  w.processedAt = new Date().toISOString();
-  saveDb(db);
-  res.json({ success: true, withdrawal: w });
 };
 
 app.patch('/api/admin/withdrawals/:id/status', authMiddleware, verifyAdmin, handleWithdrawalStatusUpdate);
@@ -671,148 +1341,339 @@ app.patch('/api/withdrawals/:id/status', authMiddleware, verifyAdmin, handleWith
 
 // ==========================================
 // 2. VENDOR PROTECTED ROUTES (/api/vendor/*)
-// Protected with: authMiddleware & verifyVendor
 // ==========================================
 
 // Dedicated Vendor product creation
-app.post('/api/vendor/products', authMiddleware, verifyVendor, (req, res) => {
-  const db = getDb();
-  const rawImages = req.body.images;
-  const images = Array.isArray(rawImages) && rawImages.length > 0
-    ? rawImages
-    : typeof rawImages === 'string' && rawImages.trim()
-      ? [rawImages]
-      : req.body.image
-        ? [req.body.image]
-        : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
+app.post('/api/vendor/products', authMiddleware, verifyVendor, async (req, res) => {
+  try {
+    const rawImages = req.body.images;
+    const images = Array.isArray(rawImages) && rawImages.length > 0
+      ? rawImages
+      : typeof rawImages === 'string' && rawImages.trim()
+        ? [rawImages]
+        : req.body.image
+          ? [req.body.image]
+          : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
 
-  const newProduct = {
-    id: 'p-' + Date.now(),
-    slug: (req.body.title || 'vendor-product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    rating: 5.0,
-    reviewsCount: 0,
-    totalSold: 0,
-    status: 'active',
-    vendorId: req.user?.vendorId || req.body.vendorId || 'v1',
-    vendorName: req.user?.name || req.body.vendorName || 'Vendor',
-    ...req.body,
-    images
-  };
-  db.products.unshift(newProduct);
-  saveDb(db);
-  res.json({ success: true, product: newProduct });
+    if (isDbConfigured) {
+      const newId = 'p-' + Date.now();
+      const slug = (req.body.title || 'vendor-product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
+      const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
+
+      const result = await pool.query(
+        `INSERT INTO products 
+         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+         RETURNING *`,
+        [
+          newId,
+          req.body.title,
+          slug,
+          Number(req.body.price),
+          req.body.discountPrice ? Number(req.body.discountPrice) : null,
+          Number(req.body.stock) || 0,
+          req.body.categoryId || null,
+          req.body.categoryName || null,
+          vendorId,
+          vendorName,
+          JSON.stringify(images),
+          req.body.description || '',
+          5.0,
+          0,
+          0,
+          req.body.isFlashSale || false,
+          req.body.flashSaleEnds || null,
+          'active',
+          JSON.stringify(req.body.sizes || []),
+          JSON.stringify(req.body.colors || [])
+        ]
+      );
+      res.json({ success: true, product: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const newProduct = {
+        id: 'p-' + Date.now(),
+        slug: (req.body.title || 'vendor-product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        rating: 5.0,
+        reviewsCount: 0,
+        totalSold: 0,
+        status: 'active',
+        vendorId: req.user?.vendorId || req.body.vendorId || 'v1',
+        vendorName: req.user?.name || req.body.vendorName || 'Vendor',
+        ...req.body,
+        images
+      };
+      db.products.unshift(newProduct);
+      saveDb(db);
+      res.json({ success: true, product: newProduct });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// General product CRUD (Requires either approved vendor or admin)
-app.post('/api/products', authMiddleware, (req, res, next) => {
-  return next();
-}, (req, res) => {
-  const db = getDb();
-  const rawImages = req.body.images;
-  const images = Array.isArray(rawImages) && rawImages.length > 0
-    ? rawImages
-    : typeof rawImages === 'string' && rawImages.trim()
-      ? [rawImages]
-      : req.body.image
-        ? [req.body.image]
-        : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
+// General product creation (Requires authorization)
+app.post('/api/products', authMiddleware, async (req, res) => {
+  try {
+    const rawImages = req.body.images;
+    const images = Array.isArray(rawImages) && rawImages.length > 0
+      ? rawImages
+      : typeof rawImages === 'string' && rawImages.trim()
+        ? [rawImages]
+        : req.body.image
+          ? [req.body.image]
+          : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
 
-  const newProduct = {
-    id: 'p-' + Date.now(),
-    slug: (req.body.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    rating: 5.0,
-    reviewsCount: 0,
-    totalSold: 0,
-    status: 'active',
-    ...req.body,
-    images
-  };
-  db.products.unshift(newProduct);
-  saveDb(db);
-  res.json({ success: true, product: newProduct });
+    if (isDbConfigured) {
+      const newId = 'p-' + Date.now();
+      const slug = (req.body.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
+      const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
+
+      const result = await pool.query(
+        `INSERT INTO products 
+         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+         RETURNING *`,
+        [
+          newId,
+          req.body.title,
+          slug,
+          Number(req.body.price),
+          req.body.discountPrice ? Number(req.body.discountPrice) : null,
+          Number(req.body.stock) || 0,
+          req.body.categoryId || null,
+          req.body.categoryName || null,
+          vendorId,
+          vendorName,
+          JSON.stringify(images),
+          req.body.description || '',
+          5.0,
+          0,
+          0,
+          req.body.isFlashSale || false,
+          req.body.flashSaleEnds || null,
+          'active',
+          JSON.stringify(req.body.sizes || []),
+          JSON.stringify(req.body.colors || [])
+        ]
+      );
+      res.json({ success: true, product: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const newProduct = {
+        id: 'p-' + Date.now(),
+        slug: (req.body.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        rating: 5.0,
+        reviewsCount: 0,
+        totalSold: 0,
+        status: 'active',
+        ...req.body,
+        images
+      };
+      db.products.unshift(newProduct);
+      saveDb(db);
+      res.json({ success: true, product: newProduct });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.put('/api/vendor/products/:id', authMiddleware, verifyVendor, (req, res) => {
-  const { id } = req.params;
-  const db = getDb();
-  const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
-  if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+// Helper for dynamic Postgres update
+const performProductUpdate = async (id: string, updateBody: any) => {
+  const fields = Object.keys(updateBody);
+  if (fields.length === 0) return null;
   
-  db.products[idx] = { ...db.products[idx], ...req.body };
-  saveDb(db);
-  res.json({ success: true, product: db.products[idx] });
-});
-
-app.put('/api/products/:id', authMiddleware, (req, res, next) => {
-  return next();
-}, (req, res) => {
-  const { id } = req.params;
-  const db = getDb();
-  const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
-  if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+  const setClause: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
   
-  db.products[idx] = { ...db.products[idx], ...req.body };
-  saveDb(db);
-  res.json({ success: true, product: db.products[idx] });
+  const columnMap: Record<string, string> = {
+    title: 'title',
+    price: 'price',
+    discountPrice: 'discount_price',
+    stock: 'stock',
+    categoryId: 'category_id',
+    categoryName: 'category_name',
+    images: 'images',
+    description: 'description',
+    rating: 'rating',
+    reviewsCount: 'reviews_count',
+    totalSold: 'total_sold',
+    isFlashSale: 'is_flash_sale',
+    flashSaleEnds: 'flash_sale_ends',
+    status: 'status',
+    sizes: 'sizes',
+    colors: 'colors'
+  };
+  
+  for (const key of fields) {
+    const colName = columnMap[key] || key;
+    let val = updateBody[key];
+    if (key === 'images' || key === 'sizes' || key === 'colors') {
+      val = JSON.stringify(val);
+    }
+    setClause.push(`${colName} = $${paramIndex}`);
+    values.push(val);
+    paramIndex++;
+  }
+  
+  values.push(id);
+  const query = `UPDATE products SET ${setClause.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+  const result = await pool.query(query, values);
+  return result.rows[0];
+};
+
+app.put('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const updated = await performProductUpdate(id, req.body);
+      if (!updated) return res.status(404).json({ error: 'Product not found' });
+      res.json({ success: true, product: updated });
+    } else {
+      const db = await getDb();
+      const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
+      if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+      
+      db.products[idx] = { ...db.products[idx], ...req.body };
+      saveDb(db);
+      res.json({ success: true, product: db.products[idx] });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/vendor/products/:id', authMiddleware, verifyVendor, (req, res) => {
-  const { id } = req.params;
-  const db = getDb();
-  const initialLen = db.products.length;
-  db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-  saveDb(db);
-  res.json({ success: true, deleted: initialLen !== db.products.length });
+app.put('/api/products/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const updated = await performProductUpdate(id, req.body);
+      if (!updated) return res.status(404).json({ error: 'Product not found' });
+      res.json({ success: true, product: updated });
+    } else {
+      const db = await getDb();
+      const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
+      if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+      
+      db.products[idx] = { ...db.products[idx], ...req.body };
+      saveDb(db);
+      res.json({ success: true, product: db.products[idx] });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.delete('/api/products/:id', authMiddleware, (req, res, next) => {
-  return next();
-}, (req, res) => {
-  const { id } = req.params;
-  const db = getDb();
-  const initialLen = db.products.length;
-  db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-  saveDb(db);
-  res.json({ success: true, deleted: initialLen !== db.products.length });
+app.delete('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+      res.json({ success: true, deleted: result.rowCount! > 0 });
+    } else {
+      const db = await getDb();
+      const initialLen = db.products.length;
+      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
+      saveDb(db);
+      res.json({ success: true, deleted: initialLen !== db.products.length });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/products/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+      res.json({ success: true, deleted: result.rowCount! > 0 });
+    } else {
+      const db = await getDb();
+      const initialLen = db.products.length;
+      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
+      saveDb(db);
+      res.json({ success: true, deleted: initialLen !== db.products.length });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Dedicated Vendor Withdrawal Request
-const handleWithdrawalCreate = (req: any, res: any) => {
-  const db = getDb();
-  const { vendorId, amount, bankDetails } = req.body;
-  const targetVendorId = req.user?.vendorId || vendorId;
-  const vendor = db.vendors.find((v: any) => v.id === targetVendorId);
-  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-  if (vendor.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
+const handleWithdrawalCreate = async (req: any, res: any) => {
+  try {
+    const { vendorId, amount, bankDetails } = req.body;
+    const targetVendorId = req.user?.vendorId || vendorId;
+    
+    if (isDbConfigured) {
+      const vRes = await pool.query('SELECT * FROM vendors WHERE id = $1', [targetVendorId]);
+      const vendor = vRes.rows[0];
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+      if (Number(vendor.balance) < Number(amount)) return res.status(400).json({ error: 'Insufficient balance' });
 
-  const newW = {
-    id: 'w-' + Date.now(),
-    vendorId: targetVendorId,
-    vendorName: vendor.storeName,
-    amount,
-    bankDetails,
-    status: 'pending',
-    requestedAt: new Date().toISOString()
-  };
-  db.withdrawals.unshift(newW);
-  saveDb(db);
-  res.json({ success: true, withdrawal: newW });
+      const newWId = 'w-' + Date.now();
+      const result = await pool.query(
+        'INSERT INTO withdrawals (id, vendor_id, vendor_name, amount, bank_details, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [newWId, targetVendorId, vendor.store_name, Number(amount), bankDetails, 'pending']
+      );
+      res.json({ success: true, withdrawal: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const vendor = db.vendors.find((v: any) => v.id === targetVendorId);
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+      if (vendor.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
+
+      const newW = {
+        id: 'w-' + Date.now(),
+        vendorId: targetVendorId,
+        vendorName: vendor.storeName,
+        amount,
+        bankDetails,
+        status: 'pending',
+        requestedAt: new Date().toISOString()
+      };
+      db.withdrawals.unshift(newW);
+      saveDb(db);
+      res.json({ success: true, withdrawal: newW });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 app.post('/api/vendor/withdrawals', authMiddleware, verifyVendor, handleWithdrawalCreate);
 app.post('/api/withdrawals', authMiddleware, verifyVendor, handleWithdrawalCreate);
 
 // Vendor Order status update
-const handleOrderStatusUpdate = (req: any, res: any) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const db = getDb();
-  const order = db.orders.find((o: any) => o.id === id);
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  
-  order.status = status;
-  saveDb(db);
-  res.json({ success: true, order });
+const handleOrderStatusUpdate = async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (isDbConfigured) {
+      const result = await pool.query(
+        'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+        [status, id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Order not found' });
+      res.json({ success: true, order: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const order = db.orders.find((o: any) => o.id === id);
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+      
+      order.status = status;
+      saveDb(db);
+      res.json({ success: true, order });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 app.patch('/api/vendor/orders/:id/status', authMiddleware, verifyVendor, handleOrderStatusUpdate);
@@ -823,192 +1684,430 @@ app.patch('/api/orders/:id/status', (req: any, res: any, next: any) => {
 // --- Persistent Shopping Cart Routes ---
 
 // 1. Get User Cart
-app.get('/api/cart', authMiddleware, (req, res) => {
-  const db = getDb();
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  
-  const userCart = db.cartItems.filter(item => item.userId === userId);
-  res.json({ success: true, cart: userCart });
+app.get('/api/cart', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    if (isDbConfigured) {
+      const result = await pool.query('SELECT * FROM cart WHERE user_id = $1', [userId]);
+      const cart = result.rows.map(item => ({
+        userId: item.user_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        addedAt: item.added_at
+      }));
+      res.json({ success: true, cart });
+    } else {
+      const db = await getDb();
+      const userCart = db.cartItems.filter(item => item.userId === userId);
+      res.json({ success: true, cart: userCart });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // 2. Add / Update Cart Item
-app.post('/api/cart', authMiddleware, (req, res) => {
-  const db = getDb();
-  const userId = req.user?.id;
-  const { productId, quantity, size, color } = req.body;
-  
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  
-  const existingIdx = db.cartItems.findIndex(item => 
-    item.userId === userId && 
-    item.productId === productId && 
-    item.size === size && 
-    item.color === color
-  );
-  
-  if (existingIdx > -1) {
-    db.cartItems[existingIdx].quantity += (quantity || 1);
-  } else {
-    db.cartItems.push({
-      userId,
-      productId,
-      quantity: quantity || 1,
-      size,
-      color,
-      addedAt: new Date().toISOString()
-    });
-  }
-  
-  saveDb(db);
-  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
-});
-
-// 3. Sync Full Cart (Migration from localStorage to DB on login)
-app.post('/api/cart/sync', authMiddleware, (req, res) => {
-  const db = getDb();
-  const userId = req.user?.id;
-  const { items } = req.body; 
-  
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  
-  if (Array.isArray(items)) {
-    items.forEach((newItem: any) => {
+app.post('/api/cart', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { productId, quantity, size = '', color = '' } = req.body;
+    
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    if (isDbConfigured) {
+      const checkRes = await pool.query(
+        'SELECT * FROM cart WHERE user_id = $1 AND product_id = $2 AND size = $3 AND color = $4',
+        [userId, productId, size, color]
+      );
+      
+      if (checkRes.rowCount! > 0) {
+        await pool.query(
+          'UPDATE cart SET quantity = quantity + $1 WHERE user_id = $2 AND product_id = $3 AND size = $4 AND color = $5',
+          [quantity || 1, userId, productId, size, color]
+        );
+      } else {
+        await pool.query(
+          'INSERT INTO cart (user_id, product_id, quantity, size, color) VALUES ($1, $2, $3, $4, $5)',
+          [userId, productId, quantity || 1, size, color]
+        );
+      }
+      
+      const fullCartRes = await pool.query('SELECT * FROM cart WHERE user_id = $1', [userId]);
+      const cart = fullCartRes.rows.map(item => ({
+        userId: item.user_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        addedAt: item.added_at
+      }));
+      res.json({ success: true, cart });
+    } else {
+      const db = await getDb();
       const existingIdx = db.cartItems.findIndex(item => 
         item.userId === userId && 
-        item.productId === newItem.productId && 
-        item.size === newItem.size && 
-        item.color === newItem.color
+        item.productId === productId && 
+        item.size === size && 
+        item.color === color
       );
       
       if (existingIdx > -1) {
-        db.cartItems[existingIdx].quantity = Math.max(db.cartItems[existingIdx].quantity, newItem.quantity);
+        db.cartItems[existingIdx].quantity += (quantity || 1);
       } else {
         db.cartItems.push({
           userId,
-          productId: newItem.productId,
-          quantity: newItem.quantity,
-          size: newItem.size,
-          color: newItem.color,
-          addedAt: newItem.addedAt || new Date().toISOString()
+          productId,
+          quantity: quantity || 1,
+          size,
+          color,
+          addedAt: new Date().toISOString()
         });
       }
-    });
+      
+      saveDb(db);
+      res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-  
-  saveDb(db);
-  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+});
+
+// 3. Sync Full Cart (Migration from localStorage to DB on login)
+app.post('/api/cart/sync', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { items } = req.body; 
+    
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    if (isDbConfigured) {
+      if (Array.isArray(items)) {
+        for (const newItem of items) {
+          const size = newItem.size || '';
+          const color = newItem.color || '';
+          const quantity = newItem.quantity || 1;
+          const productId = newItem.productId;
+          
+          const checkRes = await pool.query(
+            'SELECT * FROM cart WHERE user_id = $1 AND product_id = $2 AND size = $3 AND color = $4',
+            [userId, productId, size, color]
+          );
+          
+          if (checkRes.rowCount! > 0) {
+            await pool.query(
+              'UPDATE cart SET quantity = GREATEST(quantity, $1) WHERE user_id = $2 AND product_id = $3 AND size = $4 AND color = $5',
+              [quantity, userId, productId, size, color]
+            );
+          } else {
+            await pool.query(
+              'INSERT INTO cart (user_id, product_id, quantity, size, color) VALUES ($1, $2, $3, $4, $5)',
+              [userId, productId, quantity, size, color]
+            );
+          }
+        }
+      }
+      
+      const fullCartRes = await pool.query('SELECT * FROM cart WHERE user_id = $1', [userId]);
+      const cart = fullCartRes.rows.map(item => ({
+        userId: item.user_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        addedAt: item.added_at
+      }));
+      res.json({ success: true, cart });
+    } else {
+      const db = await getDb();
+      if (Array.isArray(items)) {
+        items.forEach((newItem: any) => {
+          const existingIdx = db.cartItems.findIndex(item => 
+            item.userId === userId && 
+            item.productId === newItem.productId && 
+            item.size === newItem.size && 
+            item.color === newItem.color
+          );
+          
+          if (existingIdx > -1) {
+            db.cartItems[existingIdx].quantity = Math.max(db.cartItems[existingIdx].quantity, newItem.quantity);
+          } else {
+            db.cartItems.push({
+              userId,
+              productId: newItem.productId,
+              quantity: newItem.quantity,
+              size: newItem.size,
+              color: newItem.color,
+              addedAt: newItem.addedAt || new Date().toISOString()
+            });
+          }
+        });
+      }
+      
+      saveDb(db);
+      res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // 4. Remove Item from Cart
-app.delete('/api/cart', authMiddleware, (req, res) => {
-  const db = getDb();
-  const userId = req.user?.id;
-  const { productId, size, color } = req.body;
-  
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  
-  db.cartItems = db.cartItems.filter(item => 
-    !(item.userId === userId && 
-      item.productId === productId && 
-      item.size === size && 
-      item.color === color)
-  );
-  
-  saveDb(db);
-  res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
-});
-
-// Order creation & status update
-app.post('/api/orders', (req, res) => {
-  const db = getDb();
-  const newOrder = {
-    id: 'ord-' + Math.floor(1000 + Math.random() * 9000),
-    status: 'processing',
-    paymentStatus: req.body.paymentMethod === 'Cash on Delivery' ? 'pending' : 'paid',
-    createdAt: new Date().toISOString(),
-    ...req.body
-  };
-  db.orders.unshift(newOrder);
-
-  // Update vendor balances & total sales
-  newOrder.items.forEach((item: any) => {
-    const vendor = db.vendors.find((v: any) => v.id === item.vendorId);
-    if (vendor) {
-      const itemTotal = item.price * item.quantity;
-      const commission = itemTotal * ((vendor.commissionRate || 10) / 100);
-      vendor.balance += (itemTotal - commission);
-      vendor.totalSales += itemTotal;
+app.delete('/api/cart', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { productId, size = '', color = '' } = req.body;
+    
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    if (isDbConfigured) {
+      await pool.query(
+        'DELETE FROM cart WHERE user_id = $1 AND product_id = $2 AND size = $3 AND color = $4',
+        [userId, productId, size, color]
+      );
+      
+      const fullCartRes = await pool.query('SELECT * FROM cart WHERE user_id = $1', [userId]);
+      const cart = fullCartRes.rows.map(item => ({
+        userId: item.user_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        addedAt: item.added_at
+      }));
+      res.json({ success: true, cart });
+    } else {
+      const db = await getDb();
+      db.cartItems = db.cartItems.filter(item => 
+        !(item.userId === userId && 
+          item.productId === productId && 
+          item.size === size && 
+          item.color === color)
+      );
+      
+      saveDb(db);
+      res.json({ success: true, cart: db.cartItems.filter(item => item.userId === userId) });
     }
-  });
-
-  saveDb(db);
-  res.json({ success: true, order: newOrder });
-});
-
-// Withdrawal requests
-app.post('/api/withdrawals', (req, res) => {
-  const db = getDb();
-  const { vendorId, amount, bankDetails } = req.body;
-  const vendor = db.vendors.find((v: any) => v.id === vendorId);
-  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-  if (vendor.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
-
-  const newW = {
-    id: 'w-' + Date.now(),
-    vendorId,
-    vendorName: vendor.storeName,
-    amount,
-    bankDetails,
-    status: 'pending',
-    requestedAt: new Date().toISOString()
-  };
-  db.withdrawals.unshift(newW);
-  saveDb(db);
-  res.json({ success: true, withdrawal: newW });
-});
-
-app.patch('/api/withdrawals/:id/status', (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body; // approved, rejected
-  const db = getDb();
-  const w = db.withdrawals.find((item: any) => item.id === id);
-  if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
-
-  if (w.status === 'pending' && status === 'approved') {
-    const vendor = db.vendors.find((v: any) => v.id === w.vendorId);
-    if (vendor) {
-      vendor.balance -= w.amount;
-    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
+});
 
-  w.status = status;
-  w.processedAt = new Date().toISOString();
-  saveDb(db);
-  res.json({ success: true, withdrawal: w });
+// Order creation
+app.post('/api/orders', async (req, res) => {
+  try {
+    const orderId = 'ord-' + Math.floor(1000 + Math.random() * 9000);
+    const status = 'processing';
+    const paymentStatus = req.body.paymentMethod === 'Cash on Delivery' ? 'pending' : 'paid';
+    const items = req.body.items || [];
+    
+    if (isDbConfigured) {
+      const result = await pool.query(
+        `INSERT INTO orders 
+         (id, status, payment_status, payment_method, total_amount, items, customer_id, customer_name, customer_email, address, phone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [
+          orderId,
+          status,
+          paymentStatus,
+          req.body.paymentMethod,
+          Number(req.body.totalAmount),
+          JSON.stringify(items),
+          req.body.customerId || null,
+          req.body.customerName || null,
+          req.body.customerEmail || null,
+          req.body.shippingAddress || req.body.address || null,
+          req.body.customerPhone || req.body.phone || null
+        ]
+      );
+      
+      // Update vendor balances & total sales
+      for (const item of items) {
+        const vendorId = item.vendorId;
+        if (vendorId) {
+          const itemTotal = Number(item.price) * Number(item.quantity);
+          const vRes = await pool.query('SELECT commission_rate FROM vendors WHERE id = $1', [vendorId]);
+          const commissionRate = vRes.rows[0]?.commission_rate || 10;
+          const commission = itemTotal * (Number(commissionRate) / 100);
+          
+          await pool.query(
+            'UPDATE vendors SET balance = balance + $1, total_sales = total_sales + $2 WHERE id = $3',
+            [itemTotal - commission, itemTotal, vendorId]
+          );
+        }
+      }
+      
+      res.json({ success: true, order: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const newOrder = {
+        id: orderId,
+        status,
+        paymentStatus,
+        createdAt: new Date().toISOString(),
+        ...req.body
+      };
+      db.orders.unshift(newOrder);
+
+      // Update vendor balances & total sales offline
+      newOrder.items.forEach((item: any) => {
+        const vendor = db.vendors.find((v: any) => v.id === item.vendorId);
+        if (vendor) {
+          const itemTotal = item.price * item.quantity;
+          const commission = itemTotal * ((vendor.commissionRate || 10) / 100);
+          vendor.balance += (itemTotal - commission);
+          vendor.totalSales += itemTotal;
+        }
+      });
+
+      saveDb(db);
+      res.json({ success: true, order: newOrder });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Direct SQL Withdrawal requests endpoint
+app.post('/api/withdrawals', async (req, res) => {
+  try {
+    const { vendorId, amount, bankDetails } = req.body;
+    
+    if (isDbConfigured) {
+      const vRes = await pool.query('SELECT * FROM vendors WHERE id = $1', [vendorId]);
+      const vendor = vRes.rows[0];
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+      if (Number(vendor.balance) < Number(amount)) return res.status(400).json({ error: 'Insufficient balance' });
+
+      const newWId = 'w-' + Date.now();
+      const result = await pool.query(
+        'INSERT INTO withdrawals (id, vendor_id, vendor_name, amount, bank_details, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [newWId, vendorId, vendor.store_name, Number(amount), bankDetails, 'pending']
+      );
+      res.json({ success: true, withdrawal: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const vendor = db.vendors.find((v: any) => v.id === vendorId);
+      if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+      if (vendor.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
+
+      const newW = {
+        id: 'w-' + Date.now(),
+        vendorId,
+        vendorName: vendor.storeName,
+        amount,
+        bankDetails,
+        status: 'pending',
+        requestedAt: new Date().toISOString()
+      };
+      db.withdrawals.unshift(newW);
+      saveDb(db);
+      res.json({ success: true, withdrawal: newW });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/withdrawals/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // approved, rejected
+    
+    if (isDbConfigured) {
+      const wRes = await pool.query('SELECT * FROM withdrawals WHERE id = $1', [id]);
+      const w = wRes.rows[0];
+      if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
+
+      if (w.status === 'pending' && status === 'approved') {
+        await pool.query(
+          'UPDATE vendors SET balance = balance - $1 WHERE id = $2',
+          [Number(w.amount), w.vendor_id]
+        );
+      }
+
+      const result = await pool.query(
+        "UPDATE withdrawals SET status = $1, processed_at = NOW() WHERE id = $2 RETURNING *",
+        [status, id]
+      );
+      res.json({ success: true, withdrawal: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const w = db.withdrawals.find((item: any) => item.id === id);
+      if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
+
+      if (w.status === 'pending' && status === 'approved') {
+        const vendor = db.vendors.find((v: any) => v.id === w.vendorId);
+        if (vendor) {
+          vendor.balance -= w.amount;
+        }
+      }
+
+      w.status = status;
+      w.processedAt = new Date().toISOString();
+      saveDb(db);
+      res.json({ success: true, withdrawal: w });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Reviews
-app.post('/api/reviews', (req, res) => {
-  const db = getDb();
-  const newReview = {
-    id: 'r-' + Date.now(),
-    date: new Date().toISOString().split('T')[0],
-    ...req.body
-  };
-  db.reviews.unshift(newReview);
-  
-  // Update product rating
-  const prodReviews = db.reviews.filter((r: any) => r.productId === newReview.productId);
-  const avgRating = prodReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / prodReviews.length;
-  const product = db.products.find((p: any) => p.id === newReview.productId);
-  if (product) {
-    product.rating = parseFloat(avgRating.toFixed(1));
-    product.reviewsCount = prodReviews.length;
-  }
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { productId, customerName, rating, comment } = req.body;
+    
+    if (isDbConfigured) {
+      const reviewId = 'r-' + Date.now();
+      const dateStr = new Date().toISOString().split('T')[0];
 
-  saveDb(db);
-  res.json({ success: true, review: newReview });
+      const result = await pool.query(
+        'INSERT INTO reviews (id, product_id, customer_name, rating, comment, date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [reviewId, productId, customerName, Number(rating), comment, dateStr]
+      );
+
+      // Recalculate average rating for product
+      const statsRes = await pool.query(
+        'SELECT COUNT(*) as count, AVG(rating) as avg_rating FROM reviews WHERE product_id = $1',
+        [productId]
+      );
+      const count = parseInt(statsRes.rows[0].count || '0');
+      const avgRating = Number(statsRes.rows[0].avg_rating || 5);
+
+      await pool.query(
+        'UPDATE products SET rating = $1, reviews_count = $2 WHERE id = $3',
+        [parseFloat(avgRating.toFixed(1)), count, productId]
+      );
+
+      res.json({ success: true, review: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const newReview = {
+        id: 'r-' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        ...req.body
+      };
+      db.reviews.unshift(newReview);
+      
+      const prodReviews = db.reviews.filter((r: any) => r.productId === newReview.productId);
+      const avgRating = prodReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / prodReviews.length;
+      const product = db.products.find((p: any) => p.id === newReview.productId);
+      if (product) {
+        product.rating = parseFloat(avgRating.toFixed(1));
+        product.reviewsCount = prodReviews.length;
+      }
+
+      saveDb(db);
+      res.json({ success: true, review: newReview });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // --- AI Endpoints using @google/genai ---
@@ -1045,21 +2144,17 @@ app.post('/api/ai/generate-description', async (req, res) => {
 app.post('/api/ai/shopping-assistant', async (req, res) => {
   const { message, productsContext = [] } = req.body;
   
-  // Helper to generate smart catalog-based reply
   const getSmartReply = (query: string) => {
     const q = query.toLowerCase();
     
-    // Check if asking for Bengali
     if (q.includes('bangla') || q.includes('বাংলা') || q.includes('bangle') || q.includes('বাংলায়')) {
       return `অবশ্যই! আমি এখন থেকে আপনার সাথে বাংলায় কথা বলব। BazaarPulse-এ আপনাকে স্বাগতম! বলুন, হেডফোন, স্মার্টওয়াচ, পাঞ্জাবি বা অন্য কোনো পণ্য সম্পর্কে জানতে চান?`;
     }
 
-    // Check if greeting
     if (q.includes('hello') || q.includes('hi') || q.includes('salam') || q.includes('assalamu') || q.includes('hey') || q.includes('কেমন') || q.includes('as-salamu')) {
       return `ওয়ালাইকুম আসসালাম / নমস্কার! BazaarPulse-এ আপনাকে স্বাগতম। 😊 আজ আপনাকে কোন পণ্য খুঁজে পেতে সাহায্য করতে পারি? (যেমন: হেডফোন, স্মার্টওয়াচ, পাঞ্জাবি ইত্যাদি)`;
     }
 
-    // Keyword matching for products
     let matches = productsContext.filter((p: any) => {
       const title = p.title.toLowerCase();
       const cat = (p.categoryName || '').toLowerCase();
@@ -1085,7 +2180,6 @@ app.post('/api/ai/shopping-assistant', async (req, res) => {
       return reply;
     }
 
-    // General fallback
     const featured = productsContext.slice(0, 3);
     let reply = `আমি আপনার প্রশ্নটি বুঝতে পেরেছি। BazaarPulse-এ আমাদের জনপ্রিয় কিছু পণ্য দেখে নিতে পারেন:\n\n`;
     featured.forEach((p: any) => {
@@ -1134,17 +2228,13 @@ if (isDev) {
   });
   app.use(vite.middlewares);
 } else {
-  // Vite/React build output directory
   const distPath = fs.existsSync(path.resolve(__dirname, 'dist'))
     ? path.resolve(__dirname, 'dist')
     : path.resolve(process.cwd(), 'dist');
 
-  // 1. Serve static files from the Vite/React build directory ('dist') using express.static
   app.use(express.static(distPath));
 
-  // 2. Catch-all route to serve 'index.html' for any frontend route (SPA routing & page refreshes)
   app.get('*', (req, res) => {
-    // Avoid intercepting unmatched API calls
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ error: 'API route not found', path: req.path });
     }
@@ -1157,8 +2247,8 @@ if (isDev) {
   });
 }
 
-// 3. Ensure Express listens correctly on process.env.PORT || 3000 for Render deployment
-const PORT = process.env.PORT || 3000;
+// 5. Proper error handling and server startup listening on process.env.PORT or port 5000
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
