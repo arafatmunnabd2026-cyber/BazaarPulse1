@@ -66,7 +66,6 @@ export default function App() {
 
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'quick_roles' | 'security_test'>('login');
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
@@ -736,6 +735,7 @@ function CustomerView({
   navigateTo: (path: string) => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
