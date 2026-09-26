@@ -318,183 +318,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Production Top Platform Navigation Bar (Role-Conditioned, Zero Dev Toggles) */}
-      <div className="bg-slate-950 text-white text-xs py-2 px-4 shadow-md sticky top-0 z-40 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Brand Info */}
-          <div className="flex items-center gap-3">
-            <span className="bg-orange-500 text-white font-black px-2 py-0.5 rounded text-xs tracking-wider">
-              BAZAARPULSE
-            </span>
-            <span className="text-slate-400 hidden md:inline text-[11px]">
-              Multi-Vendor Marketplace Platform
-            </span>
-            <span className="text-slate-600 hidden md:inline">|</span>
-            {/* User Profile Avatar & Dropdown */}
-            {authUser ? (
-              <div className="relative">
-                <button
-                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                  className="flex items-center gap-2 hover:bg-slate-900/50 p-1 rounded-full transition-all border border-slate-800"
-                >
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center">
-                    {authUser.avatar ? (
-                      <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-4 h-4 text-slate-400" />
-                    )}
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-200 hidden sm:inline max-w-[100px] truncate">
-                    {authUser.name}
-                  </span>
-                  <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                <AnimatePresence>
-                  {isProfileDropdownOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-40" 
-                        onClick={() => setIsProfileDropdownOpen(false)} 
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                      >
-                        <div className="p-4 border-b border-slate-800 bg-slate-950/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500/30">
-                              {authUser.avatar ? (
-                                <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                                  <User className="w-5 h-5 text-slate-400" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-white truncate">{authUser.name}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{authUser.email}</p>
-                            </div>
-                          </div>
-                          <div className="mt-3">
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                              authUser.role === 'admin' ? 'bg-purple-900/40 text-purple-400 border-purple-500/30' :
-                              authUser.role === 'vendor' ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30' :
-                              'bg-blue-900/40 text-blue-400 border-blue-500/30'
-                            }`}>
-                              {authUser.role} {authUser.status !== 'active' ? `(${authUser.status})` : ''}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="p-2">
-                          <button
-                            onClick={() => {
-                              handleLogout();
-                              setIsProfileDropdownOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>Sign Out</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <span className="bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-                <span>Guest User</span>
-              </span>
-            )}
-          </div>
-
-          {/* Dynamic Role-Based Links */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* 1. Admin Links (Visible ONLY to Admins) */}
-            {authUser?.role === 'admin' && (
-              <>
-                <button
-                  onClick={() => navigateTo('/admin')}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-                    currentPath === '/admin'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'bg-slate-800 text-purple-300 hover:bg-slate-700 border border-purple-500/30'
-                  }`}
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Admin Control Center</span>
-                </button>
-                <button
-                  onClick={() => navigateTo('/')}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-                    currentPath === '/'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
-                  }`}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>View Storefront</span>
-                </button>
-              </>
-            )}
-
-            {/* 2. Vendor Links (Visible ONLY to Approved Vendors) */}
-            {authUser?.role === 'vendor' && (
-              <>
-                <button
-                  onClick={() => navigateTo('/vendor')}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-                    currentPath === '/vendor'
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'bg-slate-800 text-emerald-300 hover:bg-slate-700 border border-emerald-500/30'
-                  }`}
-                >
-                  <Store className="w-3.5 h-3.5" />
-                  <span>Vendor Dashboard</span>
-                </button>
-                <button
-                  onClick={() => navigateTo('/')}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
-                    currentPath === '/'
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
-                  }`}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>View Storefront</span>
-                </button>
-              </>
-            )}
-
-            {/* 3. Customer Links (Visible to Customers) - No Admin or Vendor Links */}
-            {authUser?.role === 'customer' && (
-              <>
-                <button
-                  onClick={() => navigateTo('/')}
-                  className="px-3 py-1 rounded-lg font-bold text-xs bg-orange-600 text-white flex items-center gap-1.5 shadow"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Customer Store</span>
-                </button>
-              </>
-            )}
-
-            {/* 4. Guest Links */}
-            {!authUser && (
-              null
-            )}
-
-            {/* Security Audit & Penetration Inspector */}
-          </div>
-        </div>
-      </div>
-
       {/* Protected Routes & Dynamic View Rendering */}
       {currentPath === '/' && (
         <CustomerView 
@@ -583,6 +406,121 @@ export default function App() {
           notify={notify}
         />
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// HERO SLIDER COMPONENT
+// ==========================================
+function HeroSlider({ banners }: { banners: any[] }) {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!banners || banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners]);
+
+  if (!banners || banners.length === 0) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 mt-4">
+      <div className="relative rounded-2xl overflow-hidden h-[220px] md:h-[280px] shadow-lg bg-slate-900 group">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0"
+          >
+            {/* Background Image with Overlay */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] group-hover:scale-110" 
+              style={{ backgroundImage: `url(${banners[current].image})` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/60 to-transparent" />
+            </div>
+
+            {/* Content */}
+            <div className="relative h-full flex flex-col justify-center px-8 md:px-16 max-w-2xl text-white">
+              <motion.span 
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-[#f85606] text-white text-[9px] md:text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider w-fit"
+              >
+                {banners[current].badge || 'Exclusive Offer'}
+              </motion.span>
+              <motion.h1 
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl md:text-3xl font-black mt-4 leading-tight tracking-tighter"
+              >
+                {banners[current].title}
+              </motion.h1>
+              <motion.p 
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-slate-200 mt-3 text-xs md:text-sm max-w-lg line-clamp-2 font-medium"
+              >
+                {banners[current].subtitle}
+              </motion.p>
+              <motion.div 
+                initial={{ y: 15, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-6"
+              >
+                <a 
+                  href={banners[current].link || '#'} 
+                  className="bg-[#f85606] hover:bg-[#e04d05] text-white font-bold px-8 py-2.5 rounded-xl shadow-xl transition-all inline-flex items-center gap-2 text-[11px] md:text-xs hover:scale-105 active:scale-95"
+                >
+                  Shop Now <ArrowRight className="w-4 h-4" />
+                </a>
+              </motion.div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Dots */}
+        {banners.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`h-1 transition-all rounded-full ${current === i ? 'w-6 bg-[#f85606]' : 'w-1.5 bg-white/40 hover:bg-white/60'}`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Arrows */}
+        {banners.length > 1 && (
+          <>
+            <button 
+              onClick={() => setCurrent((prev) => (prev - 1 + banners.length) % banners.length)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </button>
+            <button 
+              onClick={() => setCurrent((prev) => (prev + 1) % banners.length)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -911,67 +849,13 @@ function CustomerView({
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
-      {/* 1. Top Utility Bar (Orange Theme) */}
-      <div className="bg-[#f85606] text-white text-[11px] font-medium py-1.5 px-4 hidden sm:block">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <span className="cursor-pointer hover:underline">SAVE MORE ON APP</span>
-            <span 
-              className="cursor-pointer hover:underline font-bold" 
-              onClick={() => {
-                if (authUser?.role === 'vendor' && authUser?.status === 'approved') {
-                  navigateTo('/vendor');
-                } else {
-                  onOpenLogin();
-                }
-              }}
-            >
-              BECOME A SELLER
-            </span>
-            <span className="cursor-pointer hover:underline">HELP & SUPPORT</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {authUser ? (
-              <div className="flex items-center gap-3">
-                {/* No user display */}
-                
-                {authUser.role === 'admin' && (
-                  <button 
-                    onClick={() => navigateTo('/admin')} 
-                    className="bg-slate-900 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] hover:bg-black transition-colors"
-                  >
-                    🛡️ Admin Console
-                  </button>
-                )}
-
-                {authUser.role === 'vendor' && (
-                  <button 
-                    onClick={() => navigateTo('/vendor')} 
-                    className="bg-emerald-800 text-white font-bold px-2 py-0.5 rounded text-[10px] hover:bg-emerald-900 transition-colors"
-                  >
-                    🏪 Seller Dashboard
-                  </button>
-                )}
-
-                <button 
-                  onClick={onLogout} 
-                  className="hover:underline font-bold text-red-100 hover:text-white flex items-center gap-1 ml-1"
-                >
-                  <LogOut className="w-3 h-3" /> LOGOUT
-                </button>
-              </div>
-            ) : null}
-            <span>|</span>
-            <span className="cursor-pointer hover:underline">🌐 BD / EN</span>
-          </div>
-        </div>
-      </div>
-
       {/* 2. Main Header & Search Bar */}
-      <header className="bg-white shadow-sm sticky top-0 sm:top-[33px] z-30">
+      <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
+            <button className="p-2 -ml-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+              <Menu className="w-6 h-6" />
+            </button>
             <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1 cursor-pointer" onClick={() => navigateTo('/')}>
               <ShoppingBag className="w-7 h-7" />
               <span>BazaarPulse</span>
@@ -1031,28 +915,8 @@ function CustomerView({
         </div>
       </header>
 
-      {/* 3. Hero Banner Section */}
-      <div className="max-w-7xl mx-auto px-4 mt-4">
-        <div className="relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 via-orange-950 to-slate-950 text-white p-8 md:p-12 shadow-md flex flex-col justify-center min-h-[320px]">
-          <div className="absolute right-0 top-0 w-1/2 h-full opacity-30 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${data.adminSettings?.banners?.[0]?.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200'})` }}></div>
-          <div className="relative z-10 max-w-xl">
-            <span className="bg-[#f85606] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Mega Campaign 2026
-            </span>
-            <h1 className="text-3xl md:text-4xl font-extrabold mt-3 tracking-tight">
-              {data.adminSettings.heroBannerTitle}
-            </h1>
-            <p className="text-gray-300 mt-2 text-sm md:text-base">
-              {data.adminSettings.heroBannerSubtitle}
-            </p>
-            <div className="mt-6 flex items-center gap-4">
-              <a href="#products-section" className="bg-[#f85606] hover:bg-[#e04d05] text-white font-semibold px-6 py-2.5 rounded-lg shadow transition-all flex items-center gap-2 text-sm">
-                Shop Now <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 3. Hero Banner Slider Section */}
+      <HeroSlider banners={data.adminSettings.banners} />
 
       {/* 4. Promotional Campaign Strip */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
@@ -2833,13 +2697,121 @@ function AdminControlCenter({
 
         {/* Settings Tab */}
         {adminTab === 'settings' && (
-          <div className="mt-6 space-y-6 max-w-2xl">
+          <div className="mt-6 space-y-6 max-w-4xl">
+            {/* Dynamic Hero Banners Management */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-lg mb-4">Platform Settings & Commission</h3>
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#f85606]" /> Dynamic Hero Banners (Max 10)
+              </h3>
+              
+              <div className="space-y-6">
+                {/* List of existing banners */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(data.adminSettings.banners || []).map((banner: any, idx: number) => (
+                    <div key={banner.id} className="relative p-4 rounded-xl border border-slate-200 bg-slate-50 group overflow-hidden shadow-sm">
+                      <img src={banner.image} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none" />
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">Banner {idx + 1}</span>
+                          <button 
+                            onClick={async () => {
+                              if (!confirm('Remove this banner from homepage?')) return;
+                              const updatedBanners = data.adminSettings.banners.filter((b: any) => b.id !== banner.id);
+                              try {
+                                const res = await fetch('/api/admin/settings', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                                  body: JSON.stringify({ banners: updatedBanners })
+                                });
+                                if (res.ok) { notify('🗑️ Banner removed successfully!'); refreshData(); }
+                              } catch (e) { notify('Failed to remove banner'); }
+                            }}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{banner.title}</h4>
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{banner.subtitle}</p>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-400 truncate flex-1">{banner.link}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add New Banner Form */}
+                {(data.adminSettings.banners || []).length < 10 && (
+                  <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-sm">
+                        +
+                      </div>
+                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Add New Hero Banner</h4>
+                    </div>
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.currentTarget;
+                      const newBanner = {
+                        id: 'b-' + Date.now(),
+                        badge: (form.elements.namedItem('badge') as HTMLInputElement).value,
+                        title: (form.elements.namedItem('title') as HTMLInputElement).value,
+                        subtitle: (form.elements.namedItem('subtitle') as HTMLInputElement).value,
+                        image: (form.elements.namedItem('image') as HTMLInputElement).value,
+                        link: (form.elements.namedItem('link') as HTMLInputElement).value,
+                      };
+                      
+                      const updatedBanners = [...(data.adminSettings.banners || []), newBanner];
+                      try {
+                        const res = await fetch('/api/admin/settings', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                          body: JSON.stringify({ banners: updatedBanners })
+                        });
+                        if (res.ok) { 
+                          notify('✨ New banner published to homepage!'); 
+                          form.reset();
+                          refreshData(); 
+                        }
+                      } catch (e) { notify('Failed to add banner'); }
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Badge Text</label>
+                          <input name="badge" placeholder="e.g. LIMITED TIME" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Button Link</label>
+                          <input name="link" placeholder="e.g. #flash-sale" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Main Heading</label>
+                        <input name="title" placeholder="e.g. Eid Mega Flash Sale 2026" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Description / Subtitle</label>
+                        <textarea name="subtitle" placeholder="Enter short banner description..." className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required rows={2}></textarea>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Background Image URL</label>
+                        <input name="image" placeholder="https://images.unsplash.com/..." className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono" required />
+                      </div>
+                      <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-xl text-xs uppercase shadow-xl transition-all hover:scale-[1.01] active:scale-95">
+                        Publish Banner to Storefront
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-lg mb-4">Platform Commission Settings</h3>
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 const newRate = parseFloat((e.currentTarget.elements.namedItem('commissionRate') as HTMLInputElement).value);
-                const title = (e.currentTarget.elements.namedItem('bannerTitle') as HTMLInputElement).value;
                 
                 try {
                   const res = await fetch('/api/admin/settings', {
@@ -2849,17 +2821,13 @@ function AdminControlCenter({
                       'Authorization': authToken ? `Bearer ${authToken}` : ''
                     },
                     body: JSON.stringify({
-                      globalCommissionRate: newRate,
-                      heroBannerTitle: title
+                      globalCommissionRate: newRate
                     })
                   });
-                  const json = await res.json();
-                  if (res.status === 403 || res.status === 401) {
-                    notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
-                    return;
+                  if (res.ok) {
+                    notify('✅ Global commission updated!');
+                    refreshData();
                   }
-                  notify('Settings updated successfully');
-                  refreshData();
                 } catch (err) {
                   notify('Failed to update settings');
                 }
@@ -2870,25 +2838,15 @@ function AdminControlCenter({
                     name="commissionRate"
                     type="number"
                     defaultValue={data.adminSettings.globalCommissionRate}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Hero Banner Campaign Title</label>
-                  <input
-                    name="bannerTitle"
-                    type="text"
-                    defaultValue={data.adminSettings.heroBannerTitle}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl shadow transition-all text-sm"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-xl shadow transition-all text-sm"
                 >
-                  Save Platform Settings
+                  Save Commission Rate
                 </button>
               </form>
             </div>

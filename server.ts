@@ -50,7 +50,7 @@ interface InitialData {
       buttonBgColor?: string;
       buttonTextColor?: string;
     };
-    banners: { id: string; title: string; subtitle: string; image: string; link: string }[];
+    banners: { id: string; title: string; subtitle: string; image: string; link: string; badge?: string }[];
     maintenanceMode: boolean;
   };
   reviews: any[];
@@ -306,8 +306,9 @@ const defaultData: InitialData = {
       buttonTextColor: '#111827'
     },
     banners: [
-      { id: 'b1', title: 'Eid Mega Bazaar', subtitle: 'Up to 70% Off on Electronics & Fashion', image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200', link: '#flash-sale' },
-      { id: 'b2', title: 'Gadget Fest 2026', subtitle: 'Latest Smartphones & Smartwatches with official warranty', image: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=1200', link: '#electronics' }
+      { id: 'b1', badge: 'Mega Campaign 2026', title: 'Eid Mega Bazaar & Flash Sale', subtitle: 'Discover top local and international brands with up to 70% off + Free Shipping', image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200', link: '#flash-sale' },
+      { id: 'b2', badge: 'New Arrival', title: 'Gadget Fest 2026', subtitle: 'Latest Smartphones & Smartwatches with official warranty and easy monthly installments.', image: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=1200', link: '#electronics' },
+      { id: 'b3', badge: 'Fashion Week', title: 'Urban Chic Summer Collection', subtitle: 'Stay cool and stylish this summer with our premium cotton collection for men and women.', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200', link: '#fashion' }
     ],
     maintenanceMode: false
   },
