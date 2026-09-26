@@ -1013,18 +1013,6 @@ app.post('/api/orders', (req, res) => {
   res.json({ success: true, order: newOrder });
 });
 
-app.patch('/api/orders/:id/status', (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const db = getDb();
-  const order = db.orders.find((o: any) => o.id === id);
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  
-  order.status = status;
-  saveDb(db);
-  res.json({ success: true, order });
-});
-
 // Withdrawal requests
 app.post('/api/withdrawals', (req, res) => {
   const db = getDb();
