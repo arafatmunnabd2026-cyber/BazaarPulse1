@@ -936,6 +936,14 @@ function CustomerView({
     }
   }, [authUser]);
 
+  // Clear cart state and localStorage if no user is authenticated (guest session)
+  useEffect(() => {
+    if (!authUser) {
+      setCart([]);
+      localStorage.removeItem('bazaarpulse_cart');
+    }
+  }, [authUser]);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
@@ -975,6 +983,12 @@ function CustomerView({
   });
 
   const addToCart = async (product: any, qty: number = 1, size?: string, color?: string) => {
+    if (!authUser) {
+      notify('⚠️ Please log in to add products to your cart!');
+      onOpenLogin();
+      return;
+    }
+
     setCart(prev => {
       const existing = prev.find(item => 
         item.product.id === product.id && 
