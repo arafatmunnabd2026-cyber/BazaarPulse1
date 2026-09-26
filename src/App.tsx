@@ -66,6 +66,7 @@ export default function App() {
 
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'quick_roles' | 'security_test'>('login');
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
@@ -329,26 +330,88 @@ export default function App() {
               Multi-Vendor Marketplace Platform
             </span>
             <span className="text-slate-600 hidden md:inline">|</span>
-            {/* Active Session Indicator */}
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 border ${
-              !authUser ? 'bg-slate-800 text-slate-300 border-slate-700' :
-              authUser.role === 'admin' ? 'bg-purple-900/60 text-purple-300 border-purple-500/40' :
-              authUser.role === 'vendor' ? 'bg-emerald-900/60 text-emerald-300 border-emerald-500/40' :
-              'bg-blue-900/60 text-blue-300 border-blue-500/40'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${
-                !authUser ? 'bg-slate-500' :
-                authUser.role === 'admin' ? 'bg-purple-400' :
-                authUser.role === 'vendor' ? 'bg-emerald-400' :
-                'bg-blue-400'
-              }`}></span>
-              <span>
-                {!authUser ? 'Guest User' : 
-                 authUser.role === 'admin' ? 'Super Admin Mode' :
-                 authUser.role === 'vendor' ? `Seller Mode: ${authUser.name}` :
-                 `Customer Mode: ${authUser.name}`}
+            {/* User Profile Avatar & Dropdown */}
+            {authUser ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-2 hover:bg-slate-900/50 p-1 rounded-full transition-all border border-slate-800"
+                >
+                  <div className="w-7 h-7 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center">
+                    {authUser.avatar ? (
+                      <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-4 h-4 text-slate-400" />
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-200 hidden sm:inline max-w-[100px] truncate">
+                    {authUser.name}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsProfileDropdownOpen(false)} 
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                      >
+                        <div className="p-4 border-b border-slate-800 bg-slate-950/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500/30">
+                              {authUser.avatar ? (
+                                <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                  <User className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white truncate">{authUser.name}</p>
+                              <p className="text-[10px] text-slate-500 truncate">{authUser.email}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                              authUser.role === 'admin' ? 'bg-purple-900/40 text-purple-400 border-purple-500/30' :
+                              authUser.role === 'vendor' ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30' :
+                              'bg-blue-900/40 text-blue-400 border-blue-500/30'
+                            }`}>
+                              {authUser.role} {authUser.status !== 'active' ? `(${authUser.status})` : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-2">
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <span className="bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span>Guest User</span>
               </span>
-            </span>
+            )}
           </div>
 
           {/* Dynamic Role-Based Links */}
@@ -426,21 +489,6 @@ export default function App() {
             {!authUser && (
               null
             )}
-
-            {/* Account Profile / Switcher Dropdown */}
-            {authUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-                {/* Account Profile / Switcher Dropdown removed as requested */}
-                
-                <button
-                  onClick={handleLogout}
-                  className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : null}
 
             {/* Security Audit & Penetration Inspector */}
           </div>

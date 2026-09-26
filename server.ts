@@ -461,6 +461,7 @@ app.post('/api/auth/google', async (req, res) => {
       id: payload.sub,
       name: payload.name,
       email: payload.email,
+      avatar: payload.picture, // Include Google profile picture
       role: 'customer', // Default role
       status: 'active'
     };
