@@ -419,13 +419,6 @@ export default function App() {
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Customer Store</span>
                 </button>
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="px-3 py-1 rounded-lg font-medium text-xs bg-slate-800 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1"
-                >
-                  <Store className="w-3 h-3 text-orange-400" />
-                  <span>Become a Seller</span>
-                </button>
               </>
             )}
 
@@ -450,14 +443,6 @@ export default function App() {
             ) : null}
 
             {/* Security Audit & Penetration Inspector */}
-            <button
-              onClick={() => setIsSecurityModalOpen(true)}
-              className="bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow transition-all"
-              title="RBAC & Security Verification Console"
-            >
-              <Key className="w-3 h-3 text-yellow-300" />
-              <span>RBAC Inspector</span>
-            </button>
           </div>
         </div>
       </div>
@@ -3104,63 +3089,8 @@ function AuthModal({
   onSimulateRouteAttack,
   notify
 }: AuthModalProps) {
-  const [activeTab, setActiveTab] = useState<'login' | 'quick_personas' | 'route_attacks'>('login');
-  const [email, setEmail] = useState('admin@bazaarpulse.com');
-  const [password, setPassword] = useState('admin123');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Submit email/password login
-  const handleCredentialLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage(null);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.error || 'Authentication failed. Please check credentials.');
-        notify(`❌ Login Failed: ${data.error || 'Invalid credentials'}`);
-      } else {
-        onLoginUser(data.user, data.token);
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Network error during login');
-      notify('❌ Login failed due to network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Switch persona using /api/auth/token
-  const handlePersonaSwitch = async (role: string, status = 'approved', vendorId?: string, personaName?: string, personaEmail?: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role,
-          status,
-          vendorId,
-          name: personaName,
-          email: personaEmail
-        })
-      });
-      const data = await res.json();
-      if (data.token) {
-        onLoginUser(data.user, data.token);
-      }
-    } catch (err) {
-      notify('Failed to switch persona');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setLoading(true);
@@ -3186,350 +3116,48 @@ function AuthModal({
     }
   };
 
-  // Preset demo accounts
-  const demoAccounts = [
-    {
-      role: 'admin',
-      label: 'Platform Super Admin',
-      sublabel: 'Full platform governance, financials, vendor approvals',
-      email: 'admin@bazaarpulse.com',
-      badge: 'Admin Only',
-      badgeColor: 'bg-purple-600',
-      allowedRoutes: ['/admin', '/']
-    },
-    {
-      role: 'vendor',
-      status: 'approved',
-      vendorId: 'v1',
-      label: 'Approved Vendor (TechHaven Electronics)',
-      sublabel: 'Catalog & inventory management, payout withdrawals',
-      email: 'vendor1@techhaven.com',
-      badge: 'Vendor (Approved)',
-      badgeColor: 'bg-emerald-600',
-      allowedRoutes: ['/vendor', '/']
-    },
-    {
-      role: 'vendor',
-      status: 'pending',
-      vendorId: 'v3',
-      label: 'Pending Vendor (Gadget Galaxy)',
-      sublabel: 'Awaiting admin review; catalog management blocked',
-      email: 'vendor3@gadgetgalaxy.com',
-      badge: 'Vendor (Pending)',
-      badgeColor: 'bg-amber-600',
-      allowedRoutes: ['/']
-    },
-    {
-      role: 'customer',
-      label: 'Verified Customer (Rahim Ahmed)',
-      sublabel: 'Shopping, cart & reviews; strictly blocked from /admin & /vendor',
-      email: 'customer@gmail.com',
-      badge: 'Customer Only',
-      badgeColor: 'bg-blue-600',
-      allowedRoutes: ['/']
-    }
-  ];
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       <motion.div 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-slate-950 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-500/20 p-2.5 rounded-2xl border border-orange-500/30 text-orange-400">
-              <Lock className="w-6 h-6" />
+        <div className="relative border-b border-slate-900 pb-5 mb-5 text-center">
+          <div className="inline-flex items-center justify-center gap-2 mb-4 bg-white px-4 py-2 rounded-xl shadow-sm">
+            <div className="text-orange-600">
+              <ShoppingBag className="w-7 h-7" />
             </div>
-            <div>
-              <h3 className="font-extrabold text-xl text-white flex items-center gap-2">
-                Authentication & Role Access Control
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Sign in or switch identities to verify role-based permissions & route security
-              </p>
-            </div>
+            <h1 className="text-2xl font-black text-orange-600 tracking-tighter">BazaarPulse</h1>
           </div>
+          <h3 className="font-extrabold text-lg text-white mt-1">Sign In</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Use Google to sign in</p>
           <button 
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
+            className="absolute top-0 right-0 text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-800 mt-5">
-          <button
-            onClick={() => setActiveTab('login')}
-            className={`flex-1 pb-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
-              activeTab === 'login'
-                ? 'border-orange-500 text-orange-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Standard Login</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('quick_personas')}
-            className={`flex-1 pb-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
-              activeTab === 'quick_personas'
-                ? 'border-orange-500 text-orange-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Role Personas</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('route_attacks')}
-            className={`flex-1 pb-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${
-              activeTab === 'route_attacks'
-                ? 'border-orange-500 text-orange-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldAlert className="w-4 h-4 text-red-400" />
-            <span className="text-red-300">Route Guard Attacks</span>
-          </button>
+        {/* Content */}
+        <div className="mt-5">
+          {errorMessage && (
+            <div className="bg-red-950/70 border border-red-500/50 text-red-200 p-3 rounded-xl text-xs flex items-center gap-2 mb-4">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <GoogleLogin 
+            onSuccess={handleGoogleSuccess}
+            onError={() => notify('Google Login failed')}
+            theme="filled_black"
+            width="100%"
+          />
         </div>
-
-        {/* Tab 1: Standard Credential & Google Login */}
-        {activeTab === 'login' && (
-          <div className="mt-5 space-y-4">
-            {errorMessage && (
-              <div className="bg-red-950/70 border border-red-500/50 text-red-200 p-3 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCredentialLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Email Address
-                </label>
-                <input 
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="admin@bazaarpulse.com"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Password
-                </label>
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 font-mono"
-                />
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <LogIn className="w-4 h-4" />
-                      <span>Authenticate & Issue Signed JWT</span>
-                    </>
-                  )}
-                </button>
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="h-px bg-slate-700 flex-1" />
-                  <span className="text-xs text-slate-500 uppercase font-bold">or</span>
-                  <div className="h-px bg-slate-700 flex-1" />
-                </div>
-                <div className="mt-4">
-                  <GoogleLogin 
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => notify('Google Login failed')}
-                    theme="filled_black"
-                    width="100%"
-                  />
-                </div>
-              </div>
-            </form>
-
-            {/* Quick autofill helper chips */}
-            <div className="border-t border-slate-800 pt-4 mt-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Quick Autofill Demo Credentials:
-              </span>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@bazaarpulse.com');
-                    setPassword('admin123');
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 border border-purple-500/40 text-purple-300 px-3 py-1.5 rounded-lg font-mono transition-colors"
-                >
-                  🛡️ Admin: admin@bazaarpulse.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('vendor1@techhaven.com');
-                    setPassword('vendor123');
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg font-mono transition-colors"
-                >
-                  🏪 Vendor: vendor1@techhaven.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('customer@gmail.com');
-                    setPassword('pass123');
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 border border-blue-500/40 text-blue-300 px-3 py-1.5 rounded-lg font-mono transition-colors"
-                >
-                  🛍️ Customer: customer@gmail.com
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Demo Role Personas */}
-        {activeTab === 'quick_personas' && (
-          <div className="mt-5 space-y-3">
-            <p className="text-xs text-slate-400 mb-2">
-              Select any role persona to immediately test role-based UI adaptations, navigation visibility, and permissions:
-            </p>
-            {demoAccounts.map((acc, idx) => (
-              <div 
-                key={idx}
-                className="bg-slate-950 border border-slate-800 hover:border-slate-700 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded-full ${acc.badgeColor}`}>
-                      {acc.badge}
-                    </span>
-                    <span className="font-bold text-sm text-white">{acc.label}</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">{acc.sublabel}</p>
-                  <span className="text-[11px] font-mono text-slate-500 block mt-0.5">{acc.email}</span>
-                </div>
-
-                <button
-                  disabled={loading}
-                  onClick={() => handlePersonaSwitch(acc.role, acc.status, acc.vendorId, acc.label, acc.email)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all self-start sm:self-center"
-                >
-                  <Key className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Assume Identity</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tab 3: Route Guard Penetration Attacks */}
-        {activeTab === 'route_attacks' && (
-          <div className="mt-5 space-y-4">
-            <div className="bg-red-950/40 border border-red-500/40 p-3.5 rounded-2xl text-xs text-red-200 leading-relaxed">
-              <strong className="block text-red-400 font-bold mb-1 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4" /> Frontend Route Protection Guard Demonstration
-              </strong>
-              These simulated penetration attacks verify that unauthorized roles (like regular customers or unauthenticated guests) are strictly blocked from loading the Admin Panel or Vendor Dashboard layouts.
-            </div>
-
-            <div className="space-y-3">
-              <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="font-bold text-sm text-white flex items-center gap-2">
-                    <span className="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-mono px-2 py-0.5 rounded">Attack 1</span>
-                    <span>Customer attempts to open '/admin'</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Switches to Customer persona and forces navigation to `/admin`.
-                  </p>
-                  <span className="text-[11px] text-orange-400 block mt-0.5">
-                    Expected: Intercepted by ProtectedRoute, displays HTTP 403 Forbidden Access Denied.
-                  </span>
-                </div>
-                <button
-                  onClick={async () => {
-                    await handlePersonaSwitch('customer', 'active', undefined, 'Rahim Ahmed', 'customer@gmail.com');
-                    onSimulateRouteAttack('/admin');
-                  }}
-                  className="bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/60 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors self-start sm:self-center shrink-0"
-                >
-                  Launch Attack
-                </button>
-              </div>
-
-              <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="font-bold text-sm text-white flex items-center gap-2">
-                    <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono px-2 py-0.5 rounded">Attack 2</span>
-                    <span>Customer attempts to open '/vendor'</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Switches to Customer persona and forces navigation to `/vendor`.
-                  </p>
-                  <span className="text-[11px] text-amber-400 block mt-0.5">
-                    Expected: Intercepted by ProtectedRoute, displays HTTP 403 Forbidden Access Denied.
-                  </span>
-                </div>
-                <button
-                  onClick={async () => {
-                    await handlePersonaSwitch('customer', 'active', undefined, 'Rahim Ahmed', 'customer@gmail.com');
-                    onSimulateRouteAttack('/vendor');
-                  }}
-                  className="bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700/60 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors self-start sm:self-center shrink-0"
-                >
-                  Launch Attack
-                </button>
-              </div>
-
-              <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="font-bold text-sm text-white flex items-center gap-2">
-                    <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] font-mono px-2 py-0.5 rounded">Attack 3</span>
-                    <span>Unauthenticated Guest opens '/admin'</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Clears session and attempts to open Admin Control Center.
-                  </p>
-                  <span className="text-[11px] text-purple-400 block mt-0.5">
-                    Expected: Intercepted by ProtectedRoute, displays HTTP 401 Unauthorized prompt.
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('bazaarpulse_user');
-                    localStorage.removeItem('bazaarpulse_token');
-                    onSimulateRouteAttack('/admin');
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors self-start sm:self-center shrink-0"
-                >
-                  Simulate Guest
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </motion.div>
     </div>
   );
