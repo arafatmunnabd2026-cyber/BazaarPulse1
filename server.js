@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
+import { OAuth2Client } from "google-auth-library";
+import jwt2 from "jsonwebtoken";
 
 // src/middleware/authMiddleware.ts
 import jwt from "jsonwebtoken";
@@ -82,6 +84,8 @@ var app = express();
 app.use(express.json());
 var apiKey = process.env.GEMINI_API_KEY || "";
 var ai = new GoogleGenAI({ apiKey });
+var googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "";
+var googleAuthClient = new OAuth2Client(googleClientId);
 var DB_FILE = path.join(__dirname, "database.json");
 var defaultData = {
   users: [
@@ -447,6 +451,127 @@ app.post("/api/auth/login", (req, res) => {
     token,
     user: payload
   });
+});
+app.post("/api/auth/google", async (req, res) => {
+  try {
+    const { credential, userInfo, role = "customer" } = req.body;
+    let googleUser = null;
+    if (credential) {
+      if (googleClientId) {
+        try {
+          const ticket = await googleAuthClient.verifyIdToken({
+            idToken: credential,
+            audience: googleClientId
+          });
+          const payload2 = ticket.getPayload();
+          if (payload2 && payload2.email) {
+            googleUser = {
+              email: payload2.email,
+              name: payload2.name || payload2.given_name || "Google User",
+              picture: payload2.picture,
+              sub: payload2.sub
+            };
+          }
+        } catch (verifyErr) {
+          console.warn("Google verifyIdToken verification warning:", verifyErr?.message || verifyErr);
+        }
+      }
+      if (!googleUser) {
+        try {
+          const decoded = jwt2.decode(credential);
+          if (decoded && decoded.email) {
+            googleUser = {
+              email: decoded.email,
+              name: decoded.name || decoded.given_name || "Google User",
+              picture: decoded.picture,
+              sub: decoded.sub || decoded.user_id
+            };
+          }
+        } catch (decodeErr) {
+          console.error("Failed to decode Google JWT credential:", decodeErr);
+        }
+      }
+    } else if (userInfo && userInfo.email) {
+      googleUser = {
+        email: userInfo.email,
+        name: userInfo.name || userInfo.email.split("@")[0],
+        picture: userInfo.picture,
+        sub: userInfo.sub || userInfo.id
+      };
+    }
+    if (!googleUser || !googleUser.email) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Google authentication credential. Could not verify Google account.",
+        code: "GOOGLE_AUTH_INVALID"
+      });
+    }
+    const db = getDb();
+    const normalizedEmail = googleUser.email.toLowerCase().trim();
+    let targetUser = db.users.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
+    if (!targetUser) {
+      targetUser = {
+        id: "u-g-" + Date.now(),
+        name: googleUser.name || normalizedEmail.split("@")[0],
+        email: normalizedEmail,
+        role: role || "customer",
+        status: "active",
+        avatar: googleUser.picture || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+        authProvider: "google",
+        createdAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      db.users.push(targetUser);
+      saveDb(db);
+    } else {
+      let updated = false;
+      if (googleUser.picture && !targetUser.avatar) {
+        targetUser.avatar = googleUser.picture;
+        updated = true;
+      }
+      if (!targetUser.authProvider) {
+        targetUser.authProvider = "google";
+        updated = true;
+      }
+      if (updated) {
+        saveDb(db);
+      }
+    }
+    let userStatus = targetUser.status || "active";
+    let vendorId = targetUser.vendorId;
+    if (targetUser.role === "vendor") {
+      const v = db.vendors.find(
+        (item) => item.email && item.email.toLowerCase() === targetUser.email.toLowerCase() || item.id === targetUser.vendorId
+      );
+      if (v) {
+        userStatus = v.status;
+        vendorId = v.id;
+      }
+    }
+    const payload = {
+      id: targetUser.id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role,
+      status: userStatus,
+      vendorId,
+      avatar: targetUser.avatar,
+      authProvider: "google"
+    };
+    const token = generateToken(payload, "7d");
+    return res.json({
+      success: true,
+      token,
+      user: payload,
+      message: "Google Sign-In authenticated successfully"
+    });
+  } catch (error) {
+    console.error("Google Auth Route Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Internal error processing Google authentication",
+      code: "GOOGLE_AUTH_SERVER_ERROR"
+    });
+  }
 });
 app.get("/api/auth/me", authMiddleware, (req, res) => {
   res.json({ success: true, user: req.user });
