@@ -44,9 +44,15 @@ export default function App() {
 
   // Current Route Navigation: '/' (Storefront), '/vendor' (Vendor Dashboard), '/admin' (Admin Control)
   const [currentPath, setCurrentPath] = useState<string>(() => {
+    // Check both hash and pathname to support direct hits/refreshes on Render
     const hash = window.location.hash.replace('#', '');
-    if (hash === 'admin' || hash === 'vendor') {
+    const pathname = window.location.pathname;
+
+    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
       return `/${hash}`;
+    }
+    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
+      return pathname;
     }
     return '/';
   });
@@ -134,8 +140,8 @@ export default function App() {
    * and blocks regular customers with a 403 Forbidden alert & redirection.
    */
   const navigateTo = (targetPath: string) => {
-    // 1. Guard check for /admin/*
-    if (targetPath === '/admin' || targetPath.startsWith('/admin')) {
+    // 1. Guard check for /admin (but allow /admin/login)
+    if ((targetPath === '/admin' || targetPath.startsWith('/admin')) && targetPath !== '/admin/login') {
       if (!authUser) {
         setAccessDeniedAlert({
           attemptedPath: targetPath,
@@ -144,9 +150,7 @@ export default function App() {
           timestamp: new Date().toLocaleTimeString()
         });
         notify('⛔ 401 Unauthorized: Admin login required.');
-        setCurrentPath('/');
-        window.location.hash = '';
-        setIsAuthModalOpen(true);
+        navigateTo('/admin/login');
         return;
       }
 
@@ -201,19 +205,44 @@ export default function App() {
     // Access granted
     setAccessDeniedAlert(null);
     setCurrentPath(targetPath);
-    window.location.hash = targetPath === '/' ? '' : targetPath.replace('/', '');
+    
+    // Use History API for clean URLs (no hash) to support Render refreshes
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ path: targetPath }, '', targetPath);
+    }
+    
+    // Scroll to top on navigation
+    window.scrollTo(0, 0);
   };
 
-  // Listen to browser URL hash changes for deep linking
+  // Listen to browser URL changes (back/forward and hash changes)
   useEffect(() => {
-    const onHashChange = () => {
+    const handleUrlChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const path = hash === 'admin' ? '/admin' : hash === 'vendor' ? '/vendor' : '/';
-      navigateTo(path);
+      const pathname = window.location.pathname;
+      
+      let targetPath = '/';
+      
+      // Prioritize pathname for clean URLs, fallback to hash for legacy links
+      if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
+        targetPath = pathname;
+      } else if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
+        targetPath = `/${hash}`;
+      }
+      
+      if (targetPath !== currentPath) {
+        navigateTo(targetPath);
+      }
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [authUser]);
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, [authUser, currentPath]);
 
   const handleLoginUser = (user: any, token: string) => {
     setAuthUser(user);
@@ -357,7 +386,7 @@ export default function App() {
           requiredRole="admin"
           authUser={authUser}
           onNavigateHome={() => navigateTo('/')}
-          onOpenLogin={() => setIsAuthModalOpen(true)}
+          onOpenLogin={() => navigateTo('/admin/login')}
         >
           <AdminControlCenter 
             data={data} 
@@ -369,6 +398,14 @@ export default function App() {
             onLogout={handleLogout}
           />
         </ProtectedRoute>
+      )}
+
+      {currentPath === '/admin/login' && (
+        <AdminLoginView 
+          onLoginSuccess={handleLoginUser}
+          onNavigateHome={() => navigateTo('/')}
+          notify={notify}
+        />
       )}
 
       {/* Auth & Role Switcher Modal */}
@@ -405,6 +442,134 @@ export default function App() {
           notify={notify}
         />
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// ADMIN LOGIN VIEW
+// ==========================================
+function AdminLoginView({ 
+  onLoginSuccess, 
+  onNavigateHome,
+  notify 
+}: { 
+  onLoginSuccess: (user: any, token: string) => void;
+  onNavigateHome: () => void;
+  notify: (msg: string) => void;
+}) {
+  const [email, setEmail] = useState('admin@bazaarpulse.com');
+  const [password, setPassword] = useState('admin123');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role: 'admin' })
+      });
+      const json = await res.json();
+      
+      if (json.success && json.user.role === 'admin') {
+        onLoginSuccess(json.user, json.token);
+      } else {
+        notify('⛔ Access Denied: Invalid admin credentials.');
+      }
+    } catch (err) {
+      notify('⚠️ Connection error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-orange-500 selection:text-white">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse delay-700" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10"
+      >
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-orange-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-600/20 rotate-3">
+            <ShieldCheck className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-black text-white tracking-tight">Admin Control Center</h2>
+          <p className="text-slate-400 text-sm mt-2">Platform Governance & Security Portal</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Administrative Email</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input 
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-3.5 pl-11 pr-4 text-sm focus:border-orange-600 focus:ring-1 focus:ring-orange-600 transition-all"
+                placeholder="admin@bazaarpulse.com"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Security Credential</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input 
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-3.5 pl-11 pr-4 text-sm focus:border-orange-600 focus:ring-1 focus:ring-orange-600 transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-xl shadow-orange-600/10 transition-all flex items-center justify-center gap-2 mt-4"
+          >
+            {loading ? (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <LogIn className="w-5 h-5" /> Authenticate & Access
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col gap-3">
+          <button 
+            onClick={onNavigateHome}
+            className="text-slate-500 hover:text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+          >
+            <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Return to Public Storefront
+          </button>
+        </div>
+
+        <div className="mt-6 bg-orange-950/30 border border-orange-900/50 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-orange-500 shrink-0" />
+            <p className="text-[10px] text-orange-200/70 leading-relaxed font-medium">
+              Access to this portal is restricted to authorized personnel. All login attempts are logged and monitored. Unauthorized access is strictly prohibited.
+            </p>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
