@@ -4,12 +4,11 @@ import {GoogleOAuthProvider} from '@react-oauth/google';
 import App from './App.tsx';
 import './index.css';
 
-// Configured Google Client ID or developer default fallback
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1088923456789-bazaarpulsegooglelogin.apps.googleusercontent.com';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       <App />
     </GoogleOAuthProvider>
   </StrictMode>,

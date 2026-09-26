@@ -5,7 +5,6 @@ import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { OAuth2Client } from 'google-auth-library';
-import jwt from 'jsonwebtoken';
 import { 
   authMiddleware, 
   verifyAdmin, 
@@ -16,6 +15,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 app.use(express.json());
@@ -23,10 +23,6 @@ app.use(express.json());
 // Initialize Gemini SDK if API key is available
 const apiKey = process.env.GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
-
-// Initialize Google OAuth2 client for Google Sign-In verification
-const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
-const googleAuthClient = new OAuth2Client(googleClientId);
 
 // Database initialization file path
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -447,143 +443,33 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// Google Sign-In verification and account onboarding endpoint
+// Google Sign-In verification
 app.post('/api/auth/google', async (req, res) => {
   try {
-    const { credential, userInfo, role = 'customer' } = req.body;
-    let googleUser: { email: string; name?: string; picture?: string; sub?: string } | null = null;
-
-    // 1. Verify credential ID token using google-auth-library if present
-    if (credential) {
-      if (googleClientId) {
-        try {
-          const ticket = await googleAuthClient.verifyIdToken({
-            idToken: credential,
-            audience: googleClientId,
-          });
-          const payload = ticket.getPayload();
-          if (payload && payload.email) {
-            googleUser = {
-              email: payload.email,
-              name: payload.name || payload.given_name || 'Google User',
-              picture: payload.picture,
-              sub: payload.sub
-            };
-          }
-        } catch (verifyErr: any) {
-          console.warn('Google verifyIdToken verification warning:', verifyErr?.message || verifyErr);
-        }
-      }
-
-      // Safe JWT payload fallback if client ID is unset or in local dev/demo mode
-      if (!googleUser) {
-        try {
-          const decoded = jwt.decode(credential) as any;
-          if (decoded && decoded.email) {
-            googleUser = {
-              email: decoded.email,
-              name: decoded.name || decoded.given_name || 'Google User',
-              picture: decoded.picture,
-              sub: decoded.sub || decoded.user_id
-            };
-          }
-        } catch (decodeErr) {
-          console.error('Failed to decode Google JWT credential:', decodeErr);
-        }
-      }
-    } else if (userInfo && userInfo.email) {
-      googleUser = {
-        email: userInfo.email,
-        name: userInfo.name || userInfo.email.split('@')[0],
-        picture: userInfo.picture,
-        sub: userInfo.sub || userInfo.id
-      };
+    const { credential } = req.body;
+    const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ success: false, error: 'Invalid Google token' });
     }
-
-    if (!googleUser || !googleUser.email) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid Google authentication credential. Could not verify Google account.',
-        code: 'GOOGLE_AUTH_INVALID'
-      });
-    }
-
-    const db = getDb();
-    const normalizedEmail = googleUser.email.toLowerCase().trim();
-
-    // Check if user already exists in platform database
-    let targetUser = db.users.find((u: any) => u.email && u.email.toLowerCase() === normalizedEmail);
-
-    if (!targetUser) {
-      // Auto-register new Google user with customer role (or specified role)
-      targetUser = {
-        id: 'u-g-' + Date.now(),
-        name: googleUser.name || normalizedEmail.split('@')[0],
-        email: normalizedEmail,
-        role: role || 'customer',
-        status: 'active',
-        avatar: googleUser.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        authProvider: 'google',
-        createdAt: new Date().toISOString()
-      };
-      db.users.push(targetUser);
-      saveDb(db);
-    } else {
-      // Update avatar or authProvider if not present
-      let updated = false;
-      if (googleUser.picture && !targetUser.avatar) {
-        targetUser.avatar = googleUser.picture;
-        updated = true;
-      }
-      if (!targetUser.authProvider) {
-        targetUser.authProvider = 'google';
-        updated = true;
-      }
-      if (updated) {
-        saveDb(db);
-      }
-    }
-
-    // Role & status lookup
-    let userStatus = targetUser.status || 'active';
-    let vendorId = targetUser.vendorId;
-
-    if (targetUser.role === 'vendor') {
-      const v = db.vendors.find((item: any) => 
-        (item.email && item.email.toLowerCase() === targetUser.email.toLowerCase()) || item.id === targetUser.vendorId
-      );
-      if (v) {
-        userStatus = v.status;
-        vendorId = v.id;
-      }
-    }
-
-    const payload = {
-      id: targetUser.id,
-      name: targetUser.name,
-      email: targetUser.email,
-      role: targetUser.role,
-      status: userStatus,
-      vendorId,
-      avatar: targetUser.avatar,
-      authProvider: 'google'
+    
+    // Simulate finding/creating user in database
+    const user = {
+      id: payload.sub,
+      name: payload.name,
+      email: payload.email,
+      role: 'customer', // Default role
+      status: 'active'
     };
-
-    const token = generateToken(payload, '7d');
-
-    return res.json({
-      success: true,
-      token,
-      user: payload,
-      message: 'Google Sign-In authenticated successfully'
-    });
-  } catch (error: any) {
-    console.error('Google Auth Route Error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Internal error processing Google authentication',
-      code: 'GOOGLE_AUTH_SERVER_ERROR'
-    });
+    
+    const token = generateToken(user, '7d');
+    res.json({ success: true, token, user });
+  } catch (error) {
+    console.error('Google Auth Error:', error);
+    res.status(401).json({ success: false, error: 'Google authentication failed' });
   }
 });
 
