@@ -735,6 +735,7 @@ function CustomerView({
   onLogout: () => void;
   navigateTo: (path: string) => void;
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
@@ -853,7 +854,10 @@ function CustomerView({
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <button className="p-2 -ml-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 -ml-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
               <Menu className="w-6 h-6" />
             </button>
             <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1 cursor-pointer" onClick={() => navigateTo('/')}>
@@ -1622,6 +1626,143 @@ function CustomerView({
           </motion.div>
         </div>
       )}
+
+      {/* Mobile Hamburger Menu Sidebar */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm"
+            />
+            {/* Sidebar Content */}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col"
+            >
+              {/* Sidebar Header with Profile Section */}
+              <div className="p-6 bg-white border-b border-slate-100">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="text-orange-600 font-black text-xl tracking-tighter flex items-center gap-1">
+                    <ShoppingBag className="w-6 h-6" />
+                    <span>BazaarPulse</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
+                </div>
+
+                {/* Profile Section */}
+                <div className="mt-4">
+                  {authUser ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm">
+                          {authUser.avatar ? (
+                            <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                              <User className="w-6 h-6 text-slate-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-slate-900 truncate">{authUser.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{authUser.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onLogout();
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-all border border-red-100"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout Account</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-xs text-slate-500 font-medium">Welcome to BazaarPulse</p>
+                      <button
+                        onClick={() => {
+                          onOpenLogin();
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        <span>Sign In / Register</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sidebar Navigation Links */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-1">
+                <div className="px-3 py-2 text-[10px] font-black text-black uppercase tracking-widest">Main Menu</div>
+                <button 
+                  onClick={() => { navigateTo('/'); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
+                >
+                  <Search className="w-4 h-4 text-slate-400" />
+                  <span>Home & Explore</span>
+                </button>
+                <button 
+                  onClick={() => { setIsCartOpen(true); setIsMenuOpen(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="w-4 h-4 text-slate-400" />
+                    <span>My Shopping Cart</span>
+                  </div>
+                  {cart.length > 0 && (
+                    <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">{cart.length}</span>
+                  )}
+                </button>
+                
+                <div className="pt-4 px-3 py-2 text-[10px] font-black text-black uppercase tracking-widest border-t border-slate-100 mt-2">Browse Categories</div>
+                <div className="grid grid-cols-1 gap-1">
+                  {data.categories.map((cat: any) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => { setSelectedCategory(cat.id); setIsMenuOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+                        selectedCategory === cat.id ? 'bg-orange-50 text-orange-600' : 'text-black hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full ${selectedCategory === cat.id ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'bg-slate-300'}`} />
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar Footer */}
+              <div className="p-3.5 border-t border-slate-100 bg-slate-50">
+                <div className="flex items-center justify-center gap-2.5 opacity-30 grayscale pointer-events-none">
+                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
+                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
+                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
+                </div>
+                <p className="text-center text-[9px] text-black font-bold mt-2">BazaarPulse v2.0 • 2026</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
