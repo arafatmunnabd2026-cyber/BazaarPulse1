@@ -935,21 +935,12 @@ function CustomerView({
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <span 
-                  onClick={onOpenLogin} 
-                  className="cursor-pointer hover:underline font-bold flex items-center gap-1"
-                >
-                  <LogIn className="w-3.5 h-3.5" /> LOGIN
-                </span>
-                <span>|</span>
-                <span 
-                  onClick={onOpenLogin} 
-                  className="cursor-pointer hover:underline font-bold"
-                >
-                  SIGN UP
-                </span>
-              </div>
+              <button 
+                onClick={onOpenLogin} 
+                className="hover:underline font-bold text-white flex items-center gap-1"
+              >
+                <LogIn className="w-3.5 h-3.5" /> SIGN IN / REGISTER
+              </button>
             )}
             <span>|</span>
             <span className="cursor-pointer hover:underline">🌐 BD / EN</span>
@@ -1013,7 +1004,7 @@ function CustomerView({
                 className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition-all"
               >
                 <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
+                <span>Sign In / Register</span>
               </button>
             )}
           </div>
