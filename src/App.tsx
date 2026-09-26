@@ -431,13 +431,7 @@ export default function App() {
 
             {/* 4. Guest Links */}
             {!authUser && (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-3 py-1 rounded-lg font-bold text-xs bg-orange-500 text-white hover:bg-orange-600 transition-colors flex items-center gap-1 shadow"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In / Register</span>
-              </button>
+              null
             )}
 
             {/* Account Profile / Switcher Dropdown */}
@@ -934,14 +928,7 @@ function CustomerView({
                   <LogOut className="w-3 h-3" /> LOGOUT
                 </button>
               </div>
-            ) : (
-              <button 
-                onClick={onOpenLogin} 
-                className="hover:underline font-bold text-white flex items-center gap-1"
-              >
-                <LogIn className="w-3.5 h-3.5" /> SIGN IN / REGISTER
-              </button>
-            )}
+            ) : null}
             <span>|</span>
             <span className="cursor-pointer hover:underline">🌐 BD / EN</span>
           </div>
@@ -1332,6 +1319,19 @@ function CustomerView({
                 >
                   Confirm & Place Order
                 </button>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="h-px bg-slate-700 flex-1" />
+                  <span className="text-xs text-slate-500 uppercase font-bold">or</span>
+                  <div className="h-px bg-slate-700 flex-1" />
+                </div>
+                <div className="mt-4">
+                  <GoogleLogin 
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => notify('Google Login failed')}
+                    theme="filled_black"
+                    width="100%"
+                  />
+                </div>
               </div>
             </form>
           </motion.div>
