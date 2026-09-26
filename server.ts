@@ -2175,18 +2175,27 @@ app.post('/api/sync-user', async (req, res) => {
 // 4. Cart Add/Sync API Route
 app.post('/api/cart', async (req, res) => {
   try {
-    const { userId, productId, quantity, size, color } = req.body;
+    // ফ্রন্টএন্ড থেকে পাঠানো সব সম্ভাব্য ডাটা ফিল্ড গ্রহণ করা হচ্ছে
+    const { userId, customerId, productId, quantity, size, color } = req.body;
+    
+    // userId অথবা customerId এর যেকোনো একটি পেলেই হবে
+    const finalUserId = userId || customerId;
+    const finalProductId = productId;
 
-    if (!userId || !productId) {
-      return res.status(400).json({ success: false, message: 'User ID and Product ID are required' });
+    if (!finalUserId || !finalProductId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User ID and Product ID are required. Received:',
+        received: { userId: finalUserId, productId: finalProductId } 
+      });
     }
 
     const { data, error } = await supabase
       .from('cart')
       .upsert(
         {
-          user_id: userId,
-          product_id: productId,
+          user_id: finalUserId,
+          product_id: finalProductId,
           quantity: quantity || 1,
           size: size || '',
           color: color || ''
