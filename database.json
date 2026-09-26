@@ -90,43 +90,37 @@
       "id": "c1",
       "name": "Electronics",
       "slug": "electronics",
-      "icon": "Laptop",
-      "count": 24
+      "icon": "Laptop"
     },
     {
       "id": "c2",
       "name": "Fashion & Apparel",
       "slug": "fashion",
-      "icon": "Shirt",
-      "count": 42
+      "icon": "Shirt"
     },
     {
       "id": "c3",
       "name": "Home & Living",
       "slug": "home-living",
-      "icon": "Home",
-      "count": 18
+      "icon": "Home"
     },
     {
       "id": "c4",
       "name": "Beauty & Health",
       "slug": "beauty",
-      "icon": "Sparkles",
-      "count": 31
+      "icon": "Sparkles"
     },
     {
       "id": "c5",
       "name": "Groceries",
       "slug": "groceries",
-      "icon": "ShoppingBag",
-      "count": 56
+      "icon": "ShoppingBag"
     },
     {
       "id": "c6",
       "name": "Sports & Outdoors",
       "slug": "sports",
-      "icon": "Trophy",
-      "count": 12
+      "icon": "Trophy"
     }
   ],
   "products": [

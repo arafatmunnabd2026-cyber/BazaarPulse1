@@ -1348,6 +1348,25 @@ function CustomerView({
                         )}
                       </div>
 
+                      {/* Optional sizes/colors preview inside product card */}
+                      {((Array.isArray(product.sizes) && product.sizes.length > 0) || 
+                        (Array.isArray(product.colors) && product.colors.length > 0)) && (
+                        <div className="mt-2 space-y-1 text-[10px] text-gray-500 border-t border-dashed border-gray-100 pt-1.5">
+                          {Array.isArray(product.sizes) && product.sizes.length > 0 && (
+                            <div className="flex flex-wrap gap-1 items-center">
+                              <span className="font-semibold text-gray-400">Sizes:</span>
+                              <span className="text-gray-600 font-bold">{product.sizes.join(', ')}</span>
+                            </div>
+                          )}
+                          {Array.isArray(product.colors) && product.colors.length > 0 && (
+                            <div className="flex flex-wrap gap-1 items-center">
+                              <span className="font-semibold text-gray-400">Colors:</span>
+                              <span className="text-gray-600 font-bold">{product.colors.join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-1 text-amber-500 text-xs">
                           <Star className="w-3.5 h-3.5 fill-amber-500" />
@@ -1745,58 +1764,75 @@ function CustomerView({
                 </div>
 
                 {/* Variation Selectors */}
-                <div className="space-y-4 py-2 border-b border-gray-100">
-                  {/* Size Selector */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider">Select Size</span>
-                      <span className="text-[10px] text-blue-600 font-bold cursor-pointer hover:underline">Size Guide</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {['S', 'M', 'L', 'XL', 'XXL'].map(size => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`min-w-[45px] h-[35px] border rounded-lg text-xs font-bold transition-all ${
-                            selectedSize === size 
-                              ? 'border-[#f85606] bg-orange-50 text-[#f85606] ring-1 ring-[#f85606]' 
-                              : 'border-gray-200 text-gray-700 hover:border-gray-400'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {( (Array.isArray(selectedProduct.sizes) && selectedProduct.sizes.length > 0) || 
+                   (Array.isArray(selectedProduct.colors) && selectedProduct.colors.length > 0) ) && (
+                  <div className="space-y-4 py-2 border-b border-gray-100">
+                    {/* Size Selector */}
+                    {Array.isArray(selectedProduct.sizes) && selectedProduct.sizes.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider">Select Size</span>
+                          <span className="text-[10px] text-blue-600 font-bold cursor-pointer hover:underline">Size Guide</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProduct.sizes.map((size: string) => (
+                            <button
+                              key={size}
+                              onClick={() => setSelectedSize(size)}
+                              className={`min-w-[45px] h-[35px] px-2.5 border rounded-lg text-xs font-bold transition-all ${
+                                selectedSize === size 
+                                  ? 'border-[#f85606] bg-orange-50 text-[#f85606] ring-1 ring-[#f85606]' 
+                                  : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Color Selector */}
-                  <div>
-                    <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider block mb-2">Select Color</span>
-                    <div className="flex flex-wrap gap-3">
-                      {[
-                        { name: 'Black', class: 'bg-black' },
-                        { name: 'White', class: 'bg-white border-gray-200' },
-                        { name: 'Blue', class: 'bg-blue-600' },
-                        { name: 'Red', class: 'bg-red-600' }
-                      ].map(color => (
-                        <button
-                          key={color.name}
-                          onClick={() => setSelectedColor(color.name)}
-                          className={`group relative flex flex-col items-center gap-1 transition-all ${
-                            selectedColor === color.name ? 'scale-110' : 'hover:scale-105'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-full border-2 ${color.class} ${
-                            selectedColor === color.name ? 'border-[#f85606] ring-2 ring-orange-100' : 'border-transparent'
-                          }`} />
-                          <span className={`text-[10px] font-bold ${selectedColor === color.name ? 'text-[#f85606]' : 'text-gray-400'}`}>
-                            {color.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    {/* Color Selector */}
+                    {Array.isArray(selectedProduct.colors) && selectedProduct.colors.length > 0 && (
+                      <div>
+                        <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider block mb-2">Select Color</span>
+                        <div className="flex flex-wrap gap-3">
+                          {selectedProduct.colors.map((colorName: string) => {
+                            const lowerColor = colorName.toLowerCase();
+                            const isStandard = ['black', 'white', 'blue', 'red'].includes(lowerColor);
+                            const standardClasses: Record<string, string> = {
+                              black: 'bg-black',
+                              white: 'bg-white border-gray-200',
+                              blue: 'bg-blue-600',
+                              red: 'bg-red-600'
+                            };
+                            const colorClass = isStandard ? standardClasses[lowerColor] : '';
+                            const style = isStandard ? {} : { backgroundColor: colorName };
+                            return (
+                              <button
+                                key={colorName}
+                                onClick={() => setSelectedColor(colorName)}
+                                className={`group relative flex flex-col items-center gap-1 transition-all ${
+                                  selectedColor === colorName ? 'scale-110' : 'hover:scale-105'
+                                }`}
+                              >
+                                <div 
+                                  style={style}
+                                  className={`w-8 h-8 rounded-full border-2 ${colorClass} ${
+                                    selectedColor === colorName ? 'border-[#f85606] ring-2 ring-orange-100' : 'border-transparent'
+                                  }`} 
+                                />
+                                <span className={`text-[10px] font-bold ${selectedColor === colorName ? 'text-[#f85606]' : 'text-gray-400'}`}>
+                                  {colorName}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 {/* Quantity Selector */}
                 <div className="flex items-center gap-6 py-2">
@@ -1823,22 +1859,34 @@ function CustomerView({
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <button
                     onClick={() => {
-                      if (!selectedSize || !selectedColor) {
-                        notify('Please select size and color');
+                      const hasSizes = Array.isArray(selectedProduct.sizes) && selectedProduct.sizes.length > 0;
+                      const hasColors = Array.isArray(selectedProduct.colors) && selectedProduct.colors.length > 0;
+                      if (hasSizes && !selectedSize) {
+                        notify('⚠️ Please select a size');
+                        return;
+                      }
+                      if (hasColors && !selectedColor) {
+                        notify('⚠️ Please select a color');
                         return;
                       }
                       addToCart(selectedProduct, productQty, selectedSize, selectedColor);
                       setSelectedProduct(null);
                       setIsCartOpen(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-wide"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-wide cursor-pointer"
                   >
                     Buy Now
                   </button>
                   <button
                     onClick={() => {
-                      if (!selectedSize || !selectedColor) {
-                        notify('Please select size and color');
+                      const hasSizes = Array.isArray(selectedProduct.sizes) && selectedProduct.sizes.length > 0;
+                      const hasColors = Array.isArray(selectedProduct.colors) && selectedProduct.colors.length > 0;
+                      if (hasSizes && !selectedSize) {
+                        notify('⚠️ Please select a size');
+                        return;
+                      }
+                      if (hasColors && !selectedColor) {
+                        notify('⚠️ Please select a color');
                         return;
                       }
                       addToCart(selectedProduct, productQty, selectedSize, selectedColor);
@@ -1846,7 +1894,7 @@ function CustomerView({
                       setSelectedSize('');
                       setSelectedColor('');
                     }}
-                    className="bg-[#f85606] hover:bg-[#e04d05] text-white font-black py-4 rounded-xl text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-wide"
+                    className="bg-[#f85606] hover:bg-[#e04d05] text-white font-black py-4 rounded-xl text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-wide cursor-pointer"
                   >
                     <ShoppingCart className="w-5 h-5" /> Add to Cart
                   </button>
@@ -3136,7 +3184,9 @@ function AdminControlCenter({
     originalPrice: '',
     stock: '',
     image: '',
-    categoryId: data.categories?.[0]?.id || 'c1'
+    categoryId: data.categories?.[0]?.id || 'c1',
+    sizes: [] as string[],
+    colors: [] as string[]
   });
 
   // Stats calculation
@@ -3207,7 +3257,16 @@ function AdminControlCenter({
       }
       if (json.success) {
         notify('📦 Product added successfully by Admin!');
-        setNewAdminProduct({ title: '', price: '', originalPrice: '', stock: '', image: '', categoryId: data.categories?.[0]?.id || 'c1' });
+        setNewAdminProduct({ 
+          title: '', 
+          price: '', 
+          originalPrice: '', 
+          stock: '', 
+          image: '', 
+          categoryId: data.categories?.[0]?.id || 'c1',
+          sizes: [],
+          colors: []
+        });
         refreshData();
       }
     } catch (err) {
@@ -3396,9 +3455,91 @@ function AdminControlCenter({
                   />
                 </div>
 
+                {/* Optional Sizes Selection */}
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <label className="block text-xs font-bold uppercase text-slate-700">Select Sizes (Optional)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['S', 'M', 'L', 'XL', 'XXL'].map(sz => {
+                      const isSelected = newAdminProduct.sizes.includes(sz);
+                      return (
+                        <button
+                          type="button"
+                          key={sz}
+                          onClick={() => {
+                            const nextSizes = isSelected
+                              ? newAdminProduct.sizes.filter(s => s !== sz)
+                              : [...newAdminProduct.sizes, sz];
+                            setNewAdminProduct({ ...newAdminProduct, sizes: nextSizes });
+                          }}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                            isSelected 
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-sm' 
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-1">
+                    <input
+                      type="text"
+                      placeholder="Or type custom sizes (comma separated, e.g. 38, 40, 42)"
+                      onChange={e => {
+                        const customVals = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                        const standardsSelected = newAdminProduct.sizes.filter(s => ['S', 'M', 'L', 'XL', 'XXL'].includes(s));
+                        setNewAdminProduct({ ...newAdminProduct, sizes: [...standardsSelected, ...customVals] });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Optional Colors Selection */}
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <label className="block text-xs font-bold uppercase text-slate-700">Select Colors (Optional)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Black', 'White', 'Blue', 'Red'].map(col => {
+                      const isSelected = newAdminProduct.colors.includes(col);
+                      return (
+                        <button
+                          type="button"
+                          key={col}
+                          onClick={() => {
+                            const nextColors = isSelected
+                              ? newAdminProduct.colors.filter(c => c !== col)
+                              : [...newAdminProduct.colors, col];
+                            setNewAdminProduct({ ...newAdminProduct, colors: nextColors });
+                          }}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                            isSelected 
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-sm' 
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          {col}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-1">
+                    <input
+                      type="text"
+                      placeholder="Or type custom colors (comma separated, e.g. Green, Yellow, Orange)"
+                      onChange={e => {
+                        const customVals = e.target.value.split(',').map(c => c.trim()).filter(Boolean);
+                        const standardsSelected = newAdminProduct.colors.filter(c => ['Black', 'White', 'Blue', 'Red'].includes(c));
+                        setNewAdminProduct({ ...newAdminProduct, colors: [...standardsSelected, ...customVals] });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow transition-all text-sm"
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow transition-all text-sm cursor-pointer"
                 >
                   Publish Product to Store
                 </button>

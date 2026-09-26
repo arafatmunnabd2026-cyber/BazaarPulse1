@@ -111,12 +111,12 @@ const defaultData: InitialData = {
     }
   ],
   categories: [
-    { id: 'c1', name: 'Electronics', slug: 'electronics', icon: 'Laptop', count: 24 },
-    { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt', count: 42 },
-    { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home', count: 18 },
-    { id: 'c4', name: 'Beauty & Health', slug: 'beauty', icon: 'Sparkles', count: 31 },
-    { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag', count: 56 },
-    { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy', count: 12 }
+    { id: 'c1', name: 'Electronics', slug: 'electronics', icon: 'Laptop' },
+    { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
+    { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
+    { id: 'c4', name: 'Beauty & Health', slug: 'beauty', icon: 'Sparkles' },
+    { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
+    { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
   ],
   products: [
     {
@@ -596,6 +596,7 @@ app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, (req, res) =>
 // Admin Product Add & Delete Endpoints - strictly admin only
 app.post('/api/admin/products', authMiddleware, verifyAdmin, (req, res) => {
   const db = getDb();
+  const cat = db.categories.find((c: any) => c.id === req.body.categoryId);
   const newProduct = {
     id: 'p-' + Date.now(),
     title: req.body.title,
@@ -603,9 +604,12 @@ app.post('/api/admin/products', authMiddleware, verifyAdmin, (req, res) => {
     originalPrice: Number(req.body.originalPrice),
     discount: req.body.discount || '',
     categoryId: req.body.categoryId || 'general',
+    categoryName: cat ? cat.name : 'General',
     images: [req.body.image || 'https://via.placeholder.com/150'],
     stock: Number(req.body.stock) || 10,
     status: 'active',
+    sizes: req.body.sizes || [],
+    colors: req.body.colors || [],
     createdAt: new Date().toISOString()
   };
   
