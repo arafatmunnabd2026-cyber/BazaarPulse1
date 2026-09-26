@@ -59,7 +59,7 @@ interface InitialData {
 
 const defaultData: InitialData = {
   users: [
-    { id: 'u1', name: 'Admin User', email: 'admin@bazaarpulse.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' },
+    { id: 'u1', name: 'Admin User', email: 'arafatmunna14620022@gmail.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' },
     { id: 'u2', name: 'TechHaven Electronics', email: 'vendor1@techhaven.com', role: 'vendor', vendorId: 'v1', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
     { id: 'u3', name: 'Urban Chic Fashion', email: 'vendor2@urbanchic.com', role: 'vendor', vendorId: 'v2', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' },
     { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' }
@@ -358,7 +358,7 @@ app.post('/api/auth/token', (req, res) => {
     payload = {
       id: 'u1',
       name: 'Platform Administrator',
-      email: 'admin@bazaarpulse.com',
+      email: 'arafatmunna14620022@gmail.com',
       role: 'admin',
       status: 'active'
     };
@@ -391,22 +391,43 @@ app.post('/api/auth/login', (req, res) => {
   const { email, password, role } = req.body;
   const db = getDb();
 
-  // Find user by email or requested role
-  let targetUser = db.users.find((u: any) => (email && u.email.toLowerCase() === email.toLowerCase()));
-  
-  if (!targetUser && role) {
-    targetUser = db.users.find((u: any) => u.role === role);
-  }
+  let targetUser;
 
-  if (!targetUser) {
-    if (email === 'admin@bazaarpulse.com' || role === 'admin') {
-      targetUser = { id: 'u1', name: 'Platform Administrator', email: 'admin@bazaarpulse.com', role: 'admin', status: 'active' };
-    } else if (email === 'vendor1@techhaven.com' || role === 'vendor') {
-      targetUser = { id: 'u2', name: 'TechHaven Electronics', email: 'vendor1@techhaven.com', role: 'vendor', status: 'approved', vendorId: 'v1' };
-    } else if (email === 'vendor3@gadgetgalaxy.com') {
-      targetUser = { id: 'u3', name: 'Gadget Galaxy', email: 'vendor3@gadgetgalaxy.com', role: 'vendor', status: 'pending', vendorId: 'v3' };
-    } else if (email === 'customer@gmail.com' || role === 'customer') {
-      targetUser = { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', status: 'active' };
+  // Check if we are logging in as admin (by role or by matching the new admin email)
+  const isLoggingInAsAdmin = (role === 'admin' || (email && email.toLowerCase() === 'arafatmunna14620022@gmail.com'));
+  
+  if (isLoggingInAsAdmin) {
+    if (email?.toLowerCase() !== 'arafatmunna14620022@gmail.com' || password !== '@01756482001') {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid administrative email or security credential.',
+        code: 'AUTH_FAILED'
+      });
+    }
+    
+    targetUser = { 
+      id: 'u1', 
+      name: 'Platform Administrator', 
+      email: 'arafatmunna14620022@gmail.com', 
+      role: 'admin', 
+      status: 'active' 
+    };
+  } else {
+    // Non-admin flow
+    targetUser = db.users.find((u: any) => (email && u.email.toLowerCase() === email.toLowerCase() && u.role !== 'admin'));
+    
+    if (!targetUser && role && role !== 'admin') {
+      targetUser = db.users.find((u: any) => u.role === role);
+    }
+
+    if (!targetUser) {
+      if (email === 'vendor1@techhaven.com' || role === 'vendor') {
+        targetUser = { id: 'u2', name: 'TechHaven Electronics', email: 'vendor1@techhaven.com', role: 'vendor', status: 'approved', vendorId: 'v1' };
+      } else if (email === 'vendor3@gadgetgalaxy.com') {
+        targetUser = { id: 'u3', name: 'Gadget Galaxy', email: 'vendor3@gadgetgalaxy.com', role: 'vendor', status: 'pending', vendorId: 'v3' };
+      } else if (email === 'customer@gmail.com' || role === 'customer') {
+        targetUser = { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', status: 'active' };
+      }
     }
   }
 

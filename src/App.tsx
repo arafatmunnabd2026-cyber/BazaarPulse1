@@ -48,10 +48,10 @@ export default function App() {
     const hash = window.location.hash.replace('#', '');
     const pathname = window.location.pathname;
 
-    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
+    if (hash === 'admin' || hash === 'vendor') {
       return `/${hash}`;
     }
-    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
+    if (pathname === '/admin' || pathname === '/vendor') {
       return pathname;
     }
     return '/';
@@ -140,33 +140,7 @@ export default function App() {
    * and blocks regular customers with a 403 Forbidden alert & redirection.
    */
   const navigateTo = (targetPath: string) => {
-    // 1. Guard check for /admin (but allow /admin/login)
-    if ((targetPath === '/admin' || targetPath.startsWith('/admin')) && targetPath !== '/admin/login') {
-      if (!authUser) {
-        setAccessDeniedAlert({
-          attemptedPath: targetPath,
-          reason: 'Authentication required. Administrative credentials are required to access the Admin Control Center.',
-          code: 401,
-          timestamp: new Date().toLocaleTimeString()
-        });
-        notify('⛔ 401 Unauthorized: Admin login required.');
-        navigateTo('/admin/login');
-        return;
-      }
-
-      if (authUser.role !== 'admin') {
-        setAccessDeniedAlert({
-          attemptedPath: targetPath,
-          reason: `Access Denied (403): Your account (${authUser.email}) with role '${authUser.role}' does not have administrative permissions. Platform governance is strictly restricted to Admins.`,
-          code: 403,
-          timestamp: new Date().toLocaleTimeString()
-        });
-        notify(`⛔ 403 Forbidden: Access Denied. Admins only.`);
-        setCurrentPath('/');
-        window.location.hash = '';
-        return;
-      }
-    }
+    // 1. Guard check for /admin removed (direct access allowed)
 
     // 2. Guard check for /vendor/*
     if (targetPath === '/vendor' || targetPath.startsWith('/vendor')) {
@@ -224,9 +198,9 @@ export default function App() {
       let targetPath = '/';
       
       // Prioritize pathname for clean URLs, fallback to hash for legacy links
-      if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
+      if (pathname === '/admin' || pathname === '/vendor') {
         targetPath = pathname;
-      } else if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
+      } else if (hash === 'admin' || hash === 'vendor') {
         targetPath = `/${hash}`;
       }
       
@@ -382,22 +356,15 @@ export default function App() {
       )}
 
       {currentPath === '/admin' && (
-        <ProtectedRoute
-          requiredRole="admin"
+        <AdminControlCenter 
+          data={data} 
+          refreshData={loadData} 
+          notify={notify} 
+          authToken={authToken}
           authUser={authUser}
-          onNavigateHome={() => navigateTo('/')}
-          onOpenLogin={() => navigateTo('/admin/login')}
-        >
-          <AdminControlCenter 
-            data={data} 
-            refreshData={loadData} 
-            notify={notify} 
-            authToken={authToken}
-            authUser={authUser}
-            navigateTo={navigateTo}
-            onLogout={handleLogout}
-          />
-        </ProtectedRoute>
+          navigateTo={navigateTo}
+          onLogout={handleLogout}
+        />
       )}
 
       {currentPath === '/admin/login' && (
@@ -458,8 +425,8 @@ function AdminLoginView({
   onNavigateHome: () => void;
   notify: (msg: string) => void;
 }) {
-  const [email, setEmail] = useState('admin@bazaarpulse.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -517,7 +484,7 @@ function AdminLoginView({
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-3.5 pl-11 pr-4 text-sm focus:border-orange-600 focus:ring-1 focus:ring-orange-600 transition-all"
-                placeholder="admin@bazaarpulse.com"
+                placeholder="Enter admin email address"
               />
             </div>
           </div>
@@ -532,7 +499,7 @@ function AdminLoginView({
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl py-3.5 pl-11 pr-4 text-sm focus:border-orange-600 focus:ring-1 focus:ring-orange-600 transition-all"
-                placeholder="••••••••"
+                placeholder="Enter password"
               />
             </div>
           </div>
