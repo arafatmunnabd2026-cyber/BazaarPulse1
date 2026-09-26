@@ -8,6 +8,7 @@ import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { OAuth2Client } from 'google-auth-library';
+import { createClient } from '@supabase/supabase-js';
 import { 
   authMiddleware, 
   verifyAdmin, 
@@ -2215,6 +2216,45 @@ Customer question: "${message}"`;
   } catch (error) {
     console.error('AI Assistant Error (Falling back to smart catalog search):', error);
     res.json({ reply: getSmartReply(message) });
+  }
+});
+
+// Backend endpoint for syncing user data
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+app.post('/api/sync-user', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!email || !name) {
+      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .upsert(
+        { 
+          name: name, 
+          email: email, 
+          password: password || '', 
+          role: 'user' 
+        },
+        { onConflict: 'email' }
+      )
+      .select();
+
+    if (error) throw error;
+
+    res.status(200).json({
+      success: true,
+      message: 'User synced successfully',
+      user: data?.[0]
+    });
+  } catch (err: any) {
+    console.error('Error syncing user:', err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
