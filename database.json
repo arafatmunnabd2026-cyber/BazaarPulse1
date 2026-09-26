@@ -281,54 +281,7 @@
       "status": "active"
     }
   ],
-  "orders": [
-    {
-      "id": "ord-1001",
-      "customerId": "u4",
-      "customerName": "Rahim Ahmed",
-      "customerPhone": "+8801700112233",
-      "shippingAddress": "House 42, Road 11, Banani, Dhaka",
-      "items": [
-        {
-          "productId": "p1",
-          "title": "Wireless Active Noise Cancelling Headphones",
-          "price": 3800,
-          "quantity": 1,
-          "vendorId": "v1",
-          "vendorName": "TechHaven Electronics"
-        }
-      ],
-      "totalAmount": 3950,
-      "shippingFee": 150,
-      "status": "shipped",
-      "paymentMethod": "bKash",
-      "paymentStatus": "paid",
-      "createdAt": "2026-09-24T22:41:15.115Z"
-    },
-    {
-      "id": "ord-1002",
-      "customerId": "u4",
-      "customerName": "Rahim Ahmed",
-      "customerPhone": "+8801700112233",
-      "shippingAddress": "House 42, Road 11, Banani, Dhaka",
-      "items": [
-        {
-          "productId": "p3",
-          "title": "Men’s Premium Casual Cotton Panjabi & Pajama",
-          "price": 2200,
-          "quantity": 2,
-          "vendorId": "v2",
-          "vendorName": "Urban Chic Fashion"
-        }
-      ],
-      "totalAmount": 4550,
-      "shippingFee": 150,
-      "status": "processing",
-      "paymentMethod": "Cash on Delivery",
-      "paymentStatus": "pending",
-      "createdAt": "2026-09-25T18:41:15.115Z"
-    }
-  ],
+  "orders": [],
   "withdrawals": [
     {
       "id": "w-1",
