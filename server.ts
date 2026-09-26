@@ -2178,14 +2178,14 @@ app.post('/api/cart', async (req, res) => {
     // ফ্রন্টএন্ড থেকে পাঠানো সব সম্ভাব্য ডাটা ফিল্ড গ্রহণ করা হচ্ছে
     const { userId, customerId, productId, quantity, size, color } = req.body;
     
-    // userId অথবা customerId এর যেকোনো একটি পেলেই হবে
-    const finalUserId = userId || customerId;
+    // userId অথবা customerId না পাওয়া গেলে ডিফল্ট হিসেবে 'guest' ব্যবহার করা হবে
+    const finalUserId = userId || customerId || 'guest';
     const finalProductId = productId;
 
-    if (!finalUserId || !finalProductId) {
+    if (!finalProductId) {
       return res.status(400).json({ 
         success: false, 
-        message: 'User ID and Product ID are required. Received:',
+        message: 'Product ID is required.',
         received: { userId: finalUserId, productId: finalProductId } 
       });
     }
