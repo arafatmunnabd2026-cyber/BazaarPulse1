@@ -955,11 +955,6 @@ app.post('/api/orders', (req, res) => {
   };
   db.orders.unshift(newOrder);
 
-  // Clear persistent cart for this user if they are logged in
-  if (req.body.customerId) {
-    db.cartItems = db.cartItems.filter(item => item.userId !== req.body.customerId);
-  }
-
   // Update vendor balances & total sales
   newOrder.items.forEach((item: any) => {
     const vendor = db.vendors.find((v: any) => v.id === item.vendorId);

@@ -929,7 +929,6 @@ function CustomerView({
       const json = await res.json();
       if (json.success) {
         setOrderConfirmation(json.order);
-        setCart([]);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
         refreshData();
