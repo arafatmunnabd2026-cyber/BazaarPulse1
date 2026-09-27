@@ -14,6 +14,7 @@ import {
   ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from './lib/supabase';
 import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
 
@@ -115,6 +116,33 @@ export default function App() {
 
   useEffect(() => {
     loadData();
+
+    // Enable Supabase Realtime for instant Home Page updates
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('public-platform-updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          console.log('Realtime product update received!');
+          loadData(); // Re-fetch entire dataset to ensure consistency
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'admin_settings' },
+        () => {
+          console.log('Realtime settings update received!');
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Sync token whenever auth user changes
@@ -1376,7 +1404,12 @@ function CustomerView({
                           <Star className="w-3.5 h-3.5 fill-amber-500" />
                           <span className="text-gray-600 font-medium">{product.rating}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400">Sold ({product.totalSold})</span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-slate-500 font-bold">Sold: {product.totalSold || 0}</span>
+                          <span className={`text-[9px] font-black uppercase ${product.stock > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {product.stock > 0 ? `${product.stock} In Stock` : 'Out of Stock'}
+                          </span>
+                        </div>
                       </div>
 
                       <button
