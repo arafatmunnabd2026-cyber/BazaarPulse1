@@ -243,6 +243,13 @@ async function initDatabase() {
         colors JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure dynamic schema compatibility for Supabase column variations
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS current_price NUMERIC;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price NUMERIC;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 0;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS gallery_images JSONB DEFAULT '[]'::jsonb;
       
       CREATE TABLE IF NOT EXISTS orders (
         id VARCHAR(255) PRIMARY KEY,
@@ -502,28 +509,49 @@ async function getDb(): Promise<InitialData> {
       logo: v.logo
     }));
     
-    const products = productsRes.rows.map(p => ({
-      id: p.id,
-      title: p.title,
-      slug: p.slug,
-      price: Number(p.price),
-      discountPrice: p.discount_price ? Number(p.discount_price) : undefined,
-      stock: p.stock,
-      categoryId: p.category_id,
-      categoryName: p.category_name,
-      vendorId: p.vendor_id,
-      vendorName: p.vendor_name,
-      images: typeof p.images === 'string' ? JSON.parse(p.images) : p.images || [],
-      description: p.description,
-      rating: Number(p.rating),
-      reviewsCount: p.reviews_count,
-      totalSold: p.total_sold,
-      isFlashSale: p.is_flash_sale,
-      flashSaleEnds: p.flash_sale_ends,
-      status: p.status,
-      sizes: typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes || [],
-      colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors || []
-    }));
+    const products = productsRes.rows.map(p => {
+      let resolvedImages: string[] = [];
+      if (p.images) {
+        resolvedImages = typeof p.images === 'string' ? JSON.parse(p.images) : p.images;
+      } else if (p.gallery_images) {
+        const gal = typeof p.gallery_images === 'string' ? JSON.parse(p.gallery_images) : p.gallery_images;
+        resolvedImages = p.image_url ? [p.image_url, ...(Array.isArray(gal) ? gal : [])] : gal;
+      } else if (p.image_url) {
+        resolvedImages = [p.image_url];
+      }
+      if (!Array.isArray(resolvedImages)) resolvedImages = [];
+
+      let galleryList: string[] = [];
+      if (p.gallery_images) {
+        galleryList = typeof p.gallery_images === 'string' ? JSON.parse(p.gallery_images) : p.gallery_images;
+      } else if (resolvedImages.length > 1) {
+        galleryList = resolvedImages.slice(1);
+      }
+
+      return {
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        price: Number(p.current_price || p.price || 0),
+        discountPrice: (p.discount_price !== null && p.discount_price !== undefined) ? Number(p.discount_price) : undefined,
+        stock: p.stock_quantity !== null && p.stock_quantity !== undefined ? Number(p.stock_quantity) : Number(p.stock || 0),
+        categoryId: p.category_id || p.category,
+        categoryName: p.category_name || p.category,
+        vendorId: p.vendor_id,
+        vendorName: p.vendor_name,
+        images: resolvedImages,
+        galleryImages: Array.isArray(galleryList) ? galleryList : [],
+        description: p.description,
+        rating: Number(p.rating || 5.0),
+        reviewsCount: p.reviews_count || 0,
+        totalSold: p.total_sold || 0,
+        isFlashSale: p.is_flash_sale,
+        flashSaleEnds: p.flash_sale_ends,
+        status: p.status || 'active',
+        sizes: typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes || [],
+        colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors || []
+      };
+    });
 
     const orders = ordersRes.rows.map(o => ({
       id: o.id,
@@ -1086,32 +1114,72 @@ app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, r
 // Admin Product Add & Delete Endpoints
 app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) => {
   try {
+    const { 
+      title, 
+      price, 
+      currentPrice,
+      originalPrice,
+      discountPrice, 
+      discount_price,
+      categoryId, 
+      category,
+      image, 
+      imageUrl,
+      galleryImages,
+      images: rawImages,
+      stock, 
+      stockQuantity,
+      sizes, 
+      colors, 
+      description 
+    } = req.body;
+
+    const actualPrice = Number(currentPrice !== undefined ? currentPrice : price || 0);
+    const discInput = discountPrice !== undefined ? discountPrice : (discount_price !== undefined ? discount_price : originalPrice);
+    const actualDiscount = (discInput !== undefined && discInput !== '' && discInput !== null) ? Number(discInput) : null;
+    const actualStock = Number(stockQuantity !== undefined ? stockQuantity : stock || 10);
+    
+    // Resolve all images
+    const mainImg = imageUrl || image || '';
+    const additionalImgs = Array.isArray(galleryImages) ? galleryImages : [];
+    let combinedImages: string[] = [];
+    if (Array.isArray(rawImages) && rawImages.length > 0) {
+      combinedImages = rawImages;
+    } else {
+      combinedImages = [mainImg, ...additionalImgs].filter(Boolean);
+    }
+    if (combinedImages.length === 0) {
+      combinedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
+    }
+
     if (isDbConfigured) {
-      const { title, price, originalPrice, discount, categoryId, image, stock, sizes, colors, description } = req.body;
-      
-      const catRes = await pool.query('SELECT name FROM categories WHERE id = $1', [categoryId]);
-      const categoryName = catRes.rows[0]?.name || 'General';
+      const catRes = await pool.query('SELECT name FROM categories WHERE id = $1', [categoryId || 'c1']);
+      const categoryName = catRes.rows[0]?.name || category || 'General';
       
       const newId = 'p-' + Date.now();
       const slug = (title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
       
       const result = await pool.query(
         `INSERT INTO products 
-         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, sizes, colors, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         (id, title, slug, price, current_price, discount_price, stock, stock_quantity, category_id, category_name, vendor_id, vendor_name, images, image_url, gallery_images, description, sizes, colors, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
          RETURNING *`,
         [
           newId,
           title,
           slug,
-          Number(price),
-          Number(originalPrice),
-          Number(stock) || 10,
-          categoryId || 'general',
+          actualPrice,
+          actualPrice,
+          actualDiscount,
+          actualStock,
+          actualStock,
+          categoryId || 'c1',
           categoryName,
           'v1',
           'Platform Administrator',
-          JSON.stringify([image || 'https://via.placeholder.com/150']),
+          JSON.stringify(combinedImages),
+          combinedImages[0],
+          JSON.stringify(additionalImgs),
           description || '',
           JSON.stringify(sizes || []),
           JSON.stringify(colors || []),
@@ -1122,20 +1190,21 @@ app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) =>
       res.json({ success: true, product: result.rows[0] });
     } else {
       const db = await getDb();
-      const cat = db.categories.find((c: any) => c.id === req.body.categoryId);
+      const cat = db.categories.find((c: any) => c.id === categoryId);
       const newProduct = {
         id: 'p-' + Date.now(),
-        title: req.body.title,
-        price: Number(req.body.price),
-        originalPrice: Number(req.body.originalPrice),
-        discount: req.body.discount || '',
-        categoryId: req.body.categoryId || 'general',
-        categoryName: cat ? cat.name : 'General',
-        images: [req.body.image || 'https://via.placeholder.com/150'],
-        stock: Number(req.body.stock) || 10,
+        title: title,
+        price: actualPrice,
+        discountPrice: actualDiscount,
+        categoryId: categoryId || 'c1',
+        categoryName: cat ? cat.name : (category || 'General'),
+        images: combinedImages,
+        galleryImages: additionalImgs,
+        stock: actualStock,
         status: 'active',
-        sizes: req.body.sizes || [],
-        colors: req.body.colors || [],
+        sizes: sizes || [],
+        colors: colors || [],
+        description: description || '',
         createdAt: new Date().toISOString()
       };
       
@@ -1151,17 +1220,53 @@ app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) =>
 app.put('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, price, originalPrice, stock, image, categoryId, sizes, colors, description } = req.body;
+    const { 
+      title, 
+      price, 
+      currentPrice,
+      originalPrice,
+      discountPrice, 
+      discount_price,
+      stock, 
+      stockQuantity,
+      image, 
+      imageUrl,
+      galleryImages,
+      images: rawImages,
+      categoryId, 
+      sizes, 
+      colors, 
+      description 
+    } = req.body;
+
+    const actualPrice = Number(currentPrice !== undefined ? currentPrice : price || 0);
+    const discInput = discountPrice !== undefined ? discountPrice : (discount_price !== undefined ? discount_price : originalPrice);
+    const actualDiscount = (discInput !== undefined && discInput !== '' && discInput !== null) ? Number(discInput) : null;
+    const actualStock = Number(stockQuantity !== undefined ? stockQuantity : stock || 10);
+
+    const mainImg = imageUrl || image || '';
+    const additionalImgs = Array.isArray(galleryImages) ? galleryImages : [];
+    let combinedImages: string[] = [];
+    if (Array.isArray(rawImages) && rawImages.length > 0) {
+      combinedImages = rawImages;
+    } else {
+      combinedImages = [mainImg, ...additionalImgs].filter(Boolean);
+    }
+    if (combinedImages.length === 0) {
+      combinedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
+    }
     
     if (isDbConfigured) {
       const result = await pool.query(
         `UPDATE products SET 
-          title = $1, price = $2, discount_price = $3, stock = $4, images = $5, 
-          category_id = $6, sizes = $7, colors = $8, description = $9
-         WHERE id = $10 RETURNING *`,
+          title = $1, price = $2, current_price = $2, discount_price = $3, stock = $4, stock_quantity = $4, 
+          images = $5, image_url = $6, gallery_images = $7,
+          category_id = $8, sizes = $9, colors = $10, description = $11
+         WHERE id = $12 RETURNING *`,
         [
-          title, price, originalPrice || null, stock, 
-          JSON.stringify([image]), categoryId, 
+          title, actualPrice, actualDiscount, actualStock, 
+          JSON.stringify(combinedImages), combinedImages[0], JSON.stringify(additionalImgs),
+          categoryId || 'c1', 
           JSON.stringify(sizes || []), JSON.stringify(colors || []), description || '',
           id
         ]
@@ -1175,8 +1280,16 @@ app.put('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res)
       
       db.products[productIndex] = {
         ...db.products[productIndex],
-        title, price, discountPrice: originalPrice, stock, 
-        images: [image], categoryId, sizes: sizes || [], colors: colors || [], description: description || ''
+        title, 
+        price: actualPrice, 
+        discountPrice: actualDiscount, 
+        stock: actualStock, 
+        images: combinedImages, 
+        galleryImages: additionalImgs,
+        categoryId: categoryId || 'c1', 
+        sizes: sizes || [], 
+        colors: colors || [], 
+        description: description || ''
       };
       saveDb(db);
       res.json({ success: true, product: db.products[productIndex] });

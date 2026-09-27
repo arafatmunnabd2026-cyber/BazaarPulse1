@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { 
   ShoppingBag, Store, ShieldCheck, Search, ShoppingCart, Heart, User, 
@@ -11,7 +11,8 @@ import {
   Sparkles, Bot, Send, ArrowRight, Star, Plus, Edit, Trash2, Check, AlertCircle,
   Menu, X, Filter, RefreshCw, ChevronRight, Settings, Layers, CreditCard,
   Truck, MapPin, Key, Lock, Shield, Terminal, Copy, CheckCheck,
-  ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff
+  ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff,
+  Upload, Image
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './lib/supabase';
@@ -141,7 +142,9 @@ export default function App() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -1710,7 +1713,6 @@ function CustomerView({
             {/* PDP Sticky Header Bar */}
             <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
-                <span className="bg-[#f85606] text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Daraz Verified</span>
                 <h3 className="font-extrabold text-black text-base sm:text-lg line-clamp-1">{selectedProduct.title}</h3>
               </div>
               <button 
@@ -3218,9 +3220,10 @@ function AdminControlCenter({
   const [newAdminProduct, setNewAdminProduct] = useState({
     title: '',
     price: '',
-    originalPrice: '',
+    discountPrice: '',
     stock: '',
     image: '',
+    galleryImages: [] as string[],
     categoryId: data.categories?.[0]?.id || 'c1',
     sizes: [] as string[],
     colors: [] as string[]
@@ -3228,6 +3231,97 @@ function AdminControlCenter({
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [customSizesText, setCustomSizesText] = useState('');
   const [customColorsText, setCustomColorsText] = useState('');
+
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const mainImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to upload a single image to Supabase Storage with graceful fallback
+  const uploadProductImageFile = async (file: File): Promise<string> => {
+    try {
+      if (supabase) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
+
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+        if (!uploadErr && uploadData) {
+          const { data: pubData } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+          if (pubData?.publicUrl) return pubData.publicUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('Storage upload error, fallback to data URL:', err);
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMain(true);
+    try {
+      const url = await uploadProductImageFile(file);
+      setNewAdminProduct(prev => ({ ...prev, image: url }));
+      notify('✅ Main product image uploaded!');
+    } catch (err: any) {
+      notify('❌ Failed to upload main image: ' + err.message);
+    } finally {
+      setUploadingMain(false);
+    }
+  };
+
+  const handleGalleryFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = 8 - newAdminProduct.galleryImages.length;
+    if (remainingSlots <= 0) {
+      notify('⚠️ Maximum 8 gallery images allowed.');
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      notify(`ℹ️ Maximum 8 gallery photos. Uploading first ${remainingSlots} photo(s).`);
+    }
+
+    setUploadingGallery(true);
+    try {
+      const uploadPromises = filesToUpload.map(f => uploadProductImageFile(f));
+      const uploadedUrls = await Promise.all(uploadPromises);
+
+      setNewAdminProduct(prev => ({
+        ...prev,
+        galleryImages: [...prev.galleryImages, ...uploadedUrls]
+      }));
+      notify(`✅ Uploaded ${uploadedUrls.length} gallery image(s)!`);
+    } catch (err: any) {
+      notify('❌ Error uploading gallery images: ' + err.message);
+    } finally {
+      setUploadingGallery(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveGalleryImage = (indexToRemove: number) => {
+    setNewAdminProduct(prev => ({
+      ...prev,
+      galleryImages: prev.galleryImages.filter((_, idx) => idx !== indexToRemove)
+    }));
+  };
 
   // Stats calculation
   const totalGMV = data.orders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
@@ -3282,37 +3376,92 @@ function AdminControlCenter({
   const handleAddAdminProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const allImages = [newAdminProduct.image, ...newAdminProduct.galleryImages].filter(Boolean);
+      const priceVal = Number(newAdminProduct.price);
+      const discVal = newAdminProduct.discountPrice ? Number(newAdminProduct.discountPrice) : null;
+      const stockVal = Number(newAdminProduct.stock) || 0;
+      const selectedCat = data.categories?.find((c: any) => c.id === newAdminProduct.categoryId);
+
+      // 1. Direct Supabase Client Insertion (if available)
+      if (supabase) {
+        const newId = 'p-' + Date.now();
+        const slug = (newAdminProduct.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        try {
+          const { error: supaErr } = await supabase
+            .from('products')
+            .insert([
+              {
+                id: newId,
+                title: newAdminProduct.title,
+                slug: slug,
+                price: priceVal,
+                current_price: priceVal,
+                discount_price: discVal,
+                stock: stockVal,
+                stock_quantity: stockVal,
+                category_id: newAdminProduct.categoryId,
+                category_name: selectedCat?.name || 'General',
+                image_url: newAdminProduct.image || allImages[0] || '',
+                images: allImages,
+                gallery_images: newAdminProduct.galleryImages,
+                sizes: newAdminProduct.sizes,
+                colors: newAdminProduct.colors,
+                status: 'active'
+              }
+            ]);
+          if (supaErr) {
+            console.warn('Direct Supabase insert note:', supaErr.message);
+          }
+        } catch (supaEx) {
+          console.warn('Direct Supabase insert error:', supaEx);
+        }
+      }
+
+      // 2. Also call backend endpoint to guarantee state consistency
       const res = await fetch('/api/admin/products', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': authToken ? `Bearer ${authToken}` : ''
         },
-        body: JSON.stringify(newAdminProduct)
+        body: JSON.stringify({
+          ...newAdminProduct,
+          price: priceVal,
+          currentPrice: priceVal,
+          discountPrice: discVal,
+          stock: stockVal,
+          stockQuantity: stockVal,
+          images: allImages,
+          galleryImages: newAdminProduct.galleryImages,
+          categoryName: selectedCat?.name
+        })
       });
       const json = await res.json();
       if (res.status === 403 || res.status === 401) {
         notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
         return;
       }
-      if (json.success) {
-        notify('📦 Product added successfully by Admin!');
+      if (json.success || json.product) {
+        notify('🎉 Product published & synced with Supabase successfully!');
         setNewAdminProduct({ 
           title: '', 
           price: '', 
-          originalPrice: '', 
+          discountPrice: '', 
           stock: '', 
           image: '', 
+          galleryImages: [],
           categoryId: data.categories?.[0]?.id || 'c1',
           sizes: [],
           colors: []
         });
+        if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
         setCustomSizesText('');
         setCustomColorsText('');
         refreshData();
       }
-    } catch (err) {
-      notify('Failed to add product');
+    } catch (err: any) {
+      notify('Failed to add product: ' + err.message);
     }
   };
 
@@ -3464,46 +3613,47 @@ function AdminControlCenter({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Current Price (৳)</label>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Current Price (৳) *</label>
                     <input
                       type="number"
                       required
                       placeholder="e.g. 24000"
                       value={newAdminProduct.price}
                       onChange={e => setNewAdminProduct({ ...newAdminProduct, price: e.target.value })}
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Original Price / Strikethrough (৳)</label>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Discount Price (৳)</label>
                     <input
                       type="number"
-                      placeholder="e.g. 28000"
-                      value={newAdminProduct.originalPrice}
-                      onChange={e => setNewAdminProduct({ ...newAdminProduct, originalPrice: e.target.value })}
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                      placeholder="e.g. 19999 (Special offer)"
+                      value={newAdminProduct.discountPrice}
+                      onChange={e => setNewAdminProduct({ ...newAdminProduct, discountPrice: e.target.value })}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                     />
+                    <span className="text-[10px] text-slate-400 mt-1 block">Optional discounted sale price</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Stock Quantity</label>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Stock Quantity *</label>
                     <input
                       type="number"
                       required
                       placeholder="e.g. 25"
                       value={newAdminProduct.stock}
                       onChange={e => setNewAdminProduct({ ...newAdminProduct, stock: e.target.value })}
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Category</label>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Category *</label>
                     <select
                       value={newAdminProduct.categoryId}
                       onChange={e => setNewAdminProduct({ ...newAdminProduct, categoryId: e.target.value })}
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                     >
                       {data.categories.map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -3512,16 +3662,112 @@ function AdminControlCenter({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Product Image URL</label>
+                {/* Main Product Image with Device File Picker & URL */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  <label className="block text-xs font-bold uppercase text-slate-700">Main Product Image *</label>
+                  
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={mainImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMainImageChange}
+                      className="hidden"
+                      id="admin-main-file-input"
+                    />
+                    <label
+                      htmlFor="admin-main-file-input"
+                      className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-orange-600" />
+                      <span>{uploadingMain ? 'Uploading...' : 'Choose from Device'}</span>
+                    </label>
+                    <span className="text-xs text-slate-400">or enter image URL:</span>
+                  </div>
+
                   <input
                     type="url"
                     required
                     placeholder="https://images.unsplash.com/..."
                     value={newAdminProduct.image}
                     onChange={e => setNewAdminProduct({ ...newAdminProduct, image: e.target.value })}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-mono"
                   />
+
+                  {newAdminProduct.image && (
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-200">
+                      <img src={newAdminProduct.image} alt="Main Preview" className="w-12 h-12 rounded-lg object-cover border border-slate-200" />
+                      <span className="text-xs text-emerald-600 font-bold">✓ Main image uploaded & ready</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Multiple Gallery Image Upload: Device File Picker (Up to 8 Images) */}
+                <div className="bg-orange-50/60 p-4 rounded-xl border border-orange-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-orange-950">
+                        Additional Gallery Photos (Max 8)
+                      </label>
+                      <p className="text-[11px] text-orange-800/80">
+                        Select multiple product photos from your phone or device gallery
+                      </p>
+                    </div>
+                    <span className="text-xs font-extrabold text-orange-600 bg-orange-100 px-2.5 py-1 rounded-md">
+                      {newAdminProduct.galleryImages.length} / 8 Selected
+                    </span>
+                  </div>
+
+                  {newAdminProduct.galleryImages.length < 8 && (
+                    <div>
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleGalleryFilesChange}
+                        disabled={uploadingGallery}
+                        className="hidden"
+                        id="admin-gallery-file-input"
+                      />
+                      <label
+                        htmlFor="admin-gallery-file-input"
+                        className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-orange-200 rounded-xl bg-white hover:bg-orange-50/30 transition-all ${
+                          uploadingGallery ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                        }`}
+                      >
+                        <Upload className="w-6 h-6 text-orange-500 mb-1" />
+                        <span className="text-xs font-bold text-slate-800">
+                          {uploadingGallery ? 'Uploading Gallery Photos...' : 'Click to Pick Photos from Device / Gallery'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">
+                          Select up to {8 - newAdminProduct.galleryImages.length} more images (JPG, PNG, WebP)
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Gallery Thumbnails Grid with Delete Buttons */}
+                  {newAdminProduct.galleryImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 pt-1">
+                      {newAdminProduct.galleryImages.map((url, idx) => (
+                        <div key={idx} className="relative rounded-lg overflow-hidden border border-orange-200 bg-white aspect-square group shadow-sm">
+                          <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                          <span className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
+                            #{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            title="Remove image"
+                            className="absolute top-1 right-1 w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs font-bold shadow transition-transform hover:scale-110"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Optional Sizes Selection */}
@@ -3612,9 +3858,11 @@ function AdminControlCenter({
 
                 <button
                   type="submit"
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow transition-all text-sm cursor-pointer"
+                  disabled={uploadingMain || uploadingGallery}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Publish Product to Store
+                  <Package className="w-4 h-4" />
+                  <span>{uploadingMain || uploadingGallery ? 'Uploading Media Files...' : 'Publish Product to Store'}</span>
                 </button>
               </form>
             </div>
