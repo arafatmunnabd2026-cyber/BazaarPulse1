@@ -2253,7 +2253,33 @@ if (isDev) {
   });
 }
 
-// 5. Proper error handling and server startup listening on process.env.PORT or port 5000
+// 5. Checkout API Route (Order Placement)
+app.post('/api/checkout', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { shippingAddress, totalAmount } = req.body;
+
+    if (!shippingAddress || !totalAmount) {
+      return res.status(400).json({ success: false, message: 'Missing checkout details' });
+    }
+
+    // Supabase RPC ফাংশন কল করা (যা আমরা SQL এ লিখেছি)
+    const { data, error } = await supabase.rpc('place_order', {
+      p_user_id: userId,
+      p_shipping_address: shippingAddress,
+      p_total: totalAmount
+    });
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, orderId: data });
+  } catch (err: any) {
+    console.error('Checkout Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Proper error handling and server startup listening on process.env.PORT or port 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
