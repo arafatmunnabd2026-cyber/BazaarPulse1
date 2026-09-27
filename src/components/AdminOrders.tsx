@@ -50,6 +50,8 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
     fetchOrders();
 
     // Enable Realtime for Admin
+    if (!supabase) return;
+
     const channel = supabase
       .channel('admin-order-updates')
       .on(
@@ -63,7 +65,9 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

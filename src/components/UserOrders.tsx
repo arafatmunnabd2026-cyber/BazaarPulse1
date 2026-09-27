@@ -45,6 +45,8 @@ export default function UserOrders({ userId }: { userId: string }) {
     fetchMyOrders();
 
     // Live tracking using Supabase Channel
+    if (!supabase) return;
+
     const channel = supabase
       .channel(`user-orders-${userId}`)
       .on(
@@ -64,7 +66,9 @@ export default function UserOrders({ userId }: { userId: string }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [userId]);
 

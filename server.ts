@@ -11,8 +11,8 @@ import { OAuth2Client } from 'google-auth-library';
 import { createClient } from '@supabase/supabase-js';
 
 // --- Supabase Client Configuration ---
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://mhpmwsafqrjgsodnztll.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_q5zax92UyLCrAIs7ZJDODQ_T93URdMc';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Supabase URL or Anon Key is missing in environment variables!');
