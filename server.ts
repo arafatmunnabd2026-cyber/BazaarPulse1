@@ -391,18 +391,7 @@ async function initDatabase() {
       }
       
       // Products
-      for (const p of initialData.products || []) {
-        await client.query(
-          'INSERT INTO products (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) ON CONFLICT (id) DO NOTHING',
-          [
-            p.id, p.title, p.slug, p.price, p.discountPrice || null, p.stock, 
-            p.categoryId || null, p.categoryName || null, p.vendorId || null, p.vendorName || null, 
-            JSON.stringify(p.images || []), p.description || '', p.rating || 5.0, p.reviewsCount || 0, 
-            p.totalSold || 0, p.isFlashSale || false, p.flashSaleEnds || null, p.status || 'active',
-            JSON.stringify(p.sizes || []), JSON.stringify(p.colors || [])
-          ]
-        );
-      }
+      // REMOVED DUMMY PRODUCT SEEDING AS PER USER REQUEST
       
       // Admin Settings
       const settings = initialData.adminSettings || defaultData.adminSettings;
@@ -412,29 +401,13 @@ async function initDatabase() {
           1, 
           settings.globalCommissionRate || 10, 
           settings.platformName || 'BazaarPulse',
-          settings.heroBannerTitle || '',
+          settings.heroBannerTitle || 'Welcome',
           settings.heroBannerSubtitle || '',
           JSON.stringify(settings.campaignBanner || {}),
           JSON.stringify(settings.banners || []),
           settings.maintenanceMode || false
         ]
       );
-      
-      // Withdrawals
-      for (const w of initialData.withdrawals || []) {
-        await client.query(
-          'INSERT INTO withdrawals (id, vendor_id, vendor_name, amount, status, bank_details, requested_at, processed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING',
-          [w.id, w.vendorId, w.vendorName, w.amount, w.status, w.bankDetails, w.requestedAt, w.processedAt || null]
-        );
-      }
-      
-      // Reviews
-      for (const r of initialData.reviews || []) {
-        await client.query(
-          'INSERT INTO reviews (id, product_id, customer_name, rating, comment, date) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING',
-          [r.id, r.productId, r.customerName, r.rating, r.comment, r.date]
-        );
-      }
       
       console.log('PostgreSQL database seeded successfully!');
     }
