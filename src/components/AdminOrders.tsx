@@ -158,8 +158,10 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                         {order.paymentMethod}
                       </span>
                     </h4>
-                    <p className="text-xs text-slate-500 font-bold mt-0.5">
-                      {new Date(order.createdAt).toLocaleString()} • {order.customerName}
+                    <p className="text-[10px] text-slate-500 font-black mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
+                      📅 {new Date(order.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                      👤 {order.customerName}
                     </p>
                   </div>
                 </div>
@@ -184,9 +186,10 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
 
                   <button
                     onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow"
                   >
-                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedId === order.id ? 'rotate-180' : ''}`} />
+                    <span>{expandedId === order.id ? 'Hide' : 'Details'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedId === order.id ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
               </div>
