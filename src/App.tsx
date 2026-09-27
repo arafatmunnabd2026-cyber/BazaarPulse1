@@ -14,7 +14,6 @@ import {
   ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminOrders from './AdminOrders';
 
 export default function App() {
   // Global Auth State (Defaults to Customer Rahim Ahmed for realistic storefront browsing)
@@ -4128,9 +4127,56 @@ function AdminControlCenter({
 
         {/* Orders Tab */}
         {adminTab === 'orders' && (
-          <div className="space-y-4">
-            <AdminOrders />
-          
+          <div className="space-y-6 mt-6">
+            {/* Orders Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
+                  <Package className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Total Orders</p>
+                  <p className="text-2xl font-black text-slate-900">{(data.orders || []).length}</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Processing</p>
+                  <p className="text-2xl font-black text-slate-900">
+                    {(data.orders || []).filter((o: any) => o.status === 'processing' || o.status === 'pending').length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+                  <Truck className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Shipped</p>
+                  <p className="text-2xl font-black text-slate-900">
+                    {(data.orders || []).filter((o: any) => o.status === 'shipped').length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Delivered</p>
+                  <p className="text-2xl font-black text-slate-900">
+                    {(data.orders || []).filter((o: any) => o.status === 'delivered').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Controls Bar */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               {/* Search */}
@@ -4168,87 +4214,6 @@ function AdminControlCenter({
                 ))}
               </div>
             </div>
-
-            {/* Orders List */}
-            <div className="space-y-4">
-              {(data.orders || [])
-                .filter((o: any) => {
-                  const matchSearch = 
-                    o.id?.toLowerCase().includes(adminOrderSearch.toLowerCase()) ||
-                    o.customerName?.toLowerCase().includes(adminOrderSearch.toLowerCase()) ||
-                    o.customerPhone?.includes(adminOrderSearch) ||
-                    o.shippingAddress?.toLowerCase().includes(adminOrderSearch.toLowerCase());
-                  
-                  const matchFilter = 
-                    adminOrderStatusFilter === 'all' || 
-                    (adminOrderStatusFilter === 'processing' && (o.status === 'processing' || o.status === 'pending')) ||
-                    o.status === adminOrderStatusFilter;
-                  
-                  return matchSearch && matchFilter;
-                })
-                .map((o: any) => {
-                  const isExpanded = expandedAdminOrderId === o.id;
-
-                  return (
-                    <div key={o.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:border-slate-300">
-                      {/* Card Header Summary */}
-                      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="bg-orange-100 text-orange-700 font-extrabold text-xs px-2.5 py-1 rounded-lg">
-                            {o.id}
-                          </span>
-                          <span className="text-xs text-slate-500 font-bold">
-                            📅 {new Date(o.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
-                          </span>
-                          <span className="text-xs text-slate-500 font-semibold">
-                            👤 {o.customerName}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 justify-between md:justify-end flex-wrap">
-                          <div className="text-right">
-                            <span className="text-xs text-slate-500 font-bold block">Total Amount</span>
-                            <span className="text-sm font-black text-orange-600">৳{o.totalAmount}</span>
-                          </div>
-
-                          {/* Live Status Badge */}
-                          <span className={`text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-wider shadow-sm ${
-                            o.status === 'processing' || o.status === 'pending'
-                              ? 'bg-blue-100 text-blue-700'
-                              : o.status === 'shipped'
-                              ? 'bg-purple-100 text-purple-700'
-                              : o.status === 'delivered'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-rose-100 text-rose-700'
-                          }`}>
-                            {o.status === 'pending' ? 'processing' : o.status}
-                          </span>
-                          
-                          <button
-                            onClick={() => setExpandedAdminOrderId(isExpanded ? null : o.id)}
-                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow"
-                          >
-                            <span>{isExpanded ? 'Hide' : 'Details'}</span>
-                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Empty state */}
-                {(data.orders || []).length === 0 && (
-                  <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
-                    <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <h4 className="font-extrabold text-slate-800 text-lg">No orders placed on the platform yet</h4>
-                    <p className="text-sm text-slate-400 mt-1">Once customers complete checkouts, their orders will show up here in real-time!</p>
-                  </div>
-                )}
-            </div>
-          </div>
-        )}
-
 
             {/* Orders List */}
             <div className="space-y-4">
@@ -4433,7 +4398,7 @@ function AdminControlCenter({
                 <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
                   <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <h4 className="font-extrabold text-slate-800 text-lg">No orders placed on the platform yet</h4>
-                  <p className="text-sm text-slate-400 mt-1">Once customers complete checkouts, their orders will show up here in real-time!</p>
+                  <p className="text-sm text-slate-400 mt-1">Once customers complete checkouts, their orders will show up here!</p>
                 </div>
               )}
             </div>
