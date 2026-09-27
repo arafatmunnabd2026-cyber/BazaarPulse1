@@ -1320,6 +1320,44 @@ app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) =>
   }
 });
 
+app.put('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, originalPrice, stock, image, categoryId, sizes, colors, description } = req.body;
+    
+    if (isDbConfigured) {
+      const result = await pool.query(
+        `UPDATE products SET 
+          title = $1, price = $2, discount_price = $3, stock = $4, images = $5, 
+          category_id = $6, sizes = $7, colors = $8, description = $9
+         WHERE id = $10 RETURNING *`,
+        [
+          title, price, originalPrice || null, stock, 
+          JSON.stringify([image]), categoryId, 
+          JSON.stringify(sizes || []), JSON.stringify(colors || []), description || '',
+          id
+        ]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Product not found' });
+      res.json({ success: true, product: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const productIndex = db.products.findIndex((p: any) => p.id === id);
+      if (productIndex === -1) return res.status(404).json({ error: 'Product not found' });
+      
+      db.products[productIndex] = {
+        ...db.products[productIndex],
+        title, price, discountPrice: originalPrice, stock, 
+        images: [image], categoryId, sizes: sizes || [], colors: colors || [], description: description || ''
+      };
+      saveDb(db);
+      res.json({ success: true, product: db.products[productIndex] });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1756,6 +1794,43 @@ app.patch('/api/vendor/orders/:id/status', authMiddleware, verifyVendor, handleO
 app.patch('/api/orders/:id/status', (req: any, res: any, next: any) => {
   return next();
 }, handleOrderStatusUpdate);
+
+app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentStatus, address, phone, customerName } = req.body;
+    
+    if (isDbConfigured) {
+      const result = await pool.query(
+        `UPDATE orders SET 
+          status = COALESCE($1, status),
+          payment_status = COALESCE($2, payment_status),
+          address = COALESCE($3, address),
+          phone = COALESCE($4, phone),
+          customer_name = COALESCE($5, customer_name)
+         WHERE id = $6 RETURNING *`,
+        [status, paymentStatus, address, phone, customerName, id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Order not found' });
+      res.json({ success: true, order: result.rows[0] });
+    } else {
+      const db = await getDb();
+      const order = db.orders.find((o: any) => o.id === id);
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+      
+      if (status) order.status = status;
+      if (paymentStatus) order.paymentStatus = paymentStatus;
+      if (address) order.address = address;
+      if (phone) order.phone = phone;
+      if (customerName) order.customerName = customerName;
+      
+      saveDb(db);
+      res.json({ success: true, order });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // --- Persistent Shopping Cart Routes ---
 

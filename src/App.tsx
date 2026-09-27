@@ -3192,6 +3192,7 @@ function AdminControlCenter({
     sizes: [] as string[],
     colors: [] as string[]
   });
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [customSizesText, setCustomSizesText] = useState('');
   const [customColorsText, setCustomColorsText] = useState('');
 
@@ -3279,6 +3280,33 @@ function AdminControlCenter({
       }
     } catch (err) {
       notify('Failed to add product');
+    }
+  };
+
+  const handleUpdateAdminProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    try {
+      const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
+        },
+        body: JSON.stringify(editingProduct)
+      });
+      const json = await res.json();
+      if (res.status === 403 || res.status === 401) {
+        notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
+        return;
+      }
+      if (json.success) {
+        notify('✅ Product updated successfully!');
+        setEditingProduct(null);
+        refreshData();
+      }
+    } catch (err) {
+      notify('Failed to update product');
     }
   };
 
@@ -3569,16 +3597,148 @@ function AdminControlCenter({
                       <div className="text-xs text-orange-600 font-bold mt-1">৳{p.discountPrice || p.price} <span className="text-gray-400 font-normal">Stock: {p.stock}</span></div>
                       <div className="text-[11px] text-slate-500 mt-1">Store: {p.vendorName}</div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteAdminProduct(p.id)}
-                      className="mt-3 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-xs font-bold transition-all shadow flex items-center justify-center gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete Product
-                    </button>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => setEditingProduct({
+                          ...p,
+                          image: p.images?.[0] || p.image || '',
+                          originalPrice: p.discountPrice || p.originalPrice || ''
+                        })}
+                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-xs font-bold transition-all shadow flex items-center justify-center gap-1.5"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAdminProduct(p.id)}
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-xs font-bold transition-all shadow flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Edit Product Modal */}
+            <AnimatePresence>
+              {editingProduct && (
+                <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200"
+                  >
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                      <h3 className="font-black text-xl text-slate-900 flex items-center gap-2">
+                        <Edit className="w-6 h-6 text-orange-600" /> Edit Store Product
+                      </h3>
+                      <button onClick={() => setEditingProduct(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                        <X className="w-6 h-6 text-slate-400" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleUpdateAdminProduct} className="p-6 space-y-5">
+                      <div>
+                        <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Product Title</label>
+                        <input
+                          type="text"
+                          required
+                          value={editingProduct.title}
+                          onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Current Price (৳)</label>
+                          <input
+                            type="number"
+                            required
+                            value={editingProduct.price}
+                            onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Discount Price (৳)</label>
+                          <input
+                            type="number"
+                            value={editingProduct.originalPrice}
+                            onChange={e => setEditingProduct({ ...editingProduct, originalPrice: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Stock Quantity</label>
+                          <input
+                            type="number"
+                            required
+                            value={editingProduct.stock}
+                            onChange={e => setEditingProduct({ ...editingProduct, stock: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Category</label>
+                          <select
+                            value={editingProduct.categoryId}
+                            onChange={e => setEditingProduct({ ...editingProduct, categoryId: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                          >
+                            {data.categories.map((c: any) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Product Description</label>
+                        <textarea
+                          value={editingProduct.description || ''}
+                          onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                          rows={3}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-black uppercase text-slate-500 mb-1.5 ml-1">Product Image URL</label>
+                        <input
+                          type="url"
+                          required
+                          value={editingProduct.image}
+                          onChange={e => setEditingProduct({ ...editingProduct, image: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none font-mono"
+                        />
+                      </div>
+
+                      <div className="flex gap-4 pt-4 sticky bottom-0 bg-white">
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct(null)}
+                          className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl text-xs uppercase transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-[2] bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl transition-all hover:scale-[1.01]"
+                        >
+                          Save Product Changes
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 

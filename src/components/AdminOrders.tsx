@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface OrderItem {
   productId: string;
@@ -31,6 +32,7 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -90,6 +92,31 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
       }
     } catch (err) {
       notify('❌ Network error updating status');
+    }
+  };
+
+  const handleUpdateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    try {
+      const res = await fetch(`/api/admin/orders/${editingOrder.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(editingOrder)
+      });
+      const json = await res.json();
+      if (json.success) {
+        notify(`✅ Order ${editingOrder.id} details updated!`);
+        setEditingOrder(null);
+        fetchOrders();
+      } else {
+        notify(`❌ Update failed: ${json.error}`);
+      }
+    } catch (err) {
+      notify('❌ Network error updating order');
     }
   };
 
@@ -185,6 +212,14 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                   </select>
 
                   <button
+                    onClick={() => setEditingOrder(order)}
+                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+                    title="Edit Order Details"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+
+                  <button
                     onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                     className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow"
                   >
@@ -252,6 +287,109 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
           ))
         )}
       </div>
+
+      {/* Edit Order Modal */}
+      <AnimatePresence>
+        {editingOrder && (
+          <div className="fixed inset-0 z-[110] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 className="font-black text-xl text-slate-900 flex items-center gap-2">
+                  <Edit className="w-6 h-6 text-orange-600" /> Edit Order {editingOrder.id}
+                </h3>
+                <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateOrder} className="p-6 space-y-5">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1.5 ml-1">Customer Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingOrder.customerName}
+                    onChange={e => setEditingOrder({ ...editingOrder, customerName: e.target.value })}
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none ring-orange-500/20 focus:ring-4 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1.5 ml-1">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingOrder.phone}
+                    onChange={e => setEditingOrder({ ...editingOrder, phone: e.target.value })}
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none ring-orange-500/20 focus:ring-4 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-1.5 ml-1">Shipping Address</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={editingOrder.address}
+                    onChange={e => setEditingOrder({ ...editingOrder, address: e.target.value })}
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none ring-orange-500/20 focus:ring-4 transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1.5 ml-1">Order Status</label>
+                    <select
+                      value={editingOrder.status}
+                      onChange={e => setEditingOrder({ ...editingOrder, status: e.target.value })}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1.5 ml-1">Payment Status</label>
+                    <select
+                      value={editingOrder.paymentStatus}
+                      onChange={e => setEditingOrder({ ...editingOrder, paymentStatus: e.target.value })}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingOrder(null)}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-xl text-xs uppercase transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] bg-orange-600 hover:bg-orange-700 text-white font-black py-3.5 rounded-xl text-xs uppercase shadow-xl transition-all active:scale-95"
+                  >
+                    Save Order Updates
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
