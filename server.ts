@@ -391,11 +391,10 @@ async function initDatabase() {
       
       CREATE TABLE IF NOT EXISTS orders (
         id VARCHAR(255) PRIMARY KEY,
-        status VARCHAR(50) DEFAULT 'processing',
+        status VARCHAR(50) DEFAULT 'pending',
         payment_status VARCHAR(50) DEFAULT 'pending',
         payment_method VARCHAR(100),
         total_amount NUMERIC NOT NULL,
-        items JSONB DEFAULT '[]'::jsonb,
         customer_id VARCHAR(255),
         customer_name VARCHAR(255),
         customer_email VARCHAR(255),
@@ -403,6 +402,56 @@ async function initDatabase() {
         phone VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      CREATE TABLE IF NOT EXISTS order_items (
+        id BIGSERIAL PRIMARY KEY,
+        order_id VARCHAR(255) REFERENCES orders(id) ON DELETE CASCADE,
+        product_id VARCHAR(255) NOT NULL,
+        title VARCHAR(255),
+        price NUMERIC NOT NULL,
+        quantity INTEGER NOT NULL,
+        size VARCHAR(50),
+        color VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Function to handle atomic order placement
+      CREATE OR REPLACE FUNCTION place_order(
+        p_order_id TEXT,
+        p_customer_id TEXT,
+        p_customer_name TEXT,
+        p_customer_email TEXT,
+        p_address TEXT,
+        p_phone TEXT,
+        p_total_amount NUMERIC,
+        p_payment_method TEXT,
+        p_items JSONB
+      ) RETURNS VOID AS $$
+      DECLARE
+        item RECORD;
+      BEGIN
+        -- 1. Insert Order
+        INSERT INTO orders (id, customer_id, customer_name, customer_email, address, phone, total_amount, payment_method, status)
+        VALUES (p_order_id, p_customer_id, p_customer_name, p_customer_email, p_address, p_phone, p_total_amount, p_payment_method, 'pending');
+
+        -- 2. Process Items
+        FOR item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id TEXT, title TEXT, price NUMERIC, quantity INTEGER, size TEXT, color TEXT)
+        LOOP
+          -- Insert into order_items
+          INSERT INTO order_items (order_id, product_id, title, price, quantity, size, color)
+          VALUES (p_order_id, item.product_id, item.title, item.price, item.quantity, item.size, item.color);
+
+          -- Deduct Stock
+          UPDATE products 
+          SET stock = stock - item.quantity,
+              total_sold = total_sold + item.quantity
+          WHERE id = item.product_id;
+        END LOOP;
+
+        -- 3. Clear Cart
+        DELETE FROM cart WHERE user_id = p_customer_id;
+      END;
+      $$ LANGUAGE plpgsql;
       
       CREATE TABLE IF NOT EXISTS cart (
         user_id VARCHAR(255) NOT NULL,
@@ -598,12 +647,15 @@ async function getDb(): Promise<InitialData> {
     const vendorsRes = await client.query('SELECT * FROM vendors');
     const productsRes = await client.query('SELECT * FROM products ORDER BY created_at DESC');
     const ordersRes = await client.query('SELECT * FROM orders ORDER BY created_at DESC');
+    const orderItemsRes = await client.query('SELECT * FROM order_items');
     const withdrawalsRes = await client.query('SELECT * FROM withdrawals ORDER BY requested_at DESC');
     const reviewsRes = await client.query('SELECT * FROM reviews');
     const cartRes = await client.query('SELECT * FROM cart');
     const settingsRes = await client.query('SELECT * FROM admin_settings WHERE id = 1');
     
     client.release();
+    
+    const allOrderItems = orderItemsRes.rows;
     
     const users = usersRes.rows;
     const categories = categoriesRes.rows;
@@ -644,14 +696,21 @@ async function getDb(): Promise<InitialData> {
       sizes: typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes || [],
       colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors || []
     }));
-    
+
     const orders = ordersRes.rows.map(o => ({
       id: o.id,
       status: o.status,
       paymentStatus: o.payment_status,
       paymentMethod: o.payment_method,
       totalAmount: Number(o.total_amount),
-      items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items || [],
+      items: allOrderItems.filter(item => item.order_id === o.id).map(item => ({
+        productId: item.product_id,
+        title: item.title,
+        price: Number(item.price),
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color
+      })),
       customerName: o.customer_name,
       customerEmail: o.customer_email,
       address: o.address,
@@ -1849,41 +1908,83 @@ app.delete('/api/cart', authMiddleware, async (req, res) => {
   }
 });
 
-// Order creation
-app.post('/api/orders', async (req, res) => {
+// Real Order Placement using Atomic Transaction (RPC)
+app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const orderId = 'ord-' + Math.floor(1000 + Math.random() * 9000);
-    const status = 'processing';
-    const paymentStatus = req.body.paymentMethod === 'Cash on Delivery' ? 'pending' : 'paid';
-    const items = req.body.items || [];
-    
-    // Supabase টেবিলের কলামগুলোর সাথে মিলিয়ে অবজেক্ট তৈরি করা
-    const orderData = {
-      id: orderId,
-      user_id: req.body.customerId || req.body.userId || 'guest',
-      total_amount: Number(req.body.totalAmount),
-      status: status,
-      payment_status: paymentStatus,
-      payment_method: req.body.paymentMethod || 'Cash on Delivery',
-      shipping_address: req.body.shippingAddress || req.body.address || '',
-      phone: req.body.customerPhone || req.body.phone || '',
-      items: items
-    };
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized login required' });
 
-    // সরাসরি Supabase-এর orders টেবিলে ইনসার্ট করা
-    const { data, error } = await supabase
-      .from('orders')
-      .insert([orderData])
-      .select();
+    const { 
+      totalAmount, 
+      paymentMethod, 
+      shippingAddress, 
+      phone, 
+      items, 
+      customerName, 
+      customerEmail 
+    } = req.body;
 
-    if (error) {
-      console.error('Supabase order insert error:', error);
-      throw error;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Cart is empty' });
     }
 
-    res.json({ success: true, order: data?.[0] || orderData });
+    const orderId = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    if (isDbConfigured) {
+      // Call the place_order function we defined in initDatabase
+      await pool.query(
+        'SELECT place_order($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        [
+          orderId,
+          userId,
+          customerName || req.user?.name || 'Customer',
+          customerEmail || req.user?.email || '',
+          shippingAddress || '',
+          phone || '',
+          Number(totalAmount),
+          paymentMethod || 'Cash on Delivery',
+          JSON.stringify(items)
+        ]
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Order placed successfully!', 
+        orderId 
+      });
+    } else {
+      // Fallback logic for demo/file-based (though prompt asks for production Supabase)
+      const db = await getDb();
+      const newOrder = {
+        id: orderId,
+        customerId: userId,
+        customerName: customerName || req.user?.name || 'Customer',
+        totalAmount: Number(totalAmount),
+        status: 'pending',
+        paymentMethod: paymentMethod || 'Cash on Delivery',
+        address: shippingAddress || '',
+        phone: phone || '',
+        items,
+        createdAt: new Date().toISOString()
+      };
+      
+      db.orders.unshift(newOrder);
+      // Deduct stock in fallback
+      items.forEach((item: any) => {
+        const prod = db.products.find((p: any) => p.id === item.productId);
+        if (prod) {
+          prod.stock -= item.quantity;
+          prod.totalSold += item.quantity;
+        }
+      });
+      // Clear cart
+      db.cartItems = db.cartItems.filter(ci => ci.userId !== userId);
+      
+      saveDb(db);
+      res.json({ success: true, order: newOrder });
+    }
   } catch (error: any) {
-    console.error('Error creating order:', error.message);
+    console.error('Checkout error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
