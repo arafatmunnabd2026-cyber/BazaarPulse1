@@ -2173,46 +2173,53 @@ app.post('/api/sync-user', async (req, res) => {
 });
 
 // 4. Cart Add/Sync API Route
-app.post('/api/cart', async (req, res) => {
+// 4. Cart Add/Sync API Route (Daraz-style logic)
+app.post('/api/cart', authMiddleware, async (req, res) => {
   try {
-    // ফ্রন্টএন্ড থেকে পাঠানো সব সম্ভাব্য ডাটা ফিল্ড গ্রহণ করা হচ্ছে
-    const { userId, customerId, productId, quantity, size, color } = req.body;
-    
-    // userId অথবা customerId না পাওয়া গেলে ডিফল্ট হিসেবে 'guest' ব্যবহার করা হবে
-    const finalUserId = userId || customerId || 'guest';
-    const finalProductId = productId;
+    // authMiddleware থেকে userId সংগ্রহ (লগইন করা থাকলে)
+    const userId = req.user?.id || req.body.userId || req.body.customerId || 'guest';
+    const { productId, quantity = 1, size = '', color = '' } = req.body;
 
-    if (!finalProductId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Product ID is required.',
-        received: { userId: finalUserId, productId: finalProductId } 
-      });
+    if (!productId) {
+      return res.status(400).json({ success: false, message: 'Product ID is required' });
     }
 
-    const { data, error } = await supabase
+    // ১. প্রোডাক্টটি কার্টে আছে কি না চেক করা
+    const { data: existingItem, error: fetchError } = await supabase
       .from('cart')
-      .upsert(
-        {
-          user_id: finalUserId,
-          product_id: finalProductId,
-          quantity: quantity || 1,
-          size: size || '',
-          color: color || ''
-        },
-        { onConflict: 'user_id,product_id,size,color' }
-      )
-      .select();
+      .select('id, quantity')
+      .eq('user_id', userId)
+      .eq('product_id', productId)
+      .eq('size', size)
+      .eq('color', color)
+      .maybeSingle(); // .single() এর বদলে .maybeSingle() ব্যবহার করা নিরাপদ
 
-    if (error) throw error;
-
-    res.status(200).json({
-      success: true,
-      message: 'Cart updated successfully',
-      cart: data
-    });
+    if (existingItem) {
+      // ২. থাকলে quantity আপডেট করা
+      const { error: updateError } = await supabase
+        .from('cart')
+        .update({ quantity: existingItem.quantity + quantity })
+        .eq('id', existingItem.id);
+      
+      if (updateError) throw updateError;
+      res.status(200).json({ success: true, message: 'Cart updated successfully' });
+    } else {
+      // ৩. না থাকলে নতুন ইনসার্ট করা
+      const { error: insertError } = await supabase
+        .from('cart')
+        .insert({
+          user_id: userId,
+          product_id: productId,
+          quantity: quantity,
+          size: size,
+          color: color
+        });
+        
+      if (insertError) throw insertError;
+      res.status(200).json({ success: true, message: 'Product added to cart' });
+    }
   } catch (err: any) {
-    console.error('Error updating cart:', err.message);
+    console.error('Cart Error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
