@@ -661,6 +661,7 @@ export default function App() {
             navigateTo(attemptedPath);
           }}
           notify={notify}
+          navigateTo={navigateTo}
         />
       )}
 
@@ -4934,6 +4935,7 @@ interface AuthModalProps {
   onLoginUser: (user: any, token: string) => void;
   onSimulateRouteAttack: (attemptedPath: string) => void;
   notify: (msg: string) => void;
+  navigateTo?: (path: string) => void;
 }
 
 function AuthModal({
@@ -4941,11 +4943,13 @@ function AuthModal({
   onClose,
   onLoginUser,
   onSimulateRouteAttack,
-  notify
+  notify,
+  navigateTo
 }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [authView, setAuthView] = useState<'signin' | 'seller_register' | 'seller_pending_success'>('signin');
+  const [authView, setAuthView] = useState<'signin' | 'seller_register' | 'seller_login' | 'seller_pending_success'>('signin');
+  const [sellerLoginIdentifier, setSellerLoginIdentifier] = useState('');
   const [sellerForm, setSellerForm] = useState({
     storeName: '',
     ownerName: '',
@@ -4958,6 +4962,50 @@ function AuthModal({
     paymentNumber: '',
     accountType: 'Personal'
   });
+
+  const [sellerLoginStatus, setSellerLoginStatus] = useState<'idle' | 'rejected' | 'pending' | 'not_found'>('idle');
+
+  const handleSellerLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellerLoginIdentifier.trim()) {
+      notify('⚠️ অনুগ্রহ করে ফোন নম্বর, ইমেইল বা দোকানের নাম লিখুন');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage(null);
+    setSellerLoginStatus('idle');
+    try {
+      const res = await fetch('/api/auth/vendor-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: sellerLoginIdentifier.trim() })
+      });
+      const data = await res.json();
+      if (data.success && data.user && data.token) {
+        onLoginUser(data.user, data.token);
+        notify(data.message || `🎉 স্বাগতম! "${data.vendor?.storeName || 'সেলার'}" প্যানেলে প্রবেশ করছেন...`);
+        onClose();
+        if (navigateTo) {
+          navigateTo('/vendor');
+        }
+      } else {
+        setErrorMessage(data.error || 'Seller login failed');
+        if (data.isRejected) {
+          setSellerLoginStatus('rejected');
+        } else if (data.isPending) {
+          setSellerLoginStatus('pending');
+        } else if (data.notFound) {
+          setSellerLoginStatus('not_found');
+        }
+        notify('❌ বিক্রেতা লগইন ব্যর্থ হয়েছে');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Server error during seller login');
+      notify('❌ বিক্রেতা লগইন ব্যর্থ হয়েছে');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const nidFrontInputRef = useRef<HTMLInputElement>(null);
   const nidBackInputRef = useRef<HTMLInputElement>(null);
@@ -5047,10 +5095,10 @@ function AuthModal({
             <h1 className="text-2xl font-black text-orange-600 tracking-tighter">BazaarPulse</h1>
           </div>
           <h3 className="font-extrabold text-lg text-white mt-1">
-            {authView === 'signin' ? 'Sign In' : authView === 'seller_register' ? 'বিক্রেতা নিবন্ধন (Seller Registration)' : 'আবেদন জমা হয়েছে'}
+            {authView === 'signin' ? 'Sign In' : authView === 'seller_register' ? 'বিক্রেতা নিবন্ধন (Seller Registration)' : authView === 'seller_login' ? 'বিক্রেতা প্যানেলে প্রবেশ (Seller Login)' : 'আবেদন জমা হয়েছে'}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            {authView === 'signin' ? 'Use Google to sign in' : authView === 'seller_register' ? 'BazaarPulse-এ বিক্রেতা হিসেবে ব্যবসা শুরু করুন' : 'অ্যাডমিন পর্যালোচনার অপেক্ষায়'}
+            {authView === 'signin' ? 'Use Google to sign in' : authView === 'seller_register' ? 'BazaarPulse-এ বিক্রেতা হিসেবে ব্যবসা শুরু করুন' : authView === 'seller_login' ? 'আপনার ফোন নম্বর বা ইমেইল দিয়ে লগইন করুন' : 'অ্যাডমিন পর্যালোচনার অপেক্ষায়'}
           </p>
           <button 
             onClick={onClose}
@@ -5070,7 +5118,7 @@ function AuthModal({
           )}
 
           {authView === 'signin' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <GoogleLogin 
                 onSuccess={handleGoogleSuccess}
                 onError={() => notify('Google Login failed')}
@@ -5078,21 +5126,131 @@ function AuthModal({
                 width="100%"
               />
 
-              <div className="relative my-4 flex items-center justify-center">
+              <div className="relative my-3 flex items-center justify-center">
                 <div className="border-t border-slate-800 w-full" />
-                <span className="bg-slate-950 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">or</span>
+                <span className="bg-slate-950 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">or seller zone</span>
               </div>
 
-              {/* Register as a seller Button */}
-              <button
-                type="button"
-                onClick={() => setAuthView('seller_register')}
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#23272f] hover:bg-[#2c323c] text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#373e4b]"
-              >
-                <Store className="w-4 h-4 text-orange-400" />
-                <span>Register as a seller (বিক্রেতা নিবন্ধন)</span>
-              </button>
+              {/* Seller Sign In / Register Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthView('seller_login')}
+                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-emerald-950 hover:bg-emerald-900 text-emerald-300 shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-800/60"
+                >
+                  <LogIn className="w-4 h-4 text-emerald-400" />
+                  <span>Seller Sign In (বিক্রেতা লগইন)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAuthView('seller_register')}
+                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#23272f] hover:bg-[#2c323c] text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#373e4b]"
+                >
+                  <Store className="w-4 h-4 text-orange-400" />
+                  <span>Register as Seller</span>
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* Dedicated Seller Login View */}
+          {authView === 'seller_login' && (
+            <form onSubmit={handleSellerLoginSubmit} className="space-y-4 text-left">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  ফোন নম্বর / ইমেইল / স্টোরের নাম *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="রেজিস্ট্রেশনকৃত ফোন নম্বর বা ইমেইল লিখুন"
+                  value={sellerLoginIdentifier}
+                  onChange={e => {
+                    setSellerLoginIdentifier(e.target.value);
+                    if (sellerLoginStatus !== 'idle') setSellerLoginStatus('idle');
+                  }}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>{loading ? 'যাচাই করা হচ্ছে...' : 'বিক্রেতা ড্যাশবোর্ডে প্রবেশ করুন (Enter Seller Portal)'}</span>
+              </button>
+
+              {/* Special Prompt Cards for Rejected, Pending or Not Found Status */}
+              {(sellerLoginStatus === 'rejected' || sellerLoginStatus === 'not_found') && (
+                <div className="bg-red-950/80 border border-red-500/50 p-3.5 rounded-2xl text-xs space-y-2 text-red-200">
+                  <div className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold text-white mb-0.5">
+                        {sellerLoginStatus === 'rejected' ? 'অ্যাকাউন্ট রিজেক্ট/বাতিল হয়েছে' : 'অ্যাকাউন্ট পাওয়া যায়নি'}
+                      </strong>
+                      <p className="text-[11px] leading-relaxed text-red-300">
+                        {sellerLoginStatus === 'rejected' 
+                          ? 'আপনার পূর্বের বিক্রেতা আবেদনটি বাতিল করা হয়েছে। নতুন অ্যাকাউন্ট খোলার জন্য সঠিক তথ্য প্রদান করে পুনরায় রেজিস্ট্রেশন করুন।'
+                          : 'এই ফোন নম্বর বা ইমেইল দিয়ে কোনো বিক্রেতা অ্যাকাউন্ট তালিকাভুক্ত নেই। নতুন অ্যাকাউন্ট খোলার জন্য রেজিস্টার করুন।'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (sellerLoginIdentifier.includes('@')) {
+                        setSellerForm(prev => ({ ...prev, email: sellerLoginIdentifier }));
+                      } else if (/^\d+$/.test(sellerLoginIdentifier)) {
+                        setSellerForm(prev => ({ ...prev, phone: sellerLoginIdentifier }));
+                      }
+                      setAuthView('seller_register');
+                    }}
+                    className="w-full mt-2 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ নতুন বিক্রেতা অ্যাকাউন্ট তৈরি করুন (Register New Seller)</span>
+                  </button>
+                </div>
+              )}
+
+              {sellerLoginStatus === 'pending' && (
+                <div className="bg-amber-950/80 border border-amber-500/50 p-3.5 rounded-2xl text-xs space-y-2 text-amber-200">
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold text-white mb-0.5">অপেক্ষা করুন (Pending Approval)</strong>
+                      <p className="text-[11px] leading-relaxed text-amber-300">
+                        আপনার সেলার আবেদনটি সফলভাবে গৃহীত হয়েছে এবং অ্যাডমিন পর্যালোচনার অপেক্ষায় রয়েছে। অ্যাডমিন এপ্রুভ করার সাথে সাথে আপনি লগইন করতে পারবেন।
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => setAuthView('seller_register')}
+                  className="text-orange-400 hover:underline font-bold cursor-pointer"
+                >
+                  + নতুন বিক্রেতা অ্যাকাউন্ট খুলুন
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthView('signin')}
+                  className="text-slate-400 hover:text-white cursor-pointer font-medium"
+                >
+                  ← গ্রাহক সাইন ইন
+                </button>
+              </div>
+            </form>
           )}
 
           {authView === 'seller_register' && (

@@ -1463,6 +1463,97 @@ app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, r
   }
 });
 
+// Vendor Login Endpoint by Phone, Email, or Store Name
+app.post('/api/auth/vendor-login', async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    if (!identifier || !identifier.trim()) {
+      return res.status(400).json({ success: false, error: 'ফোন নম্বর, ইমেইল বা স্টোরের নাম প্রদান করুন' });
+    }
+
+    const clean = identifier.trim().toLowerCase();
+    const db = await getDb();
+    const vendors = db.vendors || [];
+
+    let vendor = vendors.find((v: any) => 
+      (v.phone && v.phone.trim().toLowerCase() === clean) ||
+      (v.email && v.email.trim().toLowerCase() === clean) ||
+      (v.storeName && v.storeName.trim().toLowerCase() === clean) ||
+      (v.id && v.id.toLowerCase() === clean)
+    );
+
+    // Fallback search if db configured
+    if (!vendor && isDbConfigured) {
+      try {
+        const vRes = await pool.query(
+          `SELECT * FROM vendors WHERE LOWER(phone) = $1 OR LOWER(email) = $1 OR LOWER(name) = $1 OR LOWER(id) = $1`,
+          [clean]
+        );
+        if (vRes.rowCount! > 0) {
+          const row = vRes.rows[0];
+          vendor = {
+            id: row.id,
+            storeName: row.name,
+            ownerName: row.name,
+            email: row.email,
+            phone: row.phone,
+            status: row.status || 'approved'
+          };
+        }
+      } catch (dbErr) {}
+    }
+
+    // Default demo fallback if no vendor exists yet
+    if (!vendor) {
+      return res.status(404).json({ 
+        success: false, 
+        notFound: true,
+        error: 'এই ফোন নম্বর বা ইমেইল দিয়ে কোনো বিক্রেতা অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে নতুন বিক্রেতা হিসেবে রেজিস্ট্রেশন করুন।' 
+      });
+    }
+
+    if (vendor.status === 'pending') {
+      return res.status(403).json({ 
+        success: false, 
+        isPending: true,
+        error: 'আপনার অ্যাকাউন্টটি এখনো অ্যাডমিন অনুমোদনের অপেক্ষায় রয়েছে (Pending Approval)। অ্যাডমিন কর্তৃক এপ্রুভ করা হলে আপনি লগইন করতে পারবেন।' 
+      });
+    }
+
+    if (vendor.status === 'rejected' || vendor.status === 'suspended') {
+      return res.status(403).json({ 
+        success: false, 
+        isRejected: true,
+        error: `আপনার বিক্রেতা অ্যাকাউন্টটি অ্যাডমিন কর্তৃক ${vendor.status === 'rejected' ? 'বাতিল (Rejected)' : 'স্থগিত (Suspended)'} করা হয়েছে। নতুন একাউন্ট খোলার জন্য অনুগ্রহ করে পুনরায় সঠিক তথ্য দিয়ে রেজিস্ট্রেশন করুন।` 
+      });
+    }
+
+    // Generate Vendor payload & token
+    const payload = {
+      id: 'u_' + vendor.id,
+      name: vendor.ownerName || vendor.storeName,
+      storeName: vendor.storeName,
+      email: vendor.email || `vendor@bazaarpulse.com`,
+      phone: vendor.phone,
+      role: 'vendor',
+      status: 'approved',
+      vendorId: vendor.id
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      success: true,
+      user: payload,
+      token,
+      vendor,
+      message: `🎉 স্বাগতম! "${vendor.storeName}" বিক্রেতা প্যানেলে প্রবেশ করছেন...`
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Public Seller Registration with NID and Mobile Banking details
 app.post('/api/vendors/register', async (req, res) => {
   try {
