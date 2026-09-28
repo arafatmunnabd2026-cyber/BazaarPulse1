@@ -1714,29 +1714,32 @@ function CustomerView({
                       <h4 className="font-normal text-gray-900 text-sm line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug">
                         {product.title}
                       </h4>
-                      <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                      <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
                         <Store className="w-3 h-3" /> {product.vendorName}
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-2 border-t border-gray-100">
-                      <div>
-                        <div className="text-[#f85606] font-bold text-lg">
+                    <div className="mt-2 pt-1.5 border-t border-gray-100">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-[#f85606] font-black text-base sm:text-lg">
                           ৳{product.discountPrice || product.price}
-                        </div>
+                        </span>
                         {product.discountPrice && (
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-gray-400 line-through">
+                          <>
+                            <span className="text-sm text-red-500 line-through font-semibold">
                               ৳{product.price}
                             </span>
-                          </div>
+                            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-100 flex items-center shrink-0">
+                              You Save ৳{product.price - product.discountPrice}
+                            </span>
+                          </>
                         )}
                       </div>
 
                       {/* Optional sizes/colors preview inside product card */}
                       {((Array.isArray(product.sizes) && product.sizes.length > 0) || 
                         (Array.isArray(product.colors) && product.colors.length > 0)) && (
-                        <div className="mt-2 space-y-1 text-[10px] text-gray-500 border-t border-dashed border-gray-100 pt-1.5">
+                        <div className="mt-1.5 space-y-0.5 text-[10px] text-gray-500 border-t border-dashed border-gray-100 pt-1">
                           {Array.isArray(product.sizes) && product.sizes.length > 0 && (
                             <div className="flex flex-wrap gap-1 items-center">
                               <span className="font-semibold text-gray-400">Sizes:</span>
@@ -1752,22 +1755,21 @@ function CustomerView({
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between mt-1.5">
                         <div className="flex items-center gap-1 text-amber-500 text-xs">
                           <Star className="w-3.5 h-3.5 fill-amber-500" />
                           <span className="text-gray-600 font-medium">{product.rating}</span>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] text-slate-500 font-bold">Sold: {product.totalSold || 0}</span>
-                          <span className={`text-[9px] font-black uppercase ${product.stock > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {product.stock > 0 ? `${product.stock} In Stock` : 'Out of Stock'}
+                        {!product.stock || product.stock <= 0 ? (
+                          <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                            Out of Stock
                           </span>
-                        </div>
+                        ) : null}
                       </div>
 
                       <button
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="w-full mt-3 bg-gray-900 hover:bg-[#f85606] text-white font-medium py-2 rounded-lg text-xs transition-all shadow flex items-center justify-center gap-1.5"
+                        className="w-full mt-2 bg-gray-900 hover:bg-[#f85606] text-white font-medium py-2 rounded-lg text-xs transition-all shadow flex items-center justify-center gap-1.5"
                       >
                         <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
                       </button>
