@@ -3647,6 +3647,7 @@ function AdminControlCenter({
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
   const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState<'all' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
   const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
+  const [isBannerActive, setIsBannerActive] = useState<boolean>(data?.adminSettings?.cartBanner?.isActive !== false);
   
   const [newAdminProduct, setNewAdminProduct] = useState({
     title: '',
@@ -4715,7 +4716,6 @@ function AdminControlCenter({
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
-                const isActive = (form.elements.namedItem('isActive') as HTMLInputElement).checked;
                 const bannerText = (form.elements.namedItem('bannerText') as HTMLInputElement).value;
                 const termsText = (form.elements.namedItem('termsText') as HTMLInputElement).value;
 
@@ -4723,7 +4723,7 @@ function AdminControlCenter({
                   const res = await fetch('/api/admin/banner', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                    body: JSON.stringify({ isActive, bannerText, termsText })
+                    body: JSON.stringify({ isActive: isBannerActive, bannerText, termsText })
                   });
                   if (res.ok) {
                     notify('✅ Cart promotional banner settings updated successfully!');
@@ -4735,17 +4735,28 @@ function AdminControlCenter({
                   notify('Failed to update banner settings');
                 }
               }} className="space-y-4">
-                <div className="flex items-center gap-3 bg-orange-50/50 p-3.5 rounded-xl border border-orange-100">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    defaultChecked={data.adminSettings?.cartBanner?.isActive !== false}
-                    className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500 cursor-pointer"
-                    id="banner-is-active"
-                  />
-                  <label htmlFor="banner-is-active" className="text-sm font-extrabold text-slate-900 cursor-pointer">
-                    Show / Enable Promotional Banner in Cart Drawer
-                  </label>
+                <div className="flex items-center justify-between bg-orange-50/50 p-4 rounded-xl border border-orange-100">
+                  <div>
+                    <div className="text-sm font-extrabold text-slate-900">Promotional Banner Status</div>
+                    <div className="text-xs text-slate-500">Toggle ON to show or OFF to hide the banner in cart drawer</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsBannerActive(!isBannerActive)}
+                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shadow-inner cursor-pointer ${
+                      isBannerActive ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className="sr-only">Toggle banner status</span>
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                        isBannerActive ? 'translate-x-8' : 'translate-x-1'
+                      }`}
+                    />
+                    <span className={`absolute text-[10px] font-black uppercase ${isBannerActive ? 'left-2 text-white' : 'right-2 text-slate-700'}`}>
+                      {isBannerActive ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
                 </div>
 
                 <div>
