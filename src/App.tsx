@@ -15,7 +15,7 @@ import {
   Upload, Image
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase } from './lib/supabase';
+import { supabase, getActiveSupabase } from './lib/supabase';
 import { ProductQuickView } from './components/ProductQuickView';
 import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
@@ -451,7 +451,7 @@ export default function App() {
     };
   }, [authUser, currentPath]);
 
-  const handleLoginUser = (user: any, token: string) => {
+  const handleLoginUser = async (user: any, token: string) => {
     setAuthUser(user);
     setAuthToken(token);
     localStorage.setItem('bazaarpulse_user', JSON.stringify(user));
@@ -459,6 +459,36 @@ export default function App() {
     setIsAuthModalOpen(false);
     setAccessDeniedAlert(null);
     notify(`👋 Welcome back, ${user.name}! (Role: ${user.role})`);
+    
+    // Sync login info to Supabase automatically using the active dynamically resolved client
+    const activeSupabase = getActiveSupabase();
+    if (activeSupabase) {
+      try {
+        const { error } = await activeSupabase
+          .from('user_logins')
+          .upsert({
+            id: user.id || String(user.email),
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            role: user.role,
+            last_login: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Supabase Sync Error:', error);
+          notify(`⚠️ Supabase Error: ${error.message}. Please make sure to run the SQL schema to create the 'user_logins' table in Supabase.`);
+        } else {
+          console.log('Successfully saved user login info to Supabase database!');
+          notify('✅ Login info successfully saved to Supabase!');
+        }
+      } catch (err: any) {
+        console.error('Supabase execution error:', err);
+        notify(`❌ Supabase Sync failed: ${err.message || err}`);
+      }
+    } else {
+      notify('⚠️ Supabase client is not initialized. Please check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env file.');
+    }
     
     // Automatically route to appropriate view
     if (user.role === 'admin') {
@@ -4815,6 +4845,35 @@ function AuthModal({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Custom Supabase Client Connection Settings
+  const [showDbConfig, setShowDbConfig] = useState(false);
+  const [dbUrl, setDbUrl] = useState(() => localStorage.getItem('custom_supabase_url') || '');
+  const [dbKey, setDbKey] = useState(() => localStorage.getItem('custom_supabase_key') || '');
+
+  const handleSaveDbConfig = () => {
+    if (!dbUrl.trim() || !dbKey.trim()) {
+      notify('⚠️ Please provide both URL and Key');
+      return;
+    }
+    localStorage.setItem('custom_supabase_url', dbUrl.trim());
+    localStorage.setItem('custom_supabase_key', dbKey.trim());
+    notify('🔌 Custom Supabase configuration saved! Reconnecting...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
+  const handleClearDbConfig = () => {
+    localStorage.removeItem('custom_supabase_url');
+    localStorage.removeItem('custom_supabase_key');
+    setDbUrl('');
+    setDbKey('');
+    notify('🔄 Supabase configuration reset to defaults! Reconnecting...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setLoading(true);
     setErrorMessage(null);
@@ -4880,6 +4939,62 @@ function AuthModal({
             theme="filled_black"
             width="100%"
           />
+        </div>
+
+        {/* Custom Supabase DB Settings Panel */}
+        <div className="mt-6 pt-5 border-t border-slate-900">
+          <button 
+            onClick={() => setShowDbConfig(!showDbConfig)}
+            className="w-full flex items-center justify-between text-xs text-slate-400 hover:text-white font-bold transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <Settings className="w-3.5 h-3.5 text-orange-500 animate-spin" />
+              Connect your own Supabase DB
+            </span>
+            <span>{showDbConfig ? '▼' : '▶'}</span>
+          </button>
+          
+          {showDbConfig && (
+            <div className="mt-3 space-y-3 bg-slate-900/50 p-3.5 rounded-2xl border border-slate-800 text-left">
+              <p className="text-[10px] text-slate-400 leading-relaxed mb-1">
+                If logins are not saving, paste your own Supabase project credentials below to connect your personal database instantly!
+              </p>
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Supabase URL</label>
+                <input 
+                  type="text" 
+                  value={dbUrl} 
+                  onChange={(e) => setDbUrl(e.target.value)}
+                  placeholder="https://your-project-id.supabase.co" 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none focus:border-orange-500 text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Anon / Publishable Key</label>
+                <input 
+                  type="password" 
+                  value={dbKey} 
+                  onChange={(e) => setDbKey(e.target.value)}
+                  placeholder="Paste anon publishable key here" 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs focus:outline-none focus:border-orange-500 text-white font-mono"
+                />
+              </div>
+              <button 
+                onClick={handleSaveDbConfig}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-black py-2 rounded-lg transition-colors shadow-md cursor-pointer"
+              >
+                Save & Connect My DB
+              </button>
+              {localStorage.getItem('custom_supabase_url') && (
+                <button 
+                  onClick={handleClearDbConfig}
+                  className="w-full bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400 text-[10px] font-bold py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  Reset to Default Platform DB
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
