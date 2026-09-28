@@ -117,25 +117,13 @@ const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, 
 };
 
 export default function App() {
-  // Global Auth State (Defaults to Customer Rahim Ahmed for realistic storefront browsing)
+  // Global Auth State (Defaults to null so new users start as Guest)
   const [authUser, setAuthUser] = useState<any>(() => {
     try {
       const saved = localStorage.getItem('bazaarpulse_user');
-      return saved ? JSON.parse(saved) : {
-        id: 'u4',
-        name: 'Rahim Ahmed',
-        email: 'customer@gmail.com',
-        role: 'customer',
-        status: 'active'
-      };
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return {
-        id: 'u4',
-        name: 'Rahim Ahmed',
-        email: 'customer@gmail.com',
-        role: 'customer',
-        status: 'active'
-      };
+      return null;
     }
   });
 
@@ -480,7 +468,6 @@ export default function App() {
           notify(`⚠️ Supabase Error: ${error.message}. Please make sure to run the SQL schema to create the 'user_logins' table in Supabase.`);
         } else {
           console.log('Successfully saved user login info to Supabase database!');
-          notify('✅ Login info successfully saved to Supabase!');
         }
       } catch (err: any) {
         console.error('Supabase execution error:', err);
