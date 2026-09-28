@@ -2287,36 +2287,68 @@ app.post('/api/cart', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Product ID is required' });
     }
 
-    const { data: existingItem, error: fetchError } = await supabase
-      .from('cart')
-      .select('id, quantity')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .eq('size', size)
-      .eq('color', color)
-      .maybeSingle();
+    try {
+      // Try Supabase directly
+      const { data: existingItem, error: fetchError } = await supabase
+        .from('cart')
+        .select('id, quantity')
+        .eq('user_id', userId)
+        .eq('product_id', productId)
+        .eq('size', size)
+        .eq('color', color)
+        .maybeSingle();
 
-    if (existingItem) {
-      const { error: updateError } = await supabase
-        .from('cart')
-        .update({ quantity: existingItem.quantity + quantity })
-        .eq('id', existingItem.id);
-      
-      if (updateError) throw updateError;
-      res.status(200).json({ success: true, message: 'Cart updated successfully' });
-    } else {
-      const { error: insertError } = await supabase
-        .from('cart')
-        .insert({
-          user_id: userId,
-          product_id: productId,
-          quantity: quantity,
-          size: size,
-          color: color
-        });
+      if (fetchError) throw fetchError;
+
+      if (existingItem) {
+        const { error: updateError } = await supabase
+          .from('cart')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id);
         
-      if (insertError) throw insertError;
-      res.status(200).json({ success: true, message: 'Product added to cart' });
+        if (updateError) throw updateError;
+        return res.status(200).json({ success: true, message: 'Cart updated successfully' });
+      } else {
+        const { error: insertError } = await supabase
+          .from('cart')
+          .insert({
+            user_id: userId,
+            product_id: productId,
+            quantity: quantity,
+            size: size,
+            color: color
+          });
+          
+        if (insertError) throw insertError;
+        return res.status(200).json({ success: true, message: 'Product added to cart' });
+      }
+    } catch (supaErr: any) {
+      // Graceful local cart fallback when Supabase table is not configured
+      const db = await getDb();
+      if (!db.cartItems) db.cartItems = [];
+
+      const existingItem = db.cartItems.find(item => 
+        item.userId === userId && 
+        item.productId === productId && 
+        item.size === size && 
+        item.color === color
+      );
+
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        db.cartItems.push({
+          userId,
+          productId,
+          quantity,
+          size,
+          color,
+          addedAt: new Date().toISOString()
+        });
+      }
+
+      saveDb(db);
+      return res.status(200).json({ success: true, message: 'Cart updated successfully in fallback database' });
     }
   } catch (err: any) {
     console.error('Cart Error:', err);
@@ -2361,14 +2393,26 @@ app.delete('/api/cart/batch', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'No items selected for deletion' });
     }
 
-    const { error } = await supabase
-      .from('cart')
-      .delete()
-      .eq('user_id', userId)
-      .in('product_id', productIds);
+    try {
+      const { error } = await supabase
+        .from('cart')
+        .delete()
+        .eq('user_id', userId)
+        .in('product_id', productIds);
 
-    if (error) throw error;
-    res.status(200).json({ success: true, message: 'Selected items deleted successfully' });
+      if (error) throw error;
+      return res.status(200).json({ success: true, message: 'Selected items deleted successfully' });
+    } catch (supaErr: any) {
+      // Graceful local cart batch delete fallback when Supabase table is not configured
+      const db = await getDb();
+      if (db.cartItems) {
+        db.cartItems = db.cartItems.filter(item => 
+          !(item.userId === userId && productIds.includes(item.productId))
+        );
+        saveDb(db);
+      }
+      return res.status(200).json({ success: true, message: 'Selected items deleted successfully from fallback database' });
+    }
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

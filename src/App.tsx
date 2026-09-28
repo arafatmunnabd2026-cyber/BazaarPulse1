@@ -1244,11 +1244,9 @@ function CustomerView({
       notify('⚠️ Please select at least one item to delete');
       return;
     }
-    if (!confirm('Are you sure you want to delete selected items from cart?')) return;
     
     const productIdsToDelete = toDelete.map(i => i.product.id);
     setCart(prev => prev.filter(i => i.isSelected === false));
-    notify('🗑️ Selected items deleted from cart');
 
     if (authUser) {
       try {
@@ -2174,7 +2172,7 @@ function CustomerView({
         setSelectedColor={setSelectedColor}
         productQty={productQty}
         setProductQty={setProductQty}
-        addToCart={(p: any, q: number, s: string, c: string) => {
+        handleAddToCart={(p: any, q: number, s: string, c: string) => {
           addToCart(p, q, s, c);
           setSelectedProduct(null);
           setIsCartOpen(true);

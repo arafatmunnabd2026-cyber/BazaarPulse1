@@ -45,7 +45,7 @@ export const ProductQuickView = ({
           </div>
           <button 
             onClick={() => setSelectedProduct(null)} 
-            className="p-2.5 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2.5 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             aria-label="Close Modal"
           >
             <X className="w-6 h-6" />
@@ -85,7 +85,7 @@ export const ProductQuickView = ({
                   <button
                     key={idx}
                     onClick={() => setActiveImageIdx(idx)}
-                    className={`w-16 h-16 rounded-xl border-2 overflow-hidden flex-shrink-0 transition-all ${
+                    className={`w-16 h-16 rounded-xl border-2 overflow-hidden flex-shrink-0 transition-all cursor-pointer ${
                       activeImageIdx === idx ? 'border-[#f85606] ring-2 ring-[#f85606]/20' : 'border-gray-200 opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -97,7 +97,7 @@ export const ProductQuickView = ({
           </div>
 
           {/* Middle Column: Details & Actions */}
-          <div className="lg:col-span-5 flex flex-col gap-5">
+          <div className="lg:col-span-5 flex flex-col gap-5 text-left">
             <div>
               <div className="text-xs text-gray-500 mb-1 flex items-center gap-1 font-medium">
                 Store Brand: <span className="text-[#f85606] font-bold">{selectedProduct.vendorName}</span>
@@ -146,10 +146,10 @@ export const ProductQuickView = ({
                         <button
                           key={size}
                           onClick={() => setSelectedSize(size)}
-                          className={`min-w-[45px] h-[35px] px-2.5 border rounded-lg text-xs font-bold transition-all ${
+                          className={`min-w-[45px] h-[35px] px-2.5 border rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             selectedSize === size 
                               ? 'border-[#f85606] bg-orange-50 text-[#f85606] ring-1 ring-[#f85606]' 
-                              : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                              : 'border-gray-200 text-gray-700 hover:border-gray-400 bg-white'
                           }`}
                         >
                           {size}
@@ -172,7 +172,7 @@ export const ProductQuickView = ({
                           <button
                             key={colorName}
                             onClick={() => setSelectedColor(colorName)}
-                            className={`group relative flex flex-col items-center gap-1 transition-all ${
+                            className={`group relative flex flex-col items-center gap-1 transition-all cursor-pointer ${
                               selectedColor === colorName ? 'scale-110' : 'hover:scale-105'
                             }`}
                           >
@@ -199,9 +199,9 @@ export const ProductQuickView = ({
               <div className="flex items-center gap-6">
                 <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider">Quantity</span>
                 <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <button onClick={() => setProductQty(Math.max(1, productQty - 1))} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">-</button>
+                  <button onClick={() => setProductQty(Math.max(1, productQty - 1))} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors cursor-pointer">-</button>
                   <span className="px-5 py-2 font-extrabold text-sm text-black min-w-[50px] text-center">{productQty}</span>
-                  <button onClick={() => setProductQty(productQty + 1)} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">+</button>
+                  <button onClick={() => setProductQty(productQty + 1)} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors cursor-pointer">+</button>
                 </div>
               </div>
 
@@ -235,11 +235,11 @@ export const ProductQuickView = ({
                   if (hasColors && !selectedColor) { notify('⚠️ Please select a color'); return; }
                   handleAddToCart(selectedProduct, productQty, selectedSize, selectedColor);
                 }}
-                className="bg-[#f85606] hover:bg-[#e64d05] text-white font-black py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                className="bg-[#f85606] hover:bg-[#e64d05] text-white font-black py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
                 <ShoppingCart className="w-5 h-5" /> Add to Cart
               </button>
-              <button className="border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2">
+              <button className="border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm">
                 <Heart className="w-5 h-5" /> Wishlist
               </button>
             </div>
