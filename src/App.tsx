@@ -5104,7 +5104,9 @@ function AuthModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Dhaka Electronics"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.storeName}
                     onChange={e => setSellerForm(prev => ({ ...prev, storeName: e.target.value }))}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -5115,7 +5117,9 @@ function AuthModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Md. Arafat"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.ownerName}
                     onChange={e => setSellerForm(prev => ({ ...prev, ownerName: e.target.value }))}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -5129,7 +5133,9 @@ function AuthModal({
                   <input
                     type="tel"
                     required
-                    placeholder="e.g. 017XXXXXXXX"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.phone}
                     onChange={e => setSellerForm(prev => ({ ...prev, phone: e.target.value }))}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -5139,7 +5145,9 @@ function AuthModal({
                   <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">ইমেইল (Email)</label>
                   <input
                     type="email"
-                    placeholder="e.g. seller@gmail.com"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.email}
                     onChange={e => setSellerForm(prev => ({ ...prev, email: e.target.value }))}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -5161,7 +5169,9 @@ function AuthModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. 19951234567890 or 1234567890"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.nidNumber}
                     onChange={e => setSellerForm(prev => ({ ...prev, nidNumber: e.target.value }))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -5280,7 +5290,9 @@ function AuthModal({
                   <input
                     type="tel"
                     required
-                    placeholder="e.g. 017XXXXXXXX"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={sellerForm.paymentNumber}
                     onChange={e => setSellerForm(prev => ({ ...prev, paymentNumber: e.target.value }))}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
