@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase, getActiveSupabase } from './lib/supabase';
 import { ProductQuickView } from './components/ProductQuickView';
+import { WishlistModal } from './components/WishlistModal';
 import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
 import AdminDashboard from '../AdminDashboard';
@@ -1149,6 +1150,56 @@ function CustomerView({
   const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
   const [trackOrderIdInput, setTrackOrderIdInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
+
+  // Wishlist State with LocalStorage Persistence
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [wishlist, setWishlist] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('bazaarpulse_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('bazaarpulse_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  const toggleWishlist = (product: any) => {
+    if (!product || !product.id) return;
+    const exists = wishlist.some(p => p.id === product.id);
+    if (exists) {
+      setWishlist(prev => prev.filter(p => p.id !== product.id));
+      notify(`💔 "${product.title.substring(0, 20)}..." পছন্দের তালিকা থেকে সরানো হয়েছে`);
+    } else {
+      setWishlist(prev => [...prev, product]);
+      notify(`💖 "${product.title.substring(0, 20)}..." পছন্দের তালিকায় যুক্ত হয়েছে!`);
+    }
+  };
+
+  const removeFromWishlist = (productId: string) => {
+    setWishlist(prev => prev.filter(p => p.id !== productId));
+    notify('🗑️ পছন্দের তালিকা থেকে পণ্যটি সরানো হয়েছে');
+  };
+
+  const isInWishlist = (productId: string) => {
+    return wishlist.some(p => p.id === productId);
+  };
+
+  const clearWishlist = () => {
+    setWishlist([]);
+    notify('🧹 পছন্দের তালিকা সম্পূর্ণ খালি করা হয়েছে');
+  };
+
+  const moveAllWishlistToCart = () => {
+    if (wishlist.length === 0) return;
+    wishlist.forEach(item => {
+      addToCart(item, 1);
+    });
+    setWishlist([]);
+    notify(`🛍️ সকল পছন্দের পণ্য কার্টে যোগ করা হয়েছে!`);
+  };
   
   // Initialize cart from localStorage for persistence
   const [cart, setCart] = useState<{ product: any; quantity: number; size?: string; color?: string; isSelected?: boolean }[]>(() => {
@@ -1263,7 +1314,12 @@ function CustomerView({
   };
 
   const moveToWishlist = (item: any) => {
-    notify(`❤️ Moved "${item.product.title.substring(0, 22)}..." to wishlist`);
+    if (item?.product) {
+      if (!wishlist.some(p => p.id === item.product.id)) {
+        setWishlist(prev => [...prev, item.product]);
+      }
+      notify(`💖 "${item.product.title.substring(0, 22)}..." পছন্দের তালিকায় সরানো হয়েছে`);
+    }
     removeFromCart(item.product.id, item.size, item.color);
   };
 
@@ -1608,6 +1664,24 @@ function CustomerView({
 
                           {/* Quick Action Navigation Links */}
                           <div className="p-2 space-y-1">
+                            <button
+                              onClick={() => {
+                                setIsProfileDropdownOpen(false);
+                                setIsWishlistOpen(true);
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Heart className={`w-4 h-4 text-pink-500 ${wishlist.length > 0 ? 'fill-pink-500' : ''}`} />
+                                <span>আমার পছন্দের তালিকা (My Wishlist)</span>
+                              </div>
+                              {wishlist.length > 0 && (
+                                <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-pink-200">
+                                  {wishlist.length}
+                                </span>
+                              )}
+                            </button>
+
                             <button
                               onClick={() => {
                                 setIsProfileDropdownOpen(false);
@@ -2273,6 +2347,27 @@ function CustomerView({
         }}
         addToCart={addToCart}
         notify={notify}
+        onToggleWishlist={toggleWishlist}
+        isWishlisted={selectedProduct ? isInWishlist(selectedProduct.id) : false}
+      />
+
+      {/* Customer Wishlist Modal */}
+      <WishlistModal 
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlist={wishlist}
+        onRemoveFromWishlist={removeFromWishlist}
+        onAddToCart={(p, q) => {
+          addToCart(p, q);
+          notify(`🛍️ "${p.title.substring(0, 20)}..." কার্টে যোগ হয়েছে!`);
+        }}
+        onViewProduct={(p) => {
+          setSelectedProduct(p);
+          setProductQty(1);
+          setActiveImageIdx(0);
+        }}
+        onClearWishlist={clearWishlist}
+        onMoveAllToCart={moveAllWishlistToCart}
       />
 
       {/* Mobile Hamburger Menu Sidebar */}
@@ -2378,6 +2473,19 @@ function CustomerView({
                   </div>
                   {cart.length > 0 && (
                     <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">{cart.length}</span>
+                  )}
+                </button>
+
+                <button 
+                  onClick={() => { setIsWishlistOpen(true); setIsMenuOpen(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-pink-50 hover:text-pink-600 rounded-xl text-sm font-bold transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+                    <span>My Wishlist</span>
+                  </div>
+                  {wishlist.length > 0 && (
+                    <span className="bg-pink-100 text-pink-700 text-[10px] px-2 py-0.5 rounded-full font-black border border-pink-200">{wishlist.length}</span>
                   )}
                 </button>
 

@@ -21,7 +21,9 @@ export const ProductQuickView = ({
   setProductQty, 
   handleAddToCart, 
   addToCart,
-  notify 
+  notify,
+  onToggleWishlist,
+  isWishlisted = false
 }: any) => {
   const [activeRecTab, setActiveRecTab] = useState<'collaborative' | 'author_brand' | 'category'>('collaborative');
   const [bundleSelected, setBundleSelected] = useState<Record<string, boolean>>({});
@@ -440,10 +442,21 @@ export const ProductQuickView = ({
                   <ShoppingCart className="w-5 h-5" /> Add to Cart
                 </button>
                 <button 
-                  onClick={() => notify(`❤️ "${selectedProduct.title.substring(0, 20)}..." added to Wishlist`)}
-                  className="border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+                  onClick={() => {
+                    if (onToggleWishlist) {
+                      onToggleWishlist(selectedProduct);
+                    } else if (notify) {
+                      notify(`❤️ "${selectedProduct.title.substring(0, 20)}..." added to Wishlist`);
+                    }
+                  }}
+                  className={`border font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm ${
+                    isWishlisted 
+                      ? 'border-pink-300 bg-pink-50 text-pink-600 shadow-xs' 
+                      : 'border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
-                  <Heart className="w-5 h-5" /> Wishlist
+                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-500 text-pink-500' : ''}`} /> 
+                  {isWishlisted ? 'Wishlisted' : 'Wishlist'}
                 </button>
               </div>
             </div>
