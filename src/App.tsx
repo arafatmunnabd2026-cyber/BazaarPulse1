@@ -1771,11 +1771,13 @@ function CustomerView({
               </button>
             </div>
 
-            {/* Promotional Banner */}
-            <div className="bg-orange-50 border-b border-orange-100 p-2.5 px-4 text-xs text-orange-900 font-bold flex items-center justify-between">
-              <span>📦 ৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি</span>
-              <span className="text-orange-600 underline cursor-pointer text-[11px]">শর্ত প্রযোজ্য</span>
-            </div>
+            {/* Promotional Banner (Conditionally Rendered based on Admin isActive setting) */}
+            {data?.adminSettings?.cartBanner?.isActive !== false && (
+              <div className="bg-orange-50 border-b border-orange-100 p-2.5 px-4 text-xs text-orange-900 font-bold flex items-center justify-between">
+                <span>📦 {data?.adminSettings?.cartBanner?.bannerText || '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি'}</span>
+                <span className="text-orange-600 underline cursor-pointer text-[11px]">{data?.adminSettings?.cartBanner?.termsText || 'শর্ত প্রযোজ্য'}</span>
+              </div>
+            )}
 
             {/* Master Select All Bar & Counter */}
             {cart.length > 0 && (
@@ -4705,6 +4707,78 @@ function AdminControlCenter({
         {/* Settings Tab */}
         {adminTab === 'settings' && (
           <div className="mt-6 space-y-6 max-w-4xl">
+            {/* Cart Promotional Banner Control Card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-900">
+                <Package className="w-5 h-5 text-[#f85606]" /> Cart Promotional Banner Control (Rokomari Style)
+              </h3>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const isActive = (form.elements.namedItem('isActive') as HTMLInputElement).checked;
+                const bannerText = (form.elements.namedItem('bannerText') as HTMLInputElement).value;
+                const termsText = (form.elements.namedItem('termsText') as HTMLInputElement).value;
+
+                try {
+                  const res = await fetch('/api/admin/banner', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ isActive, bannerText, termsText })
+                  });
+                  if (res.ok) {
+                    notify('✅ Cart promotional banner settings updated successfully!');
+                    refreshData();
+                  } else {
+                    notify('Failed to update banner settings');
+                  }
+                } catch (err) {
+                  notify('Failed to update banner settings');
+                }
+              }} className="space-y-4">
+                <div className="flex items-center gap-3 bg-orange-50/50 p-3.5 rounded-xl border border-orange-100">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    defaultChecked={data.adminSettings?.cartBanner?.isActive !== false}
+                    className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500 cursor-pointer"
+                    id="banner-is-active"
+                  />
+                  <label htmlFor="banner-is-active" className="text-sm font-extrabold text-slate-900 cursor-pointer">
+                    Show / Enable Promotional Banner in Cart Drawer
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-slate-600 mb-1">Banner Notice Text</label>
+                  <input
+                    type="text"
+                    name="bannerText"
+                    required
+                    defaultValue={data.adminSettings?.cartBanner?.bannerText || '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-slate-600 mb-1">Terms & Conditions Link Text</label>
+                  <input
+                    type="text"
+                    name="termsText"
+                    required
+                    defaultValue={data.adminSettings?.cartBanner?.termsText || 'শর্ত প্রযোজ্য'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold focus:bg-white outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-black px-6 py-3 rounded-xl text-xs uppercase shadow transition-all cursor-pointer"
+                >
+                  Save Banner Changes
+                </button>
+              </form>
+            </div>
+
             {/* Dynamic Hero Banners Management */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">

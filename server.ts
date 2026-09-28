@@ -71,6 +71,11 @@ interface InitialData {
       buttonBgColor?: string;
       buttonTextColor?: string;
     };
+    cartBanner?: {
+      isActive: boolean;
+      bannerText: string;
+      termsText: string;
+    };
     banners: { id: string; title: string; subtitle: string; image: string; link: string; badge?: string }[];
     maintenanceMode: boolean;
   };
@@ -1262,6 +1267,28 @@ app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, r
       saveDb(db);
       res.json({ success: true, campaignBanner: db.adminSettings.campaignBanner });
     }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update Cart Promotional Banner
+app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const db = await getDb();
+    if (!db.adminSettings.cartBanner) {
+      db.adminSettings.cartBanner = {
+        isActive: true,
+        bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+        termsText: 'শর্ত প্রযোজ্য'
+      };
+    }
+    db.adminSettings.cartBanner = {
+      ...db.adminSettings.cartBanner,
+      ...req.body
+    };
+    saveDb(db);
+    res.json({ success: true, cartBanner: db.adminSettings.cartBanner });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
