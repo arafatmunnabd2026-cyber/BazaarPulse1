@@ -3021,6 +3021,14 @@ function AdminControlCenter({
 
   const handleVendorStatus = async (vendorId: string, status: string) => {
     try {
+      if (supabase) {
+        try {
+          await supabase.from('vendors').update({ status }).eq('id', vendorId);
+        } catch (supaErr) {
+          console.warn('Supabase client status update note:', supaErr);
+        }
+      }
+
       const res = await fetch(`/api/admin/vendors/${vendorId}/status`, {
         method: 'PATCH',
         headers: { 
@@ -5064,6 +5072,29 @@ function AuthModal({
       });
       const data = await res.json();
       if (data.success) {
+        if (supabase && data.vendor) {
+          try {
+            await supabase.from('vendors').upsert([{
+              id: data.vendor.id,
+              store_name: data.vendor.storeName,
+              owner_name: data.vendor.ownerName,
+              email: data.vendor.email,
+              phone: data.vendor.phone,
+              nid_number: data.vendor.nidNumber || '',
+              nid_front_image: data.vendor.nidFrontImage || '',
+              nid_back_image: data.vendor.nidBackImage || '',
+              payment_method: data.vendor.paymentMethod || 'bkash',
+              payment_number: data.vendor.paymentNumber || '',
+              account_type: data.vendor.accountType || 'Personal',
+              status: 'pending',
+              commission_rate: 10,
+              balance: 0,
+              total_sales: 0
+            }], { onConflict: 'id' });
+          } catch (supaErr) {
+            console.warn('Supabase client registration sync warning:', supaErr);
+          }
+        }
         setAuthView('seller_pending_success');
         notify(`🎉 "${sellerForm.storeName}" সেলার রেজিস্ট্রেশন আবেদন সফলভাবে জমা হয়েছে!`);
       } else {

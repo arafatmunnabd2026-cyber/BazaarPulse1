@@ -1580,10 +1580,23 @@ app.post('/api/vendors/register', async (req, res) => {
     if (isDbConfigured) {
       try {
         await pool.query(
-          `INSERT INTO vendors (id, name, email, phone, status, commission_rate, balance, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-           ON CONFLICT (id) DO NOTHING`,
-          [vendorId, storeName, newVendor.email, phone, 'pending', 10, 0]
+          `INSERT INTO vendors (
+            id, store_name, owner_name, email, phone, nid_number, nid_front_image, nid_back_image, 
+            payment_method, payment_number, account_type, status, commission_rate, balance, created_at
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+           ON CONFLICT (id) DO UPDATE SET 
+            status = EXCLUDED.status,
+            store_name = EXCLUDED.store_name,
+            owner_name = EXCLUDED.owner_name,
+            phone = EXCLUDED.phone,
+            payment_method = EXCLUDED.payment_method,
+            payment_number = EXCLUDED.payment_number;`,
+          [
+            vendorId, storeName, ownerName, newVendor.email, phone, 
+            nidNumber || '', nidFrontImage || '', nidBackImage || '', 
+            paymentMethod, paymentNumber || phone, accountType, 'pending', 10, 0
+          ]
         );
       } catch (dbErr) {
         console.warn('Postgres vendor insert fallback to local db:', dbErr);
