@@ -1546,22 +1546,122 @@ function CustomerView({
             {/* Profile / Account Action Button */}
             <div className="relative">
               {authUser ? (
-                <div
-                  className="flex items-center gap-2 p-1.5 rounded-full border border-slate-200 bg-white"
-                >
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/20 shadow-sm bg-slate-100 flex items-center justify-center">
-                    {authUser.avatar ? (
-                      <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-5 h-5 text-slate-400" />
-                    )}
-                  </div>
-                  <div className="hidden md:flex flex-col items-start leading-tight pr-2">
-                    <span className="text-[11px] font-black text-slate-900 truncate max-w-[120px]">{authUser.name}</span>
-                    <div className="flex gap-2 items-center">
-                      <span className="text-[9px] text-slate-500 truncate max-w-[80px]">{authUser.email}</span>
+                <div>
+                  <button
+                    onClick={() => setIsProfileDropdownOpen(prev => !prev)}
+                    className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all shadow-xs group cursor-pointer"
+                    aria-label="User profile menu"
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
+                      {authUser.avatar ? (
+                        <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-5 h-5 text-slate-500" />
+                      )}
                     </div>
-                  </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
+                  </button>
+
+                  {/* Interactive Profile Dropdown Menu */}
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <>
+                        {/* Invisible backdrop to dismiss dropdown on click outside */}
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsProfileDropdownOpen(false)} 
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
+                        >
+                          {/* User Header Profile Card */}
+                          <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white flex items-center justify-center shrink-0">
+                                {authUser.avatar ? (
+                                  <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <User className="w-6 h-6 text-slate-500" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-black text-slate-900 truncate leading-snug">
+                                  {authUser.name}
+                                </h4>
+                                <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
+                                  {authUser.email}
+                                </p>
+                                <div className="mt-1.5 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
+                                    {authUser.role || 'Customer'}
+                                  </span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  <span className="text-[10px] font-bold text-emerald-600">Active</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Action Navigation Links */}
+                          <div className="p-2 space-y-1">
+                            <button
+                              onClick={() => {
+                                setIsProfileDropdownOpen(false);
+                                setIsMyOrdersOpen(true);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer"
+                            >
+                              <Package className="w-4 h-4 text-orange-600" />
+                              <span>আমার অর্ডারসমূহ (My Orders)</span>
+                            </button>
+
+                            {authUser.role === 'admin' && (
+                              <button
+                                onClick={() => {
+                                  setIsProfileDropdownOpen(false);
+                                  navigateTo('/admin');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-colors text-left cursor-pointer"
+                              >
+                                <ShieldCheck className="w-4 h-4 text-purple-600" />
+                                <span>অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</span>
+                              </button>
+                            )}
+
+                            {authUser.role === 'vendor' && (
+                              <button
+                                onClick={() => {
+                                  setIsProfileDropdownOpen(false);
+                                  navigateTo('/vendor');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors text-left cursor-pointer"
+                              >
+                                <Store className="w-4 h-4 text-emerald-600" />
+                                <span>ভেন্ডর ড্যাশবোর্ড (Vendor Panel)</span>
+                              </button>
+                            )}
+
+                            <div className="border-t border-slate-100 my-1" />
+
+                            <button
+                              onClick={() => {
+                                setIsProfileDropdownOpen(false);
+                                onLogout();
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer"
+                            >
+                              <LogOut className="w-4 h-4 text-red-500" />
+                              <span>লগআউট (Logout)</span>
+                            </button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <button
@@ -1749,17 +1849,13 @@ function CustomerView({
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-1.5">
-                        <div className="flex items-center gap-1 text-amber-500 text-xs">
-                          <Star className="w-3.5 h-3.5 fill-amber-500" />
-                          <span className="text-gray-600 font-medium">{product.rating}</span>
-                        </div>
-                        {!product.stock || product.stock <= 0 ? (
+                      {!product.stock || product.stock <= 0 ? (
+                        <div className="mt-1.5 flex justify-end">
                           <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
                             Out of Stock
                           </span>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
 
                       <button
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}

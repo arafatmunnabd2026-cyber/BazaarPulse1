@@ -304,25 +304,6 @@ export const ProductQuickView = ({
                 </h1>
               </div>
 
-              {/* Ratings & Sold */}
-              <div className="flex items-center gap-4 text-xs pb-3 border-b border-gray-200">
-                <div className="flex items-center gap-1 text-amber-500 font-bold">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <span className="text-black font-bold">{selectedProduct.rating || 5.0}</span>
-                  <span className="text-gray-500 font-normal">({selectedProduct.reviewsCount || 24} Ratings)</span>
-                </div>
-                <span className="text-gray-300">|</span>
-                <span className="text-gray-700 font-medium flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                  {selectedProduct.totalSold || 150}+ Sold
-                </span>
-                <span className="text-gray-300">|</span>
-                <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  100% Genuine
-                </span>
-              </div>
-
               {/* Price Section */}
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
                 <div className="flex items-baseline gap-3 flex-wrap">
@@ -469,101 +450,6 @@ export const ProductQuickView = ({
           </div>
 
           {/* ---------------------------------------------------------------- */}
-          {/* Frequently Bought Together Bundle Widget (Collaborative Cross-Sell) */}
-          {/* ---------------------------------------------------------------- */}
-          {bundleComplementaryItem && (
-            <div className="px-4 sm:px-8 py-6 bg-orange-50/40 border-b border-orange-100/70">
-              <div className="flex items-center gap-2 mb-3.5">
-                <Flame className="w-5 h-5 text-[#f85606]" />
-                <h3 className="text-base font-extrabold text-slate-900">
-                  Frequently Bought Together (একত্রে বান্ডেল কিনুন)
-                </h3>
-                <span className="text-[10px] font-extrabold bg-[#f85606] text-white px-2 py-0.5 rounded-full">
-                  স্পেশাল কম্বো
-                </span>
-              </div>
-
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-4 sm:p-5 rounded-2xl border border-orange-200/80 shadow-sm">
-                {/* Product Thumbnails with + Connector */}
-                <div className="flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap">
-                  {/* Current Item */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-50">
-                      <img 
-                        src={selectedProduct.images?.[0] || selectedProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
-                        alt={selectedProduct.title} 
-                        className="w-full h-full object-cover" 
-                      />
-                    </div>
-                    <div className="max-w-[150px] sm:max-w-[180px]">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">বর্তমান পণ্য</span>
-                      <h4 className="text-xs font-bold text-gray-900 line-clamp-1">{selectedProduct.title}</h4>
-                      <p className="text-xs font-extrabold text-[#f85606] mt-0.5">৳{currentItemPrice}</p>
-                    </div>
-                  </div>
-
-                  {/* Plus Icon */}
-                  <div className="w-7 h-7 rounded-full bg-orange-100 text-[#f85606] flex items-center justify-center font-bold text-sm shrink-0">
-                    <Plus className="w-4 h-4" />
-                  </div>
-
-                  {/* Recommended Complementary Item */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-50 relative">
-                      <img 
-                        src={bundleComplementaryItem.images?.[0] || bundleComplementaryItem.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
-                        alt={bundleComplementaryItem.title} 
-                        className="w-full h-full object-cover" 
-                      />
-                      <input 
-                        type="checkbox"
-                        checked={isBundleItemChecked}
-                        onChange={() => setBundleSelected(prev => ({ ...prev, [bundleComplementaryItem.id]: !isBundleItemChecked }))}
-                        className="absolute top-1.5 left-1.5 w-4 h-4 accent-[#f85606] cursor-pointer"
-                      />
-                    </div>
-                    <div className="max-w-[150px] sm:max-w-[180px]">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase">রিকমেন্ডেড কম্বো</span>
-                      <h4 
-                        onClick={() => switchProductView(bundleComplementaryItem)}
-                        className="text-xs font-bold text-gray-900 line-clamp-1 hover:text-[#f85606] cursor-pointer"
-                      >
-                        {bundleComplementaryItem.title}
-                      </h4>
-                      <p className="text-xs font-extrabold text-[#f85606] mt-0.5">৳{bundleItemPrice}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bundle Summary & 1-Click Action */}
-                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full md:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 gap-3">
-                  <div className="text-left sm:text-right">
-                    <div className="text-xs text-gray-500 font-medium">বান্ডেল মোট মূল্য:</div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl sm:text-2xl font-black text-[#f85606]">৳{totalBundlePrice}</span>
-                      {bundleSavings > 0 && (
-                        <span className="text-xs text-red-500 line-through">৳{totalOriginalPrice}</span>
-                      )}
-                    </div>
-                    {bundleSavings > 0 && (
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        মোট সাশ্রয় ৳{bundleSavings}
-                      </span>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleAddBundleToCart}
-                    className="bg-[#f85606] hover:bg-[#e04d05] text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  >
-                    <ShoppingCart className="w-4 h-4" /> একত্রে কার্টে যোগ করুন
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ---------------------------------------------------------------- */}
           {/* Triple-Engine Product Recommendation System Tabs */}
           {/* ---------------------------------------------------------------- */}
           <div className="p-4 sm:p-8 bg-white">
@@ -656,7 +542,7 @@ export const ProductQuickView = ({
                           )}
                         </div>
 
-                        {/* Title & Brand */}
+                        {/* Title, Brand & Price */}
                         <div>
                           <span className="text-[10px] text-gray-400 font-medium block truncate">
                             {prod.author || prod.vendorName || prod.categoryName}
@@ -665,23 +551,16 @@ export const ProductQuickView = ({
                             {prod.title}
                           </h4>
 
-                          {/* Ratings */}
-                          <div className="flex items-center gap-1 mt-1 text-[11px] text-amber-500 font-bold">
-                            <Star className="w-3 h-3 fill-amber-500" />
-                            <span>{prod.rating || 5.0}</span>
-                            <span className="text-gray-400 font-normal text-[10px]">({prod.totalSold || 10}+ sold)</span>
-                          </div>
-
                           {/* Price Row */}
-                          <div className="mt-2 flex flex-wrap items-baseline gap-1.5">
-                            <span className="text-[#f85606] font-black text-sm">৳{price}</span>
+                          <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                            <span className="text-[#f85606] font-black text-lg sm:text-xl">৳{price}</span>
                             {hasDiscount && (
-                              <span className="text-[11px] text-red-500 line-through">৳{originalPrice}</span>
+                              <span className="text-xs sm:text-sm font-bold text-red-500 line-through">৳{originalPrice}</span>
                             )}
                           </div>
                           {savings > 0 && (
-                            <div className="mt-0.5">
-                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
+                            <div className="mt-1">
+                              <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 inline-block shadow-xs">
                                 Save ৳{savings}
                               </span>
                             </div>
