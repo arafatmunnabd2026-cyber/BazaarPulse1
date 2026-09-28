@@ -115,6 +115,38 @@
   ],
   "products": [
     {
+      "id": "p-1790600161282",
+      "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
+      "slug": "ulanzi-mt-78-quick-release-tripod-with-cold-shoe-mount",
+      "price": 3500,
+      "discountPrice": 2350,
+      "stock": 3,
+      "categoryId": "c1",
+      "categoryName": "Electronics",
+      "vendorId": "v1",
+      "vendorName": "Platform Administrator",
+      "images": [
+        "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-30mp4e.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-2si2ts.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-60l11e.webp"
+      ],
+      "galleryImages": [
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-30mp4e.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-2si2ts.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790600156398-60l11e.webp"
+      ],
+      "description": "",
+      "rating": 5,
+      "reviewsCount": 0,
+      "totalSold": 0,
+      "isFlashSale": false,
+      "flashSaleEnds": null,
+      "status": "active",
+      "sizes": [],
+      "colors": []
+    },
+    {
       "id": "p-1790486363194",
       "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
       "slug": "charger-battery-charger-1-2-volt-battery-charger-aa-aaa-battery-charger-4-slot",
@@ -162,5 +194,14 @@
     "maintenanceMode": false
   },
   "reviews": [],
-  "cartItems": []
+  "cartItems": [
+    {
+      "userId": "u4",
+      "productId": "p-1790600161282",
+      "quantity": 1,
+      "size": "",
+      "color": "",
+      "addedAt": "2026-09-28T20:04:44.212Z"
+    }
+  ]
 }
