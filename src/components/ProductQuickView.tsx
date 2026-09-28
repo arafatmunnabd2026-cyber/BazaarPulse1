@@ -26,10 +26,22 @@ export const ProductQuickView = ({
         exit={{ opacity: 0, y: 20 }}
         className="bg-white w-full h-full sm:h-[90vh] sm:max-w-7xl sm:rounded-2xl shadow-2xl flex flex-col overflow-y-auto"
       >
-        {/* PDP Sticky Header Bar */}
+        {/* PDP Sticky Header Bar (Just Logo & Close Button) */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <h3 className="font-extrabold text-black text-base sm:text-lg line-clamp-1">{selectedProduct.title}</h3>
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 200 44" className="h-9 sm:h-10 w-auto select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Shopping Bag Icon with Smile Curve */}
+              <g transform="translate(2, 2)">
+                {/* Bag base */}
+                <path d="M6 14H34L37 38H3L6 14Z" stroke="#f85606" strokeWidth="3.5" strokeLinejoin="round" fill="none" />
+                {/* Handle / Top curve */}
+                <path d="M12 14V10C12 5.58172 15.5817 2 20 2C24.4183 2 28 5.58172 28 10V14" stroke="#f85606" strokeWidth="3.5" strokeLinecap="round" />
+                {/* Smile curve inside the bag */}
+                <path d="M14 24C14 24 17 28 20 28C23 28 26 24 26 24" stroke="#f85606" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+              {/* Bold Brand Text next to the icon */}
+              <text x="48" y="31" fill="#f85606" fontSize="23" fontWeight="900" fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" letterSpacing="-0.5px">BazaarPulse</text>
+            </svg>
           </div>
           <button 
             onClick={() => setSelectedProduct(null)} 
@@ -207,7 +219,9 @@ export const ProductQuickView = ({
                 )}
               </div>
               {selectedProduct.stock > 0 && selectedProduct.stock <= 5 && (
-                <p className="text-[10px] text-gray-500">* স্টক আউট হওয়ার আগেই অর্ডার করুন</p>
+                <p className="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg mt-1 border border-red-200 animate-pulse">
+                  * স্টক আউট হওয়ার আগেই অর্ডার করুন
+                </p>
               )}
             </div>
 
