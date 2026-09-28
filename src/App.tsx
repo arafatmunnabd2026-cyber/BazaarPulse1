@@ -12,7 +12,7 @@ import {
   Menu, X, Filter, RefreshCw, ChevronRight, Settings, Layers, CreditCard,
   Truck, MapPin, Key, Lock, Shield, Terminal, Copy, CheckCheck,
   ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff,
-  Upload, Image
+  Upload, Image, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase, getActiveSupabase } from './lib/supabase';
@@ -2893,6 +2893,10 @@ function AdminControlCenter({
 }) {
   const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders'>('overview');
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
+  const [inspectingVendorNid, setInspectingVendorNid] = useState<any | null>(null);
+  const [inspectingSide, setInspectingSide] = useState<'front' | 'back' | 'both'>('both');
   
   // Custom Supabase Client Connection Settings for Admin Tab
   const [dbUrl, setDbUrl] = useState(() => localStorage.getItem('custom_supabase_url') || '');
@@ -3865,51 +3869,453 @@ function AdminControlCenter({
           </div>
         )}
 
-        {/* Vendors Tab */}
+        {/* Vendors Management & Verification Tab */}
         {adminTab === 'vendors' && (
-          <div className="mt-6 space-y-4">
-            <h3 className="text-xl font-bold mb-4">All Registered Vendors ({data.vendors.length})</h3>
-            <div className="space-y-4">
-              {data.vendors.map((v: any) => (
-                <div key={v.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <img src={v.logo} alt="" className="w-14 h-14 rounded-xl object-cover border" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-lg text-slate-900">{v.storeName}</h4>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
-                          v.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                          v.status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {v.status.toUpperCase()}
-                        </span>
+          <div className="mt-6 space-y-5 text-left">
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                  🏪 বিক্রেতা ও এনআইডি যাচাইকরণ (Vendor Governance & Approvals)
+                  {pendingVendorsCount > 0 && (
+                    <span className="animate-pulse bg-amber-500 text-white text-xs font-black px-2.5 py-0.5 rounded-full">
+                      {pendingVendorsCount} New Pending
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  বিক্রেতার আবেদন, জাতীয় পরিচয়পত্র (NID) এবং বিকাশ/নগদ পেমেন্ট তথ্য পর্যালোচনা ও অনুমোদন করুন
+                </p>
+              </div>
+
+              {/* Status Filter Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs font-bold">
+                <button
+                  onClick={() => setVendorStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    vendorStatusFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  সব ({data.vendors?.length || 0})
+                </button>
+                <button
+                  onClick={() => setVendorStatusFilter('pending')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    vendorStatusFilter === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-100/60'
+                  }`}
+                >
+                  <span>⏳ অনুমোদনের অপেক্ষায়</span>
+                  <span className="bg-amber-100 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {pendingVendorsCount}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setVendorStatusFilter('approved')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    vendorStatusFilter === 'approved' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100/60'
+                  }`}
+                >
+                  ✅ অনুমোদিত ({activeVendorsCount})
+                </button>
+                <button
+                  onClick={() => setVendorStatusFilter('suspended')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    vendorStatusFilter === 'suspended' ? 'bg-red-600 text-white shadow-xs' : 'text-red-700 hover:bg-red-100/60'
+                  }`}
+                >
+                  ⚠️ স্থগিত
+                </button>
+              </div>
+            </div>
+
+            {/* Vendor Search Bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search vendor by store name, owner, phone, email or NID number..."
+                value={vendorSearch}
+                onChange={e => setVendorSearch(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 shadow-xs"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+            </div>
+
+            {/* Vendors List */}
+            {(() => {
+              const filteredVendors = (data.vendors || []).filter((v: any) => {
+                const matchesStatus = vendorStatusFilter === 'all' || v.status === vendorStatusFilter;
+                const q = vendorSearch.toLowerCase().trim();
+                const matchesSearch = !q || 
+                  (v.storeName && v.storeName.toLowerCase().includes(q)) ||
+                  (v.ownerName && v.ownerName.toLowerCase().includes(q)) ||
+                  (v.email && v.email.toLowerCase().includes(q)) ||
+                  (v.phone && v.phone.includes(q)) ||
+                  (v.nidNumber && v.nidNumber.includes(q)) ||
+                  (v.paymentNumber && v.paymentNumber.includes(q));
+                return matchesStatus && matchesSearch;
+              });
+
+              if (filteredVendors.length === 0) {
+                return (
+                  <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400">
+                    <Store className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                    <h4 className="font-bold text-slate-700 text-base">কোনো বিক্রেতা পাওয়া যায়নি</h4>
+                    <p className="text-xs text-slate-400 mt-1">নির্বাচিত ফিল্টারে এই মুহূর্তে কোনো বিক্রেতা তালিকাভুক্ত নেই</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  {filteredVendors.map((v: any) => {
+                    const hasNidFront = Boolean(v.nidFrontImage);
+                    const hasNidBack = Boolean(v.nidBackImage);
+
+                    return (
+                      <div 
+                        key={v.id} 
+                        className={`bg-white rounded-2xl p-5 sm:p-6 border transition-all shadow-sm flex flex-col gap-4 ${
+                          v.status === 'pending' 
+                            ? 'border-amber-300 bg-gradient-to-r from-amber-50/40 via-white to-white ring-1 ring-amber-300/60' 
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                          {/* Store Info */}
+                          <div className="flex items-start sm:items-center gap-3.5">
+                            <img 
+                              src={v.logo || 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150'} 
+                              alt={v.storeName} 
+                              className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100 shadow-xs" 
+                            />
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="font-black text-lg text-slate-900">{v.storeName}</h4>
+                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                                  v.status === 'approved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                  v.status === 'suspended' ? 'bg-red-100 text-red-800 border border-red-200' :
+                                  v.status === 'rejected' ? 'bg-slate-200 text-slate-700' :
+                                  'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                                }`}>
+                                  {v.status === 'pending' ? '⏳ PENDING APPROVAL' : v.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 mt-1 font-medium">
+                                স্বত্বাধিকারী: <strong className="text-slate-900">{v.ownerName}</strong> • ইমেইল: {v.email} • ফোন: <strong className="text-slate-900">{v.phone}</strong>
+                              </p>
+                              <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-3">
+                                <span>কমিশন রেট: <strong className="text-orange-600 font-bold">{v.commissionRate || 10}%</strong></span>
+                                <span>মোট পণ্য: <strong className="text-slate-800 font-bold">{v.totalProducts || 0}টি</strong></span>
+                                <span>মোট বিক্রয়: <strong className="text-emerald-700 font-bold">৳{v.totalSales || 0}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Decision Actions */}
+                          <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+                            {v.status !== 'approved' && (
+                              <button
+                                onClick={() => handleVendorStatus(v.id, 'approved')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Check className="w-4 h-4" />
+                                <span>Approve (অনুমোদন)</span>
+                              </button>
+                            )}
+
+                            {v.status === 'pending' && (
+                              <button
+                                onClick={() => handleVendorStatus(v.id, 'rejected')}
+                                className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <X className="w-4 h-4" />
+                                <span>Reject (বাতিল)</span>
+                              </button>
+                            )}
+
+                            {v.status === 'approved' && (
+                              <button
+                                onClick={() => handleVendorStatus(v.id, 'suspended')}
+                                className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>Suspend</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Are you sure you want to delete vendor "${v.storeName}"?`)) return;
+                                try {
+                                  await fetch(`/api/admin/vendors/${v.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': authToken ? `Bearer ${authToken}` : '' }
+                                  });
+                                  notify(`🗑️ Vendor "${v.storeName}" deleted`);
+                                  refreshData();
+                                } catch (e) {
+                                  notify('Delete failed');
+                                }
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                              title="Delete Vendor Record"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* NID Card & Payment Verification Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80">
+                          {/* 1. NID Verification Box */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                🪪 জাতীয় পরিচয়পত্র (NID Documents)
+                              </span>
+                              <span className="text-[11px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-800">
+                                {v.nidNumber ? `NID: ${v.nidNumber}` : 'NID No. Not provided'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              {/* Front Photo */}
+                              <div className="bg-white p-2 rounded-xl border border-slate-200 text-center">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Front Side</span>
+                                {hasNidFront ? (
+                                  <div 
+                                    onClick={() => {
+                                      setInspectingVendorNid(v);
+                                      setInspectingSide('front');
+                                    }}
+                                    className="aspect-video bg-slate-100 rounded-lg overflow-hidden relative group cursor-pointer border border-slate-100"
+                                  >
+                                    <img src={v.nidFrontImage} alt="NID Front" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold gap-1">
+                                      <Eye className="w-3.5 h-3.5" /> জুম করুন
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="aspect-video bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">
+                                    No Image
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Back Photo */}
+                              <div className="bg-white p-2 rounded-xl border border-slate-200 text-center">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Back Side</span>
+                                {hasNidBack ? (
+                                  <div 
+                                    onClick={() => {
+                                      setInspectingVendorNid(v);
+                                      setInspectingSide('back');
+                                    }}
+                                    className="aspect-video bg-slate-100 rounded-lg overflow-hidden relative group cursor-pointer border border-slate-100"
+                                  >
+                                    <img src={v.nidBackImage} alt="NID Back" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold gap-1">
+                                      <Eye className="w-3.5 h-3.5" /> জুম করুন
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="aspect-video bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-[10px] text-slate-400">
+                                    No Image
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 2. Mobile Banking Payout Information */}
+                          <div className="space-y-2 flex flex-col justify-between">
+                            <div>
+                              <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                📱 পেমেন্ট তোলার তথ্য (Mobile Banking Payout)
+                              </span>
+                              <div className="mt-2 space-y-1.5 text-xs">
+                                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                                  <span className="text-slate-500">গেটওয়ে / মেথড:</span>
+                                  <span className="font-bold text-slate-900 uppercase flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    {v.paymentMethod || 'bKash'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                                  <span className="text-slate-500">বিকাশ/নগদ নম্বর:</span>
+                                  <span className="font-mono font-black text-slate-900">
+                                    {v.paymentNumber || v.phone || 'N/A'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                                  <span className="text-slate-500">একাউন্টের ধরন:</span>
+                                  <span className="font-semibold text-slate-700">
+                                    {v.accountType || 'Personal'} Account
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {(hasNidFront || hasNidBack) && (
+                              <button
+                                onClick={() => {
+                                  setInspectingVendorNid(v);
+                                  setInspectingSide('both');
+                                }}
+                                className="w-full py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>সম্পূর্ণ NID ডকুমেন্ট ভিউ করুন</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">Owner: {v.ownerName} ({v.email}) • Phone: {v.phone}</p>
-                      <p className="text-xs text-slate-400 mt-1">Total Sales: ৳{v.totalSales} • Commission: {v.commissionRate}%</p>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* High-Resolution NID Inspection Zoom Modal */}
+            {inspectingVendorNid && (
+              <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col"
+                >
+                  {/* Modal Header */}
+                  <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-900 text-white flex items-center justify-between">
+                    <div>
+                      <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
+                        <span>🪪 NID কার্ড যাচাইকরণ:</span>
+                        <span className="text-orange-400">{inspectingVendorNid.storeName}</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        স্বত্বাধিকারী: {inspectingVendorNid.ownerName} • NID No: {inspectingVendorNid.nidNumber || 'Not provided'}
+                      </p>
                     </div>
+                    <button
+                      onClick={() => setInspectingVendorNid(null)}
+                      className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {v.status !== 'approved' && (
+                  {/* Modal View Mode Selector */}
+                  <div className="px-5 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleVendorStatus(v.id, 'approved')}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow"
+                        onClick={() => setInspectingSide('both')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          inspectingSide === 'both' ? 'bg-orange-600 text-white shadow-xs' : 'bg-white text-slate-700'
+                        }`}
                       >
-                        Approve
+                        উভয় সাইড (Both)
                       </button>
+                      <button
+                        onClick={() => setInspectingSide('front')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          inspectingSide === 'front' ? 'bg-orange-600 text-white shadow-xs' : 'bg-white text-slate-700'
+                        }`}
+                      >
+                        Front Side
+                      </button>
+                      <button
+                        onClick={() => setInspectingSide('back')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          inspectingSide === 'back' ? 'bg-orange-600 text-white shadow-xs' : 'bg-white text-slate-700'
+                        }`}
+                      >
+                        Back Side
+                      </button>
+                    </div>
+
+                    <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                      মোবাইল ব্যাংকিং: <strong className="text-slate-900">{inspectingVendorNid.paymentNumber}</strong>
+                    </span>
+                  </div>
+
+                  {/* Image Display Area */}
+                  <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-950 flex flex-col md:flex-row items-center justify-center gap-4">
+                    {(inspectingSide === 'both' || inspectingSide === 'front') && (
+                      <div className="flex-1 w-full flex flex-col items-center">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Front Side Image</span>
+                        <div className="w-full max-h-[55vh] rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center shadow-xl">
+                          {inspectingVendorNid.nidFrontImage ? (
+                            <img 
+                              src={inspectingVendorNid.nidFrontImage} 
+                              alt="NID Front High Res" 
+                              className="max-h-[55vh] w-auto object-contain"
+                            />
+                          ) : (
+                            <div className="py-20 text-slate-500 text-xs font-bold">ফ্রন্ট সাইড ছবি পাওয়া যায়নি</div>
+                          )}
+                        </div>
+                      </div>
                     )}
-                    {v.status !== 'suspended' && (
-                      <button
-                        onClick={() => handleVendorStatus(v.id, 'suspended')}
-                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow"
-                      >
-                        Suspend
-                      </button>
+
+                    {(inspectingSide === 'both' || inspectingSide === 'back') && (
+                      <div className="flex-1 w-full flex flex-col items-center">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Back Side Image</span>
+                        <div className="w-full max-h-[55vh] rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center shadow-xl">
+                          {inspectingVendorNid.nidBackImage ? (
+                            <img 
+                              src={inspectingVendorNid.nidBackImage} 
+                              alt="NID Back High Res" 
+                              className="max-h-[55vh] w-auto object-contain"
+                            />
+                          ) : (
+                            <div className="py-20 text-slate-500 text-xs font-bold">ব্যাক সাইড ছবি পাওয়া যায়নি</div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
+
+                  {/* Modal Action Footer */}
+                  <div className="p-4 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-xs text-slate-600">
+                      বর্তমান স্ট্যাটাস: <strong className="uppercase font-bold text-orange-600">{inspectingVendorNid.status}</strong>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {inspectingVendorNid.status !== 'approved' && (
+                        <button
+                          onClick={() => {
+                            handleVendorStatus(inspectingVendorNid.id, 'approved');
+                            setInspectingVendorNid(null);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" /> Approve Vendor
+                        </button>
+                      )}
+                      {inspectingVendorNid.status === 'pending' && (
+                        <button
+                          onClick={() => {
+                            handleVendorStatus(inspectingVendorNid.id, 'rejected');
+                            setInspectingVendorNid(null);
+                          }}
+                          className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" /> Reject
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setInspectingVendorNid(null)}
+                        className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
           </div>
         )}
 
@@ -4539,6 +4945,35 @@ function AuthModal({
 }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [authView, setAuthView] = useState<'signin' | 'seller_register' | 'seller_pending_success'>('signin');
+  const [sellerForm, setSellerForm] = useState({
+    storeName: '',
+    ownerName: '',
+    email: '',
+    phone: '',
+    nidNumber: '',
+    nidFrontImage: '',
+    nidBackImage: '',
+    paymentMethod: 'bkash',
+    paymentNumber: '',
+    accountType: 'Personal'
+  });
+
+  const nidFrontInputRef = useRef<HTMLInputElement>(null);
+  const nidBackInputRef = useRef<HTMLInputElement>(null);
+
+  const handleNidImageUpload = (file: File, side: 'front' | 'back') => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (side === 'front') {
+        setSellerForm(prev => ({ ...prev, nidFrontImage: dataUrl }));
+      } else {
+        setSellerForm(prev => ({ ...prev, nidBackImage: dataUrl }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setLoading(true);
@@ -4564,34 +4999,69 @@ function AuthModal({
     }
   };
 
+  const handleSellerRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellerForm.storeName.trim() || !sellerForm.ownerName.trim() || !sellerForm.phone.trim()) {
+      notify('⚠️ অনুগ্রহ করে স্টোরের নাম, স্বত্বাধিকারীর নাম ও ফোন নম্বর প্রদান করুন');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/vendors/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sellerForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAuthView('seller_pending_success');
+        notify(`🎉 "${sellerForm.storeName}" সেলার রেজিস্ট্রেশন আবেদন সফলভাবে জমা হয়েছে!`);
+      } else {
+        setErrorMessage(data.error || 'Seller registration failed');
+        notify('❌ বিক্রেতা নিবন্ধন ব্যর্থ হয়েছে: ' + (data.error || ''));
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error during seller registration');
+      notify('❌ বিক্রেতা নিবন্ধন ব্যর্থ হয়েছে');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       <motion.div 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-slate-950 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl"
+        className="bg-slate-950 border border-slate-800 text-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="relative border-b border-slate-900 pb-5 mb-5 text-center">
-          <div className="inline-flex items-center justify-center gap-2 mb-4 bg-white px-4 py-2 rounded-xl shadow-sm">
+        <div className="relative border-b border-slate-900 pb-4 mb-4 text-center">
+          <div className="inline-flex items-center justify-center gap-2 mb-3 bg-white px-4 py-2 rounded-xl shadow-sm">
             <div className="text-orange-600">
               <ShoppingBag className="w-7 h-7" />
             </div>
             <h1 className="text-2xl font-black text-orange-600 tracking-tighter">BazaarPulse</h1>
           </div>
-          <h3 className="font-extrabold text-lg text-white mt-1">Sign In</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Use Google to sign in</p>
+          <h3 className="font-extrabold text-lg text-white mt-1">
+            {authView === 'signin' ? 'Sign In' : authView === 'seller_register' ? 'বিক্রেতা নিবন্ধন (Seller Registration)' : 'আবেদন জমা হয়েছে'}
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {authView === 'signin' ? 'Use Google to sign in' : authView === 'seller_register' ? 'BazaarPulse-এ বিক্রেতা হিসেবে ব্যবসা শুরু করুন' : 'অ্যাডমিন পর্যালোচনার অপেক্ষায়'}
+          </p>
           <button 
             onClick={onClose}
-            className="absolute top-0 right-0 text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-900 transition-colors"
+            className="absolute top-0 right-0 text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="mt-5">
+        <div>
           {errorMessage && (
             <div className="bg-red-950/70 border border-red-500/50 text-red-200 p-3 rounded-xl text-xs flex items-center gap-2 mb-4">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -4599,12 +5069,289 @@ function AuthModal({
             </div>
           )}
 
-          <GoogleLogin 
-            onSuccess={handleGoogleSuccess}
-            onError={() => notify('Google Login failed')}
-            theme="filled_black"
-            width="100%"
-          />
+          {authView === 'signin' && (
+            <div className="space-y-4">
+              <GoogleLogin 
+                onSuccess={handleGoogleSuccess}
+                onError={() => notify('Google Login failed')}
+                theme="filled_black"
+                width="100%"
+              />
+
+              <div className="relative my-4 flex items-center justify-center">
+                <div className="border-t border-slate-800 w-full" />
+                <span className="bg-slate-950 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">or</span>
+              </div>
+
+              {/* Register as a seller Button */}
+              <button
+                type="button"
+                onClick={() => setAuthView('seller_register')}
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#23272f] hover:bg-[#2c323c] text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#373e4b]"
+              >
+                <Store className="w-4 h-4 text-orange-400" />
+                <span>Register as a seller (বিক্রেতা নিবন্ধন)</span>
+              </button>
+            </div>
+          )}
+
+          {authView === 'seller_register' && (
+            <form onSubmit={handleSellerRegisterSubmit} className="space-y-3.5 text-left">
+              {/* Store & Owner Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">দোকানের নাম (Store Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dhaka Electronics"
+                    value={sellerForm.storeName}
+                    onChange={e => setSellerForm(prev => ({ ...prev, storeName: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">স্বত্বাধিকারীর নাম (Owner) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Md. Arafat"
+                    value={sellerForm.ownerName}
+                    onChange={e => setSellerForm(prev => ({ ...prev, ownerName: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">ফোন নম্বর (Phone) *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 017XXXXXXXX"
+                    value={sellerForm.phone}
+                    onChange={e => setSellerForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">ইমেইল (Email)</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. seller@gmail.com"
+                    value={sellerForm.email}
+                    onChange={e => setSellerForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* NID Card Section */}
+              <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                    🪪 জাতীয় পরিচয়পত্র (NID Verification)
+                  </span>
+                  <span className="text-[10px] text-slate-400">বাধ্যতামূলক</span>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">এনআইডি নম্বর (NID Number) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 19951234567890 or 1234567890"
+                    value={sellerForm.nidNumber}
+                    onChange={e => setSellerForm(prev => ({ ...prev, nidNumber: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                {/* NID Photos Upload (Front & Back) */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  {/* Front Side */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">NID ফ্রন্ট সাইড ছবি *</label>
+                    <input
+                      ref={nidFrontInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={e => e.target.files?.[0] && handleNidImageUpload(e.target.files[0], 'front')}
+                      className="hidden"
+                      id="nid-front-file"
+                    />
+                    {sellerForm.nidFrontImage ? (
+                      <div className="relative aspect-video rounded-xl overflow-hidden border border-emerald-500/50 group bg-slate-950">
+                        <img src={sellerForm.nidFrontImage} alt="NID Front" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setSellerForm(prev => ({ ...prev, nidFrontImage: '' }))}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-90 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="nid-front-file"
+                        className="flex flex-col items-center justify-center aspect-video bg-slate-950 hover:bg-slate-900 border border-dashed border-slate-700 hover:border-orange-500 rounded-xl cursor-pointer p-2 transition-all text-center"
+                      >
+                        <Upload className="w-4 h-4 text-orange-400 mb-1" />
+                        <span className="text-[10px] font-semibold text-slate-300">Front Side</span>
+                        <span className="text-[8px] text-slate-500">ছবি আপলোড করুন</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Back Side */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">NID ব্যাক সাইড ছবি *</label>
+                    <input
+                      ref={nidBackInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={e => e.target.files?.[0] && handleNidImageUpload(e.target.files[0], 'back')}
+                      className="hidden"
+                      id="nid-back-file"
+                    />
+                    {sellerForm.nidBackImage ? (
+                      <div className="relative aspect-video rounded-xl overflow-hidden border border-emerald-500/50 group bg-slate-950">
+                        <img src={sellerForm.nidBackImage} alt="NID Back" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setSellerForm(prev => ({ ...prev, nidBackImage: '' }))}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-90 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="nid-back-file"
+                        className="flex flex-col items-center justify-center aspect-video bg-slate-950 hover:bg-slate-900 border border-dashed border-slate-700 hover:border-orange-500 rounded-xl cursor-pointer p-2 transition-all text-center"
+                      >
+                        <Upload className="w-4 h-4 text-orange-400 mb-1" />
+                        <span className="text-[10px] font-semibold text-slate-300">Back Side</span>
+                        <span className="text-[8px] text-slate-500">ছবি আপলোড করুন</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Banking Section (bKash / Nagad / Rocket) */}
+              <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl space-y-3">
+                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  📱 পেমেন্ট তোলার তথ্য (Mobile Banking Payout)
+                </span>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">পেমেন্ট গেটওয়ে</label>
+                    <select
+                      value={sellerForm.paymentMethod}
+                      onChange={e => setSellerForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="bkash">বিকাশ (bKash)</option>
+                      <option value="nagad">নগদ (Nagad)</option>
+                      <option value="rocket">রকেট (Rocket)</option>
+                      <option value="bank">ব্যাংক একাউন্ট (Bank)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">একাউন্টের ধরন</label>
+                    <select
+                      value={sellerForm.accountType}
+                      onChange={e => setSellerForm(prev => ({ ...prev, accountType: e.target.value }))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="Personal">ব্যক্তিগত (Personal)</option>
+                      <option value="Merchant">মার্চেন্ট (Merchant)</option>
+                      <option value="Agent">এজেন্ট (Agent)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">বিকাশ / নগদ নম্বর (Mobile Number) *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 017XXXXXXXX"
+                    value={sellerForm.paymentNumber}
+                    onChange={e => setSellerForm(prev => ({ ...prev, paymentNumber: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-[#23272f] hover:bg-[#2c323c] text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-[#373e4b]"
+                >
+                  <Store className="w-4 h-4 text-orange-400" />
+                  <span>{loading ? 'আবেদন জমা হচ্ছে...' : 'রেজিস্ট্রেশন সাবমিট করুন (Submit for Approval)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthView('signin')}
+                  className="w-full py-2 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer text-center"
+                >
+                  ← Back to Customer Sign In
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Pending Approval Confirmation Screen */}
+          {authView === 'seller_pending_success' && (
+            <div className="py-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-950/80 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto shadow-lg">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-white">আবেদন সফলভাবে জমা হয়েছে!</h4>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  আপনার <strong className="text-orange-400">"{sellerForm.storeName}"</strong> সেলার রেজিস্ট্রেশন এবং এনআইডি ডকুমেন্টস অ্যাডমিন রিভিউয়ের জন্য পাঠানো হয়েছে।
+                </p>
+              </div>
+
+              <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 text-left text-xs space-y-1.5 text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">স্ট্যাটাস:</span>
+                  <span className="text-amber-400 font-bold bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800">
+                    ⏳ অপেক্ষমাণ (Pending Approval)
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">এনআইডি নম্বর:</span>
+                  <span className="font-mono text-white">{sellerForm.nidNumber || 'প্রদান করা হয়েছে'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">পেমেন্ট মেথড:</span>
+                  <span className="text-white capitalize">{sellerForm.paymentMethod} ({sellerForm.paymentNumber})</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-snug">
+                অ্যাডমিন কর্তৃক এনআইডি ও তথ্য যাচাইয়ের পর আপনার একাউন্ট স্বয়ংক্রিয়ভাবে সক্রিয় হবে এবং আপনি ভেন্ডর পোর্টালে এক্সেস পাবেন।
+              </p>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+              >
+                ঠিক আছে (Done)
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

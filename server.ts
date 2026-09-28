@@ -1463,6 +1463,98 @@ app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, r
   }
 });
 
+// Public Seller Registration with NID and Mobile Banking details
+app.post('/api/vendors/register', async (req, res) => {
+  try {
+    const { 
+      storeName, 
+      ownerName, 
+      email, 
+      phone, 
+      nidNumber, 
+      nidFrontImage, 
+      nidBackImage, 
+      paymentMethod = 'bkash', 
+      paymentNumber, 
+      accountType = 'Personal' 
+    } = req.body;
+
+    if (!storeName || !ownerName || !phone) {
+      return res.status(400).json({ success: false, error: 'Store Name, Owner Name, and Phone are required' });
+    }
+
+    const vendorId = 'v_' + Date.now();
+    const newVendor = {
+      id: vendorId,
+      name: storeName,
+      storeName,
+      ownerName,
+      email: email || `vendor_${Date.now()}@bazaarpulse.com`,
+      phone,
+      nidNumber: nidNumber || '',
+      nidFrontImage: nidFrontImage || '',
+      nidBackImage: nidBackImage || '',
+      paymentMethod,
+      paymentNumber: paymentNumber || phone,
+      accountType,
+      status: 'pending',
+      logo: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150',
+      banner: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+      totalSales: 0,
+      totalRevenue: 0,
+      balance: 0,
+      rating: 5.0,
+      commissionRate: 10,
+      totalProducts: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    if (isDbConfigured) {
+      try {
+        await pool.query(
+          `INSERT INTO vendors (id, name, email, phone, status, commission_rate, balance, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+           ON CONFLICT (id) DO NOTHING`,
+          [vendorId, storeName, newVendor.email, phone, 'pending', 10, 0]
+        );
+      } catch (dbErr) {
+        console.warn('Postgres vendor insert fallback to local db:', dbErr);
+      }
+    }
+
+    const db = await getDb();
+    if (!Array.isArray(db.vendors)) {
+      db.vendors = [];
+    }
+    db.vendors.unshift(newVendor);
+    saveDb(db);
+
+    res.json({ 
+      success: true, 
+      message: 'Seller application submitted successfully. Waiting for admin approval.',
+      vendor: newVendor 
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete vendor by Admin
+app.delete('/api/admin/vendors/:id', authMiddleware, verifyAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      await pool.query('DELETE FROM vendors WHERE id = $1', [id]);
+    }
+    const db = await getDb();
+    db.vendors = (db.vendors || []).filter((v: any) => v.id !== id);
+    saveDb(db);
+    res.json({ success: true, message: 'Vendor removed successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Vendor approval/suspension by Admin
 const handleVendorStatusUpdate = async (req: any, res: any) => {
   try {
