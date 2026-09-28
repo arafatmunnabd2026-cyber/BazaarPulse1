@@ -51,9 +51,18 @@ export const ProductQuickView = ({
                 className="w-full h-full object-cover" 
               />
               {selectedProduct?.discountPrice && (
-                <span className="absolute top-4 left-4 bg-[#f85606] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
-                  -{Math.round(((selectedProduct.price - selectedProduct.discountPrice) / selectedProduct.price) * 100)}% Off
-                </span>
+                <div className="absolute top-4 left-4 z-10 w-16 h-16 flex flex-col items-center justify-center text-white font-bold leading-none select-none">
+                  <div 
+                    className="absolute inset-0 bg-[#e53e3e]"
+                    style={{
+                      clipPath: 'polygon(50% 0%, 61% 0.5%, 72% 3%, 82% 7%, 89% 12%, 95% 19%, 98% 27%, 99% 36%, 100% 50%, 99% 64%, 98% 73%, 95% 81%, 89% 88%, 82% 93%, 72% 97%, 61% 99%, 50% 100%, 39% 99%, 28% 97%, 18% 93%, 11% 88%, 5% 81%, 2% 73%, 1% 64%, 0% 50%, 1% 36%, 2% 27%, 5% 19%, 11% 12%, 18% 7%, 28% 3%, 39% 0.5%)'
+                    }}
+                  />
+                  <div className="relative z-10 text-center">
+                    <div className="text-lg">{Math.round(((selectedProduct.price - selectedProduct.discountPrice) / selectedProduct.price) * 100)}%</div>
+                    <div className="text-[10px] uppercase">OFF</div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -174,14 +183,32 @@ export const ProductQuickView = ({
             )}
 
             {/* Quantity Selector */}
-            <div className="flex items-center gap-6 py-2">
-              <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider">Quantity</span>
-              <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm">
-                <button onClick={() => setProductQty(Math.max(1, productQty - 1))} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">-</button>
-                <span className="px-5 py-2 font-extrabold text-sm text-black min-w-[50px] text-center">{productQty}</span>
-                <button onClick={() => setProductQty(productQty + 1)} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">+</button>
+            <div className="flex flex-col gap-2 py-2">
+              <div className="flex items-center gap-6">
+                <span className="text-[11px] font-extrabold uppercase text-gray-500 tracking-wider">Quantity</span>
+                <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white shadow-sm">
+                  <button onClick={() => setProductQty(Math.max(1, productQty - 1))} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">-</button>
+                  <span className="px-5 py-2 font-extrabold text-sm text-black min-w-[50px] text-center">{productQty}</span>
+                  <button onClick={() => setProductQty(productQty + 1)} className="px-4 py-2 text-black hover:bg-gray-100 font-bold transition-colors">+</button>
+                </div>
               </div>
-              <span className="text-xs text-gray-400 font-medium">Available: {selectedProduct.stock}</span>
+
+              {/* Stock Status Note */}
+              <div className="flex items-center gap-2 mt-1">
+                {selectedProduct.stock > 0 ? (
+                  <>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-600">
+                      In Stock {selectedProduct.stock <= 5 ? `(only ${selectedProduct.stock} ${selectedProduct.stock === 1 ? 'piece' : 'pieces'} left)` : ''}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs font-bold text-red-600">Out of Stock</span>
+                )}
+              </div>
+              {selectedProduct.stock > 0 && selectedProduct.stock <= 5 && (
+                <p className="text-[10px] text-gray-500">* স্টক আউট হওয়ার আগেই অর্ডার করুন</p>
+              )}
             </div>
 
             {/* Action Buttons */}
