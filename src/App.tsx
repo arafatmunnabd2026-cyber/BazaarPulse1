@@ -1254,8 +1254,6 @@ function CustomerView({
       }
       return [...prev, { product, quantity: qty, size, color }];
     });
-    
-    notify(`Added "${product.title.substring(0, 25)}..." to cart`);
 
     // Sync with database if logged in
     if (authUser) {
