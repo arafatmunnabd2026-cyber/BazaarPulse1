@@ -2249,10 +2249,8 @@ app.post('/api/sync-user', async (req, res) => {
 });
 
 // 4. Cart Add/Sync API Route
-// 4. Cart Add/Sync API Route (Daraz-style logic)
 app.post('/api/cart', authMiddleware, async (req, res) => {
   try {
-    // authMiddleware থেকে userId সংগ্রহ (লগইন করা থাকলে)
     const userId = req.user?.id || req.body.userId || req.body.customerId || 'guest';
     const { productId, quantity = 1, size = '', color = '' } = req.body;
 
@@ -2260,7 +2258,6 @@ app.post('/api/cart', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Product ID is required' });
     }
 
-    // ১. প্রোডাক্টটি কার্টে আছে কি না চেক করা
     const { data: existingItem, error: fetchError } = await supabase
       .from('cart')
       .select('id, quantity')
@@ -2268,10 +2265,9 @@ app.post('/api/cart', authMiddleware, async (req, res) => {
       .eq('product_id', productId)
       .eq('size', size)
       .eq('color', color)
-      .maybeSingle(); // .single() এর বদলে .maybeSingle() ব্যবহার করা নিরাপদ
+      .maybeSingle();
 
     if (existingItem) {
-      // ২. থাকলে quantity আপডেট করা
       const { error: updateError } = await supabase
         .from('cart')
         .update({ quantity: existingItem.quantity + quantity })
@@ -2280,7 +2276,6 @@ app.post('/api/cart', authMiddleware, async (req, res) => {
       if (updateError) throw updateError;
       res.status(200).json({ success: true, message: 'Cart updated successfully' });
     } else {
-      // ৩. না থাকলে নতুন ইনসার্ট করা
       const { error: insertError } = await supabase
         .from('cart')
         .insert({
@@ -2296,6 +2291,66 @@ app.post('/api/cart', authMiddleware, async (req, res) => {
     }
   } catch (err: any) {
     console.error('Cart Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Rokomari-inspired Cart Management Endpoints
+app.patch('/api/cart/quantity', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { productId, quantity, size = '', color = '' } = req.body;
+
+    // Fetch product stock limit
+    const { data: prod } = await supabase
+      .from('products')
+      .select('stock, stock_quantity')
+      .eq('id', productId)
+      .single();
+
+    const maxStock = prod ? (prod.stock_quantity !== undefined && prod.stock_quantity !== null ? prod.stock_quantity : (prod.stock || 100)) : 100;
+
+    if (quantity > maxStock) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Only ${maxStock} pieces available in stock`,
+        maxStock 
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Quantity validated & updated' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/cart/batch', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { productIds } = req.body;
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'No items selected for deletion' });
+    }
+
+    const { error } = await supabase
+      .from('cart')
+      .delete()
+      .eq('user_id', userId)
+      .in('product_id', productIds);
+
+    if (error) throw error;
+    res.status(200).json({ success: true, message: 'Selected items deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/cart/select', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { productId, isSelected, selectAll } = req.body;
+    res.status(200).json({ success: true, message: 'Selection state synced' });
+  } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });

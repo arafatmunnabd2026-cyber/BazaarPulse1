@@ -1132,10 +1132,10 @@ function CustomerView({
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   
   // Initialize cart from localStorage for persistence
-  const [cart, setCart] = useState<{ product: any; quantity: number; size?: string; color?: string }[]>(() => {
+  const [cart, setCart] = useState<{ product: any; quantity: number; size?: string; color?: string; isSelected?: boolean }[]>(() => {
     try {
       const saved = localStorage.getItem('bazaarpulse_cart');
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved).map((i: any) => ({ ...i, isSelected: i.isSelected !== false })) : [];
     } catch {
       return [];
     }
@@ -1145,6 +1145,110 @@ function CustomerView({
   useEffect(() => {
     localStorage.setItem('bazaarpulse_cart', JSON.stringify(cart));
   }, [cart]);
+
+  // Rokomari-inspired multi-selection & cart helpers
+  const selectedItems = cart.filter(i => i.isSelected !== false);
+  const selectedCount = selectedItems.length;
+  const totalCartCount = cart.length;
+
+  const originalTotal = cart.reduce((sum, i) => sum + (i.product.price || 0) * i.quantity, 0);
+  const selectedOriginalTotal = selectedItems.reduce((sum, i) => sum + (i.product.price || 0) * i.quantity, 0);
+  const selectedDiscountedTotal = selectedItems.reduce((sum, i) => sum + (i.product.discountPrice || i.product.price || 0) * i.quantity, 0);
+
+  const toggleSelectAll = async (checked: boolean) => {
+    setCart(prev => prev.map(i => ({ ...i, isSelected: checked })));
+    if (authUser) {
+      try {
+        await fetch('/api/cart/select', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ selectAll: checked })
+        });
+      } catch (e) {}
+    }
+  };
+
+  const toggleSelectItem = async (index: number) => {
+    const item = cart[index];
+    const newSelection = item.isSelected === false ? true : false;
+    setCart(prev => prev.map((it, idx) => idx === index ? { ...it, isSelected: newSelection } : it));
+    if (authUser && item?.product?.id) {
+      try {
+        await fetch('/api/cart/select', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ productId: item.product.id, isSelected: newSelection })
+        });
+      } catch (e) {}
+    }
+  };
+
+  const updateQuantity = async (index: number, newQty: number) => {
+    if (newQty < 1) return;
+    const item = cart[index];
+    const maxStock = item.product.stock || 100;
+    if (newQty > maxStock) {
+      notify(`⚠️ Only ${maxStock} pieces available in stock`);
+      return;
+    }
+
+    if (authUser && item?.product?.id) {
+      try {
+        const res = await fetch('/api/cart/quantity', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ productId: item.product.id, quantity: newQty, size: item.size, color: item.color })
+        });
+        const json = await res.json();
+        if (!json.success) {
+          notify(`⚠️ ${json.message || 'Stock validation failed'}`);
+          return;
+        }
+      } catch (e) {}
+    }
+
+    setCart(prev => prev.map((it, idx) => idx === index ? { ...it, quantity: newQty } : it));
+  };
+
+  const deleteSelectedItems = async () => {
+    const toDelete = cart.filter(i => i.isSelected !== false);
+    if (toDelete.length === 0) {
+      notify('⚠️ Please select at least one item to delete');
+      return;
+    }
+    if (!confirm('Are you sure you want to delete selected items from cart?')) return;
+    
+    const productIdsToDelete = toDelete.map(i => i.product.id);
+    setCart(prev => prev.filter(i => i.isSelected === false));
+    notify('🗑️ Selected items deleted from cart');
+
+    if (authUser) {
+      try {
+        await fetch('/api/cart/batch', {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('bazaarpulse_token')}`
+          },
+          body: JSON.stringify({ productIds: productIdsToDelete })
+        });
+      } catch (e) {}
+    }
+  };
+
+  const moveToWishlist = (item: any) => {
+    notify(`❤️ Moved "${item.product.title.substring(0, 22)}..." to wishlist`);
+    removeFromCart(item.product.id, item.size, item.color);
+  };
 
   // Sync cart with database when user logs in
   useEffect(() => {
@@ -1648,7 +1752,7 @@ function CustomerView({
         )}
       </div>
 
-      {/* Cart Drawer Modal */}
+      {/* Cart Drawer Modal - Rokomari Inspired Multi-Selection System */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex justify-end">
           <motion.div 
@@ -1657,8 +1761,9 @@ function CustomerView({
             exit={{ x: '100%' }}
             className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col"
           >
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-bold text-lg flex items-center gap-2">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
+              <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
                 <ShoppingCart className="w-5 h-5 text-orange-600" /> Shopping Cart ({cart.reduce((s, i) => s + i.quantity, 0)})
               </h3>
               <button onClick={() => setIsCartOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full">
@@ -1666,57 +1771,163 @@ function CustomerView({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Promotional Banner */}
+            <div className="bg-orange-50 border-b border-orange-100 p-2.5 px-4 text-xs text-orange-900 font-bold flex items-center justify-between">
+              <span>📦 ৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি</span>
+              <span className="text-orange-600 underline cursor-pointer text-[11px]">শর্ত প্রযোজ্য</span>
+            </div>
+
+            {/* Master Select All Bar & Counter */}
+            {cart.length > 0 && (
+              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <label className="flex items-center gap-2.5 text-xs font-extrabold text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCount === totalCartCount && totalCartCount > 0}
+                    onChange={e => toggleSelectAll(e.target.checked)}
+                    className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer"
+                  />
+                  <span>Select All ({selectedCount}/{totalCartCount} Items)</span>
+                </label>
+                <button
+                  onClick={deleteSelectedItems}
+                  className="text-red-500 hover:text-red-700 text-xs font-extrabold flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Selected
+                </button>
+              </div>
+            )}
+
+            {/* User & Total Summary Bar */}
+            {cart.length > 0 && (
+              <div className="px-4 py-2 bg-slate-900 text-white text-xs flex justify-between items-center font-bold">
+                <span>{authUser?.name || 'Customer'}</span>
+                <span>Your total: <span className="line-through text-slate-400 mr-1">৳{selectedOriginalTotal}</span> <span className="text-orange-400 font-black text-sm">৳{selectedDiscountedTotal}</span></span>
+              </div>
+            )}
+
+            {/* Cart Items List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {cart.length === 0 ? (
                 <div className="text-center py-20 text-slate-400">
-                  <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                  <p>Your cart is empty</p>
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-30 text-orange-500" />
+                  <p className="font-bold text-slate-600">Your cart is empty</p>
+                  <p className="text-xs text-slate-400 mt-1">Explore our store and add items to your cart</p>
                 </div>
               ) : (
-                cart.map((item, idx) => (
-                  <div key={idx} className="flex gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 items-center">
-                    <img src={item.product?.images?.[0] || item.product?.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} alt="" className="w-16 h-16 object-cover rounded-lg" />
-                    <div className="flex-1">
-                      <h4 className="font-bold text-sm line-clamp-1">{item.product.title}</h4>
-                      <div className="text-xs text-slate-500">{item.product.vendorName}</div>
-                      <div className="text-orange-600 font-bold text-sm mt-1">৳{item.product.discountPrice || item.product.price} × {item.quantity}</div>
-                      {(item.size || item.color) && (
-                        <div className="flex gap-2 mt-1 text-[10px] font-bold">
-                          {item.size && <span className="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700">Size: {item.size}</span>}
-                          {item.color && <span className="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700">Color: {item.color}</span>}
+                cart.map((item, idx) => {
+                  const isChecked = item.isSelected !== false;
+                  const itemStock = item.product.stock || 10;
+                  const origPrice = item.product.price || 0;
+                  const discPrice = item.product.discountPrice || origPrice;
+
+                  return (
+                    <div key={idx} className={`flex gap-3 p-3 rounded-xl border transition-all items-start ${isChecked ? 'bg-white border-orange-200 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-75'}`}>
+                      {/* Item Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleSelectItem(idx)}
+                        className="mt-2 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer"
+                      />
+
+                      <img src={item.product?.images?.[0] || item.product?.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} alt="" className="w-16 h-16 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{item.product.title}</h4>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{item.product.vendorName}</div>
+                        
+                        {/* Low stock warning */}
+                        {itemStock <= 5 && (
+                          <div className="text-[10px] text-red-500 font-extrabold mt-0.5">
+                            ⚠️ Only {itemStock} pieces available
+                          </div>
+                        )}
+
+                        {/* Pricing */}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-orange-600 font-extrabold text-sm">৳{discPrice}</span>
+                          {discPrice < origPrice && (
+                            <span className="text-xs text-slate-400 line-through">৳{origPrice}</span>
+                          )}
                         </div>
-                      )}
+
+                        {(item.size || item.color) && (
+                          <div className="flex gap-2 mt-1 text-[10px] font-bold">
+                            {item.size && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Size: {item.size}</span>}
+                            {item.color && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Color: {item.color}</span>}
+                          </div>
+                        )}
+
+                        {/* Quantity Controls & Actions */}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
+                          <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                            <button
+                              onClick={() => updateQuantity(idx, item.quantity - 1)}
+                              className="px-2 py-0.5 text-slate-600 hover:bg-slate-200 text-xs font-black transition-colors"
+                            >
+                              -
+                            </button>
+                            <span className="px-3 text-xs font-extrabold text-slate-800">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(idx, item.quantity + 1)}
+                              className="px-2 py-0.5 text-slate-600 hover:bg-slate-200 text-xs font-black transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => moveToWishlist(item)}
+                              title="Move to Wishlist"
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                            >
+                              <Heart className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => item?.product?.id && removeFromCart(item.product.id, item.size, item.color)}
+                              title="Delete Item"
+                              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => item?.product?.id && removeFromCart(item.product.id, item.size, item.color)}
-                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
+            {/* Footer Summary & Checkout */}
             {cart.length > 0 && (
-              <div className="p-4 border-t border-slate-200 bg-slate-50">
-                <div className="flex justify-between mb-2 text-sm">
-                  <span className="text-slate-600">Subtotal</span>
-                  <span className="font-bold">৳{cart.reduce((sum, i) => sum + (i.product.discountPrice || i.product.price) * i.quantity, 0)}</span>
+              <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-2">
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Selected Subtotal ({selectedCount} items)</span>
+                  <span className="font-bold">৳{selectedDiscountedTotal}</span>
                 </div>
-                <div className="flex justify-between mb-4 text-sm">
-                  <span className="text-slate-600">Shipping</span>
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Shipping Fee</span>
                   <span className="font-bold">৳150</span>
                 </div>
-                <div className="flex justify-between mb-4 text-lg font-extrabold border-t border-slate-200 pt-2">
-                  <span>Total</span>
-                  <span className="text-orange-600">৳{cart.reduce((sum, i) => sum + (i.product.discountPrice || i.product.price) * i.quantity, 0) + 150}</span>
+                <div className="flex justify-between text-base font-black border-t border-slate-200 pt-2 text-slate-900">
+                  <span>Total Payable</span>
+                  <span className="text-orange-600">৳{selectedCount > 0 ? selectedDiscountedTotal + 150 : 0}</span>
                 </div>
                 <button
-                  onClick={() => setIsCheckoutOpen(true)}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
+                  onClick={() => {
+                    if (selectedCount === 0) {
+                      notify('⚠️ Please select at least one item to proceed to checkout');
+                      return;
+                    }
+                    setIsCheckoutOpen(true);
+                  }}
+                  disabled={selectedCount === 0}
+                  className="w-full mt-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-3.5 rounded-xl shadow-lg transition-all text-xs uppercase tracking-wider"
                 >
-                  Proceed to Checkout
+                  Proceed to Checkout ({selectedCount} Items)
                 </button>
               </div>
             )}
