@@ -1772,7 +1772,7 @@ function CustomerView({
             </div>
 
             {/* Promotional Banner (Conditionally Rendered based on Admin isActive setting) */}
-            {data?.adminSettings?.cartBanner?.isActive !== false && (
+            {data?.adminSettings?.cartBanner?.isActive === true && (
               <div className="bg-orange-50 border-b border-orange-100 p-2.5 px-4 text-xs text-orange-900 font-bold flex items-center justify-between">
                 <span>📦 {data?.adminSettings?.cartBanner?.bannerText || '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি'}</span>
                 <span className="text-orange-600 underline cursor-pointer text-[11px]">{data?.adminSettings?.cartBanner?.termsText || 'শর্ত প্রযোজ্য'}</span>
@@ -3647,7 +3647,13 @@ function AdminControlCenter({
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
   const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState<'all' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
   const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
-  const [isBannerActive, setIsBannerActive] = useState<boolean>(data?.adminSettings?.cartBanner?.isActive !== false);
+  const [isBannerActive, setIsBannerActive] = useState<boolean>(Boolean(data?.adminSettings?.cartBanner?.isActive));
+
+  useEffect(() => {
+    if (data?.adminSettings?.cartBanner?.isActive !== undefined) {
+      setIsBannerActive(Boolean(data.adminSettings.cartBanner.isActive));
+    }
+  }, [data?.adminSettings?.cartBanner?.isActive]);
   
   const [newAdminProduct, setNewAdminProduct] = useState({
     title: '',

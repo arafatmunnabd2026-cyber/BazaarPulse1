@@ -1283,9 +1283,11 @@ app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
         termsText: 'শর্ত প্রযোজ্য'
       };
     }
+    const isAct = req.body.isActive === true || req.body.isActive === 'true';
     db.adminSettings.cartBanner = {
-      ...db.adminSettings.cartBanner,
-      ...req.body
+      isActive: isAct,
+      bannerText: req.body.bannerText !== undefined ? req.body.bannerText : db.adminSettings.cartBanner.bannerText,
+      termsText: req.body.termsText !== undefined ? req.body.termsText : db.adminSettings.cartBanner.termsText
     };
     saveDb(db);
     res.json({ success: true, cartBanner: db.adminSettings.cartBanner });
