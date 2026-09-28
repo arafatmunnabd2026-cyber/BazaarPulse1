@@ -36,8 +36,9 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 
-// 1. Express setup with JSON body parser and CORS
-app.use(express.json());
+// 1. Express setup with JSON body parser (supports large uploads for multi-image products) and CORS
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // Initialize Gemini SDK if API key is available
@@ -456,22 +457,218 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+function parseJsonSafe(val: any, fallback: any = []): any {
+  if (val === null || val === undefined) return fallback;
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return fallback;
+    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return [trimmed];
+    }
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        return fallback;
+      }
+    }
+    if (trimmed.includes(',') && !trimmed.includes('data:')) {
+      return trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [trimmed];
+  }
+  return fallback;
+}
+
+const CATEGORY_SLUG_TO_ID: Record<string, string> = {
+  'electronics': 'c1',
+  'fashion': 'c2',
+  'fashion-apparel': 'c2',
+  'home-living': 'c3',
+  'home': 'c3',
+  'beauty': 'c4',
+  'beauty-health': 'c4',
+  'groceries': 'c5',
+  'sports': 'c6',
+  'sports-outdoors': 'c6'
+};
+
+function normalizeCategoryId(catId?: string, catName?: string): string {
+  if (catId && /^c[1-6]$/.test(catId)) return catId;
+  const cleanId = (catId || '').toLowerCase().trim();
+  if (CATEGORY_SLUG_TO_ID[cleanId]) return CATEGORY_SLUG_TO_ID[cleanId];
+  const cleanName = (catName || '').toLowerCase().trim();
+  if (cleanName.includes('elect')) return 'c1';
+  if (cleanName.includes('fash') || cleanName.includes('appar')) return 'c2';
+  if (cleanName.includes('home') || cleanName.includes('liv')) return 'c3';
+  if (cleanName.includes('beaut') || cleanName.includes('health')) return 'c4';
+  if (cleanName.includes('groc')) return 'c5';
+  if (cleanName.includes('sport') || cleanName.includes('outdoor')) return 'c6';
+  return catId || 'c1';
+}
+
+function formatProductRow(p: any) {
+  let resolvedImages: string[] = [];
+  const parsedImgs = parseJsonSafe(p.images, []);
+  if (Array.isArray(parsedImgs) && parsedImgs.length > 0) {
+    resolvedImages = parsedImgs.filter(Boolean);
+  } else if (p.image_url) {
+    resolvedImages = [p.image_url];
+  }
+
+  const gal = parseJsonSafe(p.gallery_images, []);
+  if (Array.isArray(gal) && gal.length > 0) {
+    gal.forEach((g: string) => {
+      if (g && !resolvedImages.includes(g)) resolvedImages.push(g);
+    });
+  }
+  if (!Array.isArray(resolvedImages) || resolvedImages.length === 0) {
+    resolvedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
+  }
+
+  const normCatId = normalizeCategoryId(p.category_id || p.category, p.category_name);
+
+  return {
+    id: String(p.id),
+    title: p.title || 'Untitled Product',
+    slug: p.slug || (p.title ? p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product'),
+    price: Number(p.current_price !== undefined && p.current_price !== null && p.current_price !== '' ? p.current_price : (p.price || 0)),
+    discountPrice: (p.discount_price !== null && p.discount_price !== undefined && p.discount_price !== '') ? Number(p.discount_price) : undefined,
+    stock: p.stock_quantity !== null && p.stock_quantity !== undefined && p.stock_quantity !== '' ? Number(p.stock_quantity) : Number(p.stock || 0),
+    categoryId: normCatId,
+    categoryName: p.category_name || p.category || 'General',
+    vendorId: p.vendor_id || 'v1',
+    vendorName: p.vendor_name || 'Platform Administrator',
+    images: resolvedImages,
+    galleryImages: Array.isArray(gal) ? gal : [],
+    description: p.description || '',
+    rating: Number(p.rating || 5.0),
+    reviewsCount: Number(p.reviews_count || 0),
+    totalSold: Number(p.total_sold || 0),
+    isFlashSale: !!p.is_flash_sale,
+    flashSaleEnds: p.flash_sale_ends || null,
+    status: p.status || 'active',
+    sizes: parseJsonSafe(p.sizes, []),
+    colors: parseJsonSafe(p.colors, [])
+  };
+}
+
+// Supabase client synchronization helper
+async function syncProductToSupabase(p: any) {
+  if (!supabase || !p || !p.id) return;
+  try {
+    const normCatId = normalizeCategoryId(p.categoryId || p.category_id, p.categoryName || p.category_name);
+    const mainImg = (Array.isArray(p.images) && p.images[0]) || p.imageUrl || p.image || '';
+    const imagesList = Array.isArray(p.images) && p.images.length > 0 ? p.images : (mainImg ? [mainImg] : []);
+    const galleryList = Array.isArray(p.galleryImages) ? p.galleryImages : (Array.isArray(p.gallery_images) ? p.gallery_images : []);
+
+    const { error } = await supabase.from('products').upsert([{
+      id: String(p.id),
+      title: p.title || 'Untitled Product',
+      slug: p.slug || (p.title ? p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product') || ('product-' + p.id),
+      price: Number(p.currentPrice !== undefined ? p.currentPrice : (p.price || 0)),
+      current_price: Number(p.currentPrice !== undefined ? p.currentPrice : (p.price || 0)),
+      discount_price: (p.discountPrice !== null && p.discountPrice !== undefined && p.discountPrice !== '') ? Number(p.discountPrice) : (p.discount_price ? Number(p.discount_price) : null),
+      stock: Number(p.stockQuantity !== undefined ? p.stockQuantity : (p.stock || 0)),
+      stock_quantity: Number(p.stockQuantity !== undefined ? p.stockQuantity : (p.stock || 0)),
+      category_id: normCatId,
+      category_name: p.categoryName || p.category_name || 'General',
+      vendor_id: p.vendorId || p.vendor_id || 'v1',
+      vendor_name: p.vendorName || p.vendor_name || 'Platform Administrator',
+      image_url: mainImg,
+      images: imagesList,
+      gallery_images: galleryList,
+      sizes: Array.isArray(p.sizes) ? p.sizes : parseJsonSafe(p.sizes, []),
+      colors: Array.isArray(p.colors) ? p.colors : parseJsonSafe(p.colors, []),
+      description: p.description || '',
+      rating: Number(p.rating || 5.0),
+      reviews_count: Number(p.reviewsCount || p.reviews_count || 0),
+      total_sold: Number(p.totalSold || p.total_sold || 0),
+      is_flash_sale: !!p.isFlashSale,
+      flash_sale_ends: p.flashSaleEnds || null,
+      status: p.status || 'active'
+    }], { onConflict: 'id' });
+
+    if (error) {
+      console.warn(`Supabase upsert warning for ${p.id}:`, error.message);
+    } else {
+      console.log(`✅ Supabase synchronized product ${p.id} (${p.title})`);
+    }
+  } catch (err: any) {
+    console.error(`Supabase sync exception for ${p.id}:`, err.message);
+  }
+}
+
+async function deleteProductFromSupabase(id: string) {
+  if (!supabase || !id) return;
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', String(id));
+    if (error) {
+      console.warn(`Supabase delete note for ${id}:`, error.message);
+    } else {
+      console.log(`🗑️ Supabase deleted product ${id}`);
+    }
+  } catch (err: any) {
+    console.error(`Supabase delete exception for ${id}:`, err.message);
+  }
+}
+
 // Helper to fetch entire data structure (replaces getDb from JSON)
 async function getDb(): Promise<InitialData> {
   if (!isDbConfigured) {
-    // Graceful offline fallback to database.json file
-    if (!fs.existsSync(DB_FILE)) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2));
-      return defaultData;
+    // Graceful offline fallback to database.json file with live Supabase query
+    let db: InitialData = defaultData;
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const content = fs.readFileSync(DB_FILE, 'utf-8');
+        db = JSON.parse(content);
+        if (!db.cartItems) db.cartItems = [];
+        if (!db.products) db.products = [];
+      } catch (e) {
+        db = { ...defaultData };
+      }
     }
-    try {
-      const content = fs.readFileSync(DB_FILE, 'utf-8');
-      const db = JSON.parse(content);
-      if (!db.cartItems) db.cartItems = [];
-      return db;
-    } catch (e) {
-      return defaultData;
+
+    if (supabase) {
+      try {
+        const { data: supaProducts, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(supaProducts)) {
+          const formattedSupa = supaProducts.map(formatProductRow);
+          
+          // Safe Merge: Supabase products + any local products not yet in Supabase
+          const mergedMap = new Map<string, any>();
+          
+          // 1. Add formatted Supabase products
+          formattedSupa.forEach((sp: any) => {
+            if (sp && sp.id) mergedMap.set(String(sp.id), sp);
+          });
+
+          // 2. Preserve any local products in db.products that are not yet in Supabase
+          const localProducts = Array.isArray(db.products) ? db.products : [];
+          localProducts.forEach((lp: any) => {
+            if (lp && lp.id && !mergedMap.has(String(lp.id))) {
+              mergedMap.set(String(lp.id), lp);
+              // Push this missing product to Supabase so it becomes permanent in Supabase!
+              syncProductToSupabase(lp);
+            }
+          });
+
+          db.products = Array.from(mergedMap.values());
+          // Persist to local database.json cache so file is never out of sync!
+          saveDb(db);
+        }
+      } catch (err) {
+        console.error('Error fetching live products from Supabase in fallback:', err);
+      }
     }
+
+    return db;
   }
   
   try {
@@ -509,49 +706,8 @@ async function getDb(): Promise<InitialData> {
       logo: v.logo
     }));
     
-    const products = productsRes.rows.map(p => {
-      let resolvedImages: string[] = [];
-      if (p.images) {
-        resolvedImages = typeof p.images === 'string' ? JSON.parse(p.images) : p.images;
-      } else if (p.gallery_images) {
-        const gal = typeof p.gallery_images === 'string' ? JSON.parse(p.gallery_images) : p.gallery_images;
-        resolvedImages = p.image_url ? [p.image_url, ...(Array.isArray(gal) ? gal : [])] : gal;
-      } else if (p.image_url) {
-        resolvedImages = [p.image_url];
-      }
-      if (!Array.isArray(resolvedImages)) resolvedImages = [];
+    const products = productsRes.rows.map(formatProductRow);
 
-      let galleryList: string[] = [];
-      if (p.gallery_images) {
-        galleryList = typeof p.gallery_images === 'string' ? JSON.parse(p.gallery_images) : p.gallery_images;
-      } else if (resolvedImages.length > 1) {
-        galleryList = resolvedImages.slice(1);
-      }
-
-      return {
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        price: Number(p.current_price || p.price || 0),
-        discountPrice: (p.discount_price !== null && p.discount_price !== undefined) ? Number(p.discount_price) : undefined,
-        stock: p.stock_quantity !== null && p.stock_quantity !== undefined ? Number(p.stock_quantity) : Number(p.stock || 0),
-        categoryId: p.category_id || p.category,
-        categoryName: p.category_name || p.category,
-        vendorId: p.vendor_id,
-        vendorName: p.vendor_name,
-        images: resolvedImages,
-        galleryImages: Array.isArray(galleryList) ? galleryList : [],
-        description: p.description,
-        rating: Number(p.rating || 5.0),
-        reviewsCount: p.reviews_count || 0,
-        totalSold: p.total_sold || 0,
-        isFlashSale: p.is_flash_sale,
-        flashSaleEnds: p.flash_sale_ends,
-        status: p.status || 'active',
-        sizes: typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes || [],
-        colors: typeof p.colors === 'string' ? JSON.parse(p.colors) : p.colors || []
-      };
-    });
 
     const orders = ordersRes.rows.map(o => ({
       id: o.id,
@@ -1111,107 +1267,129 @@ app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, r
   }
 });
 
-// Admin Product Add & Delete Endpoints
-app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) => {
-  try {
-    const { 
-      title, 
-      price, 
-      currentPrice,
-      originalPrice,
-      discountPrice, 
-      discount_price,
-      categoryId, 
-      category,
-      image, 
-      imageUrl,
-      galleryImages,
-      images: rawImages,
-      stock, 
-      stockQuantity,
-      sizes, 
-      colors, 
-      description 
-    } = req.body;
+// Universal Product Persistence & Supabase Synchronization Helper
+async function persistProduct(productData: any) {
+  const newId = productData.id || ('p-' + Date.now());
+  const actualPrice = Number(productData.currentPrice !== undefined ? productData.currentPrice : (productData.price || 0));
+  const discInput = productData.discountPrice !== undefined ? productData.discountPrice : (productData.discount_price !== undefined ? productData.discount_price : productData.originalPrice);
+  const actualDiscount = (discInput !== undefined && discInput !== '' && discInput !== null) ? Number(discInput) : null;
+  const actualStock = Number(productData.stockQuantity !== undefined ? productData.stockQuantity : (productData.stock !== undefined ? productData.stock : 10));
 
-    const actualPrice = Number(currentPrice !== undefined ? currentPrice : price || 0);
-    const discInput = discountPrice !== undefined ? discountPrice : (discount_price !== undefined ? discount_price : originalPrice);
-    const actualDiscount = (discInput !== undefined && discInput !== '' && discInput !== null) ? Number(discInput) : null;
-    const actualStock = Number(stockQuantity !== undefined ? stockQuantity : stock || 10);
-    
-    // Resolve all images
-    const mainImg = imageUrl || image || '';
-    const additionalImgs = Array.isArray(galleryImages) ? galleryImages : [];
-    let combinedImages: string[] = [];
-    if (Array.isArray(rawImages) && rawImages.length > 0) {
-      combinedImages = rawImages;
-    } else {
-      combinedImages = [mainImg, ...additionalImgs].filter(Boolean);
-    }
-    if (combinedImages.length === 0) {
-      combinedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
-    }
+  const mainImg = productData.imageUrl || productData.image || '';
+  const additionalImgs = Array.isArray(productData.galleryImages) 
+    ? productData.galleryImages 
+    : (Array.isArray(productData.gallery_images) ? productData.gallery_images : []);
+  
+  let combinedImages: string[] = [];
+  if (Array.isArray(productData.images) && productData.images.length > 0) {
+    combinedImages = productData.images.filter(Boolean);
+  } else {
+    combinedImages = [mainImg, ...additionalImgs].filter(Boolean);
+  }
+  if (combinedImages.length === 0) {
+    combinedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
+  }
 
-    if (isDbConfigured) {
-      const catRes = await pool.query('SELECT name FROM categories WHERE id = $1', [categoryId || 'c1']);
-      const categoryName = catRes.rows[0]?.name || category || 'General';
-      
-      const newId = 'p-' + Date.now();
-      const slug = (title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      
-      const result = await pool.query(
+  const normCatId = normalizeCategoryId(
+    productData.categoryId || productData.category_id, 
+    productData.categoryName || productData.category_name || productData.category
+  );
+  const slug = (productData.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-') || ('product-' + Date.now());
+
+  const formattedProduct = {
+    id: String(newId),
+    title: productData.title || 'Untitled Product',
+    slug,
+    price: actualPrice,
+    currentPrice: actualPrice,
+    discountPrice: actualDiscount,
+    stock: actualStock,
+    stockQuantity: actualStock,
+    categoryId: normCatId,
+    categoryName: productData.categoryName || productData.category_name || productData.category || 'General',
+    vendorId: productData.vendorId || productData.vendor_id || 'v1',
+    vendorName: productData.vendorName || productData.vendor_name || 'Platform Administrator',
+    image: combinedImages[0],
+    imageUrl: combinedImages[0],
+    images: combinedImages,
+    galleryImages: additionalImgs,
+    sizes: Array.isArray(productData.sizes) ? productData.sizes : parseJsonSafe(productData.sizes, []),
+    colors: Array.isArray(productData.colors) ? productData.colors : parseJsonSafe(productData.colors, []),
+    description: productData.description || '',
+    rating: Number(productData.rating || 5.0),
+    reviewsCount: Number(productData.reviewsCount || productData.reviews_count || 0),
+    totalSold: Number(productData.totalSold || productData.total_sold || 0),
+    isFlashSale: !!productData.isFlashSale,
+    flashSaleEnds: productData.flashSaleEnds || null,
+    status: productData.status || 'active',
+    createdAt: productData.createdAt || new Date().toISOString()
+  };
+
+  // 1. Sync directly to live Supabase database
+  await syncProductToSupabase(formattedProduct);
+
+  // 2. Sync to PostgreSQL if pool is configured
+  if (isDbConfigured) {
+    try {
+      await pool.query(
         `INSERT INTO products 
          (id, title, slug, price, current_price, discount_price, stock, stock_quantity, category_id, category_name, vendor_id, vendor_name, images, image_url, gallery_images, description, sizes, colors, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-         RETURNING *`,
+         ON CONFLICT (id) DO UPDATE SET
+           title = EXCLUDED.title, price = EXCLUDED.price, current_price = EXCLUDED.current_price,
+           discount_price = EXCLUDED.discount_price, stock = EXCLUDED.stock, stock_quantity = EXCLUDED.stock_quantity,
+           category_id = EXCLUDED.category_id, category_name = EXCLUDED.category_name,
+           images = EXCLUDED.images, image_url = EXCLUDED.image_url, gallery_images = EXCLUDED.gallery_images,
+           description = EXCLUDED.description, sizes = EXCLUDED.sizes, colors = EXCLUDED.colors, status = EXCLUDED.status`,
         [
-          newId,
-          title,
-          slug,
-          actualPrice,
-          actualPrice,
-          actualDiscount,
-          actualStock,
-          actualStock,
-          categoryId || 'c1',
-          categoryName,
-          'v1',
-          'Platform Administrator',
-          JSON.stringify(combinedImages),
-          combinedImages[0],
-          JSON.stringify(additionalImgs),
-          description || '',
-          JSON.stringify(sizes || []),
-          JSON.stringify(colors || []),
-          'active'
+          String(newId), formattedProduct.title, formattedProduct.slug, actualPrice, actualPrice, actualDiscount,
+          actualStock, actualStock, normCatId, formattedProduct.categoryName, formattedProduct.vendorId, formattedProduct.vendorName,
+          JSON.stringify(combinedImages), combinedImages[0], JSON.stringify(additionalImgs),
+          formattedProduct.description, JSON.stringify(formattedProduct.sizes), JSON.stringify(formattedProduct.colors), 'active'
         ]
       );
-      
-      res.json({ success: true, product: result.rows[0] });
-    } else {
-      const db = await getDb();
-      const cat = db.categories.find((c: any) => c.id === categoryId);
-      const newProduct = {
-        id: 'p-' + Date.now(),
-        title: title,
-        price: actualPrice,
-        discountPrice: actualDiscount,
-        categoryId: categoryId || 'c1',
-        categoryName: cat ? cat.name : (category || 'General'),
-        images: combinedImages,
-        galleryImages: additionalImgs,
-        stock: actualStock,
-        status: 'active',
-        sizes: sizes || [],
-        colors: colors || [],
-        description: description || '',
-        createdAt: new Date().toISOString()
-      };
-      
-      db.products.unshift(newProduct);
-      saveDb(db);
-      res.json({ success: true, product: newProduct });
+    } catch (dbErr) {
+      console.error('PostgreSQL error in persistProduct:', dbErr);
     }
+  }
+
+  // 3. Update local database.json cache
+  let db: InitialData = defaultData;
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      if (!db.products) db.products = [];
+    } catch (e) {
+      db = { ...defaultData };
+    }
+  }
+  const existingIdx = db.products.findIndex((p: any) => String(p.id) === String(newId));
+  if (existingIdx >= 0) {
+    db.products[existingIdx] = { ...db.products[existingIdx], ...formattedProduct };
+  } else {
+    db.products.unshift(formattedProduct);
+  }
+  saveDb(db);
+
+  return formattedProduct;
+}
+
+// 1. Direct Sync Endpoint (from Admin Dashboard or frontend)
+app.post('/api/sync/product', async (req, res) => {
+  try {
+    const saved = await persistProduct(req.body);
+    res.json({ success: true, product: saved });
+  } catch (err: any) {
+    console.error('Product sync endpoint error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Admin Product Add Endpoint
+app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const saved = await persistProduct(req.body);
+    res.json({ success: true, product: saved });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1220,80 +1398,8 @@ app.post('/api/admin/products', authMiddleware, verifyAdmin, async (req, res) =>
 app.put('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      title, 
-      price, 
-      currentPrice,
-      originalPrice,
-      discountPrice, 
-      discount_price,
-      stock, 
-      stockQuantity,
-      image, 
-      imageUrl,
-      galleryImages,
-      images: rawImages,
-      categoryId, 
-      sizes, 
-      colors, 
-      description 
-    } = req.body;
-
-    const actualPrice = Number(currentPrice !== undefined ? currentPrice : price || 0);
-    const discInput = discountPrice !== undefined ? discountPrice : (discount_price !== undefined ? discount_price : originalPrice);
-    const actualDiscount = (discInput !== undefined && discInput !== '' && discInput !== null) ? Number(discInput) : null;
-    const actualStock = Number(stockQuantity !== undefined ? stockQuantity : stock || 10);
-
-    const mainImg = imageUrl || image || '';
-    const additionalImgs = Array.isArray(galleryImages) ? galleryImages : [];
-    let combinedImages: string[] = [];
-    if (Array.isArray(rawImages) && rawImages.length > 0) {
-      combinedImages = rawImages;
-    } else {
-      combinedImages = [mainImg, ...additionalImgs].filter(Boolean);
-    }
-    if (combinedImages.length === 0) {
-      combinedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
-    }
-    
-    if (isDbConfigured) {
-      const result = await pool.query(
-        `UPDATE products SET 
-          title = $1, price = $2, current_price = $2, discount_price = $3, stock = $4, stock_quantity = $4, 
-          images = $5, image_url = $6, gallery_images = $7,
-          category_id = $8, sizes = $9, colors = $10, description = $11
-         WHERE id = $12 RETURNING *`,
-        [
-          title, actualPrice, actualDiscount, actualStock, 
-          JSON.stringify(combinedImages), combinedImages[0], JSON.stringify(additionalImgs),
-          categoryId || 'c1', 
-          JSON.stringify(sizes || []), JSON.stringify(colors || []), description || '',
-          id
-        ]
-      );
-      if (result.rowCount === 0) return res.status(404).json({ error: 'Product not found' });
-      res.json({ success: true, product: result.rows[0] });
-    } else {
-      const db = await getDb();
-      const productIndex = db.products.findIndex((p: any) => p.id === id);
-      if (productIndex === -1) return res.status(404).json({ error: 'Product not found' });
-      
-      db.products[productIndex] = {
-        ...db.products[productIndex],
-        title, 
-        price: actualPrice, 
-        discountPrice: actualDiscount, 
-        stock: actualStock, 
-        images: combinedImages, 
-        galleryImages: additionalImgs,
-        categoryId: categoryId || 'c1', 
-        sizes: sizes || [], 
-        colors: colors || [], 
-        description: description || ''
-      };
-      saveDb(db);
-      res.json({ success: true, product: db.products[productIndex] });
-    }
+    const saved = await persistProduct({ ...req.body, id });
+    res.json({ success: true, product: saved });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1302,16 +1408,27 @@ app.put('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res)
 app.delete('/api/admin/products/:id', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isDbConfigured) {
-      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
-      res.json({ success: true, deleted: result.rowCount! > 0, message: 'Product deleted successfully' });
-    } else {
-      const db = await getDb();
-      const initialLen = db.products.length;
-      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-      saveDb(db);
-      res.json({ success: true, deleted: initialLen !== db.products.length, message: 'Product deleted successfully' });
+    
+    // 1. Delete from local DB cache file first so getDb() won't resurrect it
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        if (Array.isArray(raw.products)) {
+          raw.products = raw.products.filter((p: any) => String(p.id) !== String(id));
+          saveDb(raw);
+        }
+      } catch (e) {}
     }
+
+    // 2. Delete from Supabase
+    await deleteProductFromSupabase(id);
+
+    // 3. Delete from PostgreSQL
+    if (isDbConfigured) {
+      await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    }
+
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1401,68 +1518,14 @@ app.patch('/api/withdrawals/:id/status', authMiddleware, verifyAdmin, handleWith
 // Dedicated Vendor product creation
 app.post('/api/vendor/products', authMiddleware, verifyVendor, async (req, res) => {
   try {
-    const rawImages = req.body.images;
-    const images = Array.isArray(rawImages) && rawImages.length > 0
-      ? rawImages
-      : typeof rawImages === 'string' && rawImages.trim()
-        ? [rawImages]
-        : req.body.image
-          ? [req.body.image]
-          : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
-
-    if (isDbConfigured) {
-      const newId = 'p-' + Date.now();
-      const slug = (req.body.title || 'vendor-product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
-      const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
-
-      const result = await pool.query(
-        `INSERT INTO products 
-         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-         RETURNING *`,
-        [
-          newId,
-          req.body.title,
-          slug,
-          Number(req.body.price),
-          req.body.discountPrice ? Number(req.body.discountPrice) : null,
-          Number(req.body.stock) || 0,
-          req.body.categoryId || null,
-          req.body.categoryName || null,
-          vendorId,
-          vendorName,
-          JSON.stringify(images),
-          req.body.description || '',
-          5.0,
-          0,
-          0,
-          req.body.isFlashSale || false,
-          req.body.flashSaleEnds || null,
-          'active',
-          JSON.stringify(req.body.sizes || []),
-          JSON.stringify(req.body.colors || [])
-        ]
-      );
-      res.json({ success: true, product: result.rows[0] });
-    } else {
-      const db = await getDb();
-      const newProduct = {
-        id: 'p-' + Date.now(),
-        slug: (req.body.title || 'vendor-product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        rating: 5.0,
-        reviewsCount: 0,
-        totalSold: 0,
-        status: 'active',
-        vendorId: req.user?.vendorId || req.body.vendorId || 'v1',
-        vendorName: req.user?.name || req.body.vendorName || 'Vendor',
-        ...req.body,
-        images
-      };
-      db.products.unshift(newProduct);
-      saveDb(db);
-      res.json({ success: true, product: newProduct });
-    }
+    const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
+    const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
+    const saved = await persistProduct({
+      ...req.body,
+      vendorId,
+      vendorName
+    });
+    res.json({ success: true, product: saved });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1471,66 +1534,14 @@ app.post('/api/vendor/products', authMiddleware, verifyVendor, async (req, res) 
 // General product creation (Requires authorization)
 app.post('/api/products', authMiddleware, async (req, res) => {
   try {
-    const rawImages = req.body.images;
-    const images = Array.isArray(rawImages) && rawImages.length > 0
-      ? rawImages
-      : typeof rawImages === 'string' && rawImages.trim()
-        ? [rawImages]
-        : req.body.image
-          ? [req.body.image]
-          : ['https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600'];
-
-    if (isDbConfigured) {
-      const newId = 'p-' + Date.now();
-      const slug = (req.body.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
-      const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
-
-      const result = await pool.query(
-        `INSERT INTO products 
-         (id, title, slug, price, discount_price, stock, category_id, category_name, vendor_id, vendor_name, images, description, rating, reviews_count, total_sold, is_flash_sale, flash_sale_ends, status, sizes, colors)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-         RETURNING *`,
-        [
-          newId,
-          req.body.title,
-          slug,
-          Number(req.body.price),
-          req.body.discountPrice ? Number(req.body.discountPrice) : null,
-          Number(req.body.stock) || 0,
-          req.body.categoryId || null,
-          req.body.categoryName || null,
-          vendorId,
-          vendorName,
-          JSON.stringify(images),
-          req.body.description || '',
-          5.0,
-          0,
-          0,
-          req.body.isFlashSale || false,
-          req.body.flashSaleEnds || null,
-          'active',
-          JSON.stringify(req.body.sizes || []),
-          JSON.stringify(req.body.colors || [])
-        ]
-      );
-      res.json({ success: true, product: result.rows[0] });
-    } else {
-      const db = await getDb();
-      const newProduct = {
-        id: 'p-' + Date.now(),
-        slug: (req.body.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        rating: 5.0,
-        reviewsCount: 0,
-        totalSold: 0,
-        status: 'active',
-        ...req.body,
-        images
-      };
-      db.products.unshift(newProduct);
-      saveDb(db);
-      res.json({ success: true, product: newProduct });
-    }
+    const vendorId = req.user?.vendorId || req.body.vendorId || 'v1';
+    const vendorName = req.user?.name || req.body.vendorName || 'Vendor';
+    const saved = await persistProduct({
+      ...req.body,
+      vendorId,
+      vendorName
+    });
+    res.json({ success: true, product: saved });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1538,65 +1549,14 @@ app.post('/api/products', authMiddleware, async (req, res) => {
 
 // Helper for dynamic Postgres update
 const performProductUpdate = async (id: string, updateBody: any) => {
-  const fields = Object.keys(updateBody);
-  if (fields.length === 0) return null;
-  
-  const setClause: string[] = [];
-  const values: any[] = [];
-  let paramIndex = 1;
-  
-  const columnMap: Record<string, string> = {
-    title: 'title',
-    price: 'price',
-    discountPrice: 'discount_price',
-    stock: 'stock',
-    categoryId: 'category_id',
-    categoryName: 'category_name',
-    images: 'images',
-    description: 'description',
-    rating: 'rating',
-    reviewsCount: 'reviews_count',
-    totalSold: 'total_sold',
-    isFlashSale: 'is_flash_sale',
-    flashSaleEnds: 'flash_sale_ends',
-    status: 'status',
-    sizes: 'sizes',
-    colors: 'colors'
-  };
-  
-  for (const key of fields) {
-    const colName = columnMap[key] || key;
-    let val = updateBody[key];
-    if (key === 'images' || key === 'sizes' || key === 'colors') {
-      val = JSON.stringify(val);
-    }
-    setClause.push(`${colName} = $${paramIndex}`);
-    values.push(val);
-    paramIndex++;
-  }
-  
-  values.push(id);
-  const query = `UPDATE products SET ${setClause.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return await persistProduct({ ...updateBody, id });
 };
 
 app.put('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isDbConfigured) {
-      const updated = await performProductUpdate(id, req.body);
-      if (!updated) return res.status(404).json({ error: 'Product not found' });
-      res.json({ success: true, product: updated });
-    } else {
-      const db = await getDb();
-      const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
-      if (idx === -1) return res.status(404).json({ error: 'Product not found' });
-      
-      db.products[idx] = { ...db.products[idx], ...req.body };
-      saveDb(db);
-      res.json({ success: true, product: db.products[idx] });
-    }
+    const updated = await persistProduct({ ...req.body, id });
+    res.json({ success: true, product: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1605,19 +1565,8 @@ app.put('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req, re
 app.put('/api/products/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isDbConfigured) {
-      const updated = await performProductUpdate(id, req.body);
-      if (!updated) return res.status(404).json({ error: 'Product not found' });
-      res.json({ success: true, product: updated });
-    } else {
-      const db = await getDb();
-      const idx = db.products.findIndex((p: any) => String(p.id) === String(id));
-      if (idx === -1) return res.status(404).json({ error: 'Product not found' });
-      
-      db.products[idx] = { ...db.products[idx], ...req.body };
-      saveDb(db);
-      res.json({ success: true, product: db.products[idx] });
-    }
+    const updated = await persistProduct({ ...req.body, id });
+    res.json({ success: true, product: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1626,16 +1575,21 @@ app.put('/api/products/:id', authMiddleware, async (req, res) => {
 app.delete('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isDbConfigured) {
-      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
-      res.json({ success: true, deleted: result.rowCount! > 0 });
-    } else {
-      const db = await getDb();
-      const initialLen = db.products.length;
-      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-      saveDb(db);
-      res.json({ success: true, deleted: initialLen !== db.products.length });
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        if (Array.isArray(raw.products)) {
+          raw.products = raw.products.filter((p: any) => String(p.id) !== String(id));
+          saveDb(raw);
+        }
+      } catch (e) {}
     }
+    await deleteProductFromSupabase(id);
+
+    if (isDbConfigured) {
+      await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    }
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1644,16 +1598,21 @@ app.delete('/api/vendor/products/:id', authMiddleware, verifyVendor, async (req,
 app.delete('/api/products/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    if (isDbConfigured) {
-      const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
-      res.json({ success: true, deleted: result.rowCount! > 0 });
-    } else {
-      const db = await getDb();
-      const initialLen = db.products.length;
-      db.products = db.products.filter((p: any) => String(p.id) !== String(id));
-      saveDb(db);
-      res.json({ success: true, deleted: initialLen !== db.products.length });
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        if (Array.isArray(raw.products)) {
+          raw.products = raw.products.filter((p: any) => String(p.id) !== String(id));
+          saveDb(raw);
+        }
+      } catch (e) {}
     }
+    await deleteProductFromSupabase(id);
+
+    if (isDbConfigured) {
+      await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    }
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

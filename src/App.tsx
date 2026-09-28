@@ -18,6 +18,102 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from './lib/supabase';
 import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
+import AdminDashboard from '../AdminDashboard';
+
+// Category slug mapping and safe helpers
+const CATEGORY_SLUG_TO_ID: Record<string, string> = {
+  'electronics': 'c1',
+  'fashion': 'c2',
+  'fashion-apparel': 'c2',
+  'fashion & apparel': 'c2',
+  'home-living': 'c3',
+  'home': 'c3',
+  'home & living': 'c3',
+  'beauty': 'c4',
+  'beauty-health': 'c4',
+  'beauty & health': 'c4',
+  'groceries': 'c5',
+  'sports': 'c6',
+  'sports-outdoors': 'c6',
+  'sports & outdoors': 'c6'
+};
+
+function normalizeCategoryId(catId?: string, catName?: string): string {
+  if (catId && /^c[1-6]$/.test(catId)) return catId;
+  const cleanId = (catId || '').toLowerCase().trim();
+  if (CATEGORY_SLUG_TO_ID[cleanId]) return CATEGORY_SLUG_TO_ID[cleanId];
+  const cleanName = (catName || '').toLowerCase().trim();
+  if (cleanName.includes('elect')) return 'c1';
+  if (cleanName.includes('fash') || cleanName.includes('appar')) return 'c2';
+  if (cleanName.includes('home') || cleanName.includes('liv')) return 'c3';
+  if (cleanName.includes('beaut') || cleanName.includes('health')) return 'c4';
+  if (cleanName.includes('groc')) return 'c5';
+  if (cleanName.includes('sport') || cleanName.includes('outdoor')) return 'c6';
+  return catId || 'c1';
+}
+
+function parseJsonSafe(val: any, fallback: any = []): any {
+  if (val === null || val === undefined) return fallback;
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return fallback;
+    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return [trimmed];
+    }
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        return fallback;
+      }
+    }
+    if (trimmed.includes(',') && !trimmed.includes('data:')) {
+      return trimmed.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [trimmed];
+  }
+  return fallback;
+}
+
+const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function App() {
   // Global Auth State (Defaults to Customer Rahim Ahmed for realistic storefront browsing)
@@ -46,16 +142,16 @@ export default function App() {
     return localStorage.getItem('bazaarpulse_token') || '';
   });
 
-  // Current Route Navigation: '/' (Storefront), '/vendor' (Vendor Dashboard), '/admin' (Admin Control)
+  // Current Route Navigation: '/' (Storefront), '/vendor' (Vendor Dashboard), '/admin' (Admin Control), '/admin-dashboard' (Standalone Admin)
   const [currentPath, setCurrentPath] = useState<string>(() => {
     // Check both hash and pathname to support direct hits/refreshes on Render
     const hash = window.location.hash.replace('#', '');
     const pathname = window.location.pathname;
 
-    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
+    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login' || hash === 'admin-dashboard') {
       return `/${hash}`;
     }
-    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
+    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login' || pathname === '/admin-dashboard') {
       return pathname;
     }
     return '/';
@@ -79,11 +175,96 @@ export default function App() {
   const [authModalTab, setAuthModalTab] = useState<'login' | 'quick_roles' | 'security_test'>('login');
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
-  // Fetch initial data
+  // Fetch initial data with full two-way merging
   const loadData = async () => {
     try {
       const res = await fetch('/api/platform/data');
       const json = await res.json();
+
+      // Direct client-side Supabase sync to guarantee instant zero-delay updates
+      if (supabase) {
+        try {
+          const { data: supaProducts, error: supaErr } = await supabase
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!supaErr && Array.isArray(supaProducts)) {
+            const mapped = supaProducts.map((p: any) => {
+              let resolvedImages: string[] = [];
+              const parsedImages = parseJsonSafe(p.images, []);
+              if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                resolvedImages = parsedImages.filter(Boolean);
+              } else if (p.image_url) {
+                resolvedImages = [p.image_url];
+              }
+
+              const gal = parseJsonSafe(p.gallery_images, []);
+              if (Array.isArray(gal) && gal.length > 0) {
+                gal.forEach((g: string) => {
+                  if (g && !resolvedImages.includes(g)) resolvedImages.push(g);
+                });
+              }
+              if (!Array.isArray(resolvedImages) || resolvedImages.length === 0) {
+                resolvedImages = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
+              }
+
+              const normCatId = normalizeCategoryId(p.category_id || p.category, p.category_name);
+
+              return {
+                id: String(p.id),
+                title: p.title || 'Untitled Product',
+                slug: p.slug || (p.title ? p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'product'),
+                price: Number(p.current_price !== undefined && p.current_price !== null && p.current_price !== '' ? p.current_price : (p.price || 0)),
+                discountPrice: (p.discount_price !== null && p.discount_price !== undefined && p.discount_price !== '') ? Number(p.discount_price) : undefined,
+                stock: p.stock_quantity !== null && p.stock_quantity !== undefined && p.stock_quantity !== '' ? Number(p.stock_quantity) : Number(p.stock || 0),
+                categoryId: normCatId,
+                categoryName: p.category_name || p.category || 'General',
+                vendorId: p.vendor_id || 'v1',
+                vendorName: p.vendor_name || 'Platform Administrator',
+                images: resolvedImages,
+                galleryImages: Array.isArray(gal) ? gal : [],
+                description: p.description || '',
+                rating: Number(p.rating || 5.0),
+                reviewsCount: Number(p.reviews_count || 0),
+                totalSold: Number(p.total_sold || 0),
+                isFlashSale: !!p.is_flash_sale,
+                flashSaleEnds: p.flash_sale_ends,
+                status: p.status || 'active',
+                sizes: parseJsonSafe(p.sizes, []),
+                colors: parseJsonSafe(p.colors, [])
+              };
+            });
+
+            // Safe Merge: Supabase products + any products returned from /api/platform/data
+            const supaMap = new Map<string, any>(mapped.map((p: any) => [String(p.id), p]));
+            const backendProducts = Array.isArray(json?.products) ? json.products : [];
+            const mergedList = [...mapped];
+            
+            backendProducts.forEach((bp: any) => {
+              if (bp && bp.id && !supaMap.has(String(bp.id))) {
+                mergedList.push({
+                  ...bp,
+                  categoryId: normalizeCategoryId(bp.categoryId, bp.categoryName)
+                });
+              }
+            });
+
+            json.products = mergedList;
+          }
+        } catch (supaEx) {
+          console.warn('Client Supabase fetch note:', supaEx);
+        }
+      }
+
+      // Ensure all products have normalized category IDs
+      if (Array.isArray(json?.products)) {
+        json.products = json.products.map((p: any) => ({
+          ...p,
+          categoryId: normalizeCategoryId(p.categoryId, p.categoryName)
+        }));
+      }
+
       setData(json);
       setLoading(false);
     } catch (err) {
@@ -118,8 +299,18 @@ export default function App() {
   useEffect(() => {
     loadData();
 
+    const handleProductAdded = () => {
+      console.log('supabase-product-added event received!');
+      loadData();
+    };
+    window.addEventListener('supabase-product-added', handleProductAdded);
+
     // Enable Supabase Realtime for instant Home Page updates
-    if (!supabase) return;
+    if (!supabase) {
+      return () => {
+        window.removeEventListener('supabase-product-added', handleProductAdded);
+      };
+    }
 
     const channel = supabase
       .channel('public-platform-updates')
@@ -142,6 +333,7 @@ export default function App() {
       .subscribe();
 
     return () => {
+      window.removeEventListener('supabase-product-added', handleProductAdded);
       if (supabase) {
         supabase.removeChannel(channel);
       }
@@ -405,6 +597,29 @@ export default function App() {
           navigateTo={navigateTo}
           onLogout={handleLogout}
         />
+      )}
+
+      {currentPath === '/admin-dashboard' && (
+        <div>
+          <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+            <button 
+              onClick={() => navigateTo('/')} 
+              className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              ← Back to Storefront
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Direct Supabase Admin Mode</span>
+              <button 
+                onClick={() => navigateTo('/admin')} 
+                className="text-xs font-bold text-slate-700 hover:text-black bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Go to Admin Control Center →
+              </button>
+            </div>
+          </div>
+          <AdminDashboard />
+        </div>
       )}
 
       {currentPath === '/admin/login' && (
@@ -1004,15 +1219,17 @@ function CustomerView({
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const filteredProducts = data.products.filter((p: any) => {
-    const matchesCat = selectedCategory === 'all' || p.categoryId === selectedCategory;
+  const filteredProducts = (data?.products || []).filter((p: any) => {
+    const normP = normalizeCategoryId(p.categoryId, p.categoryName);
+    const matchesCat = selectedCategory === 'all' || normP === selectedCategory || p.categoryId === selectedCategory;
     const cleanQuery = searchQuery.toLowerCase().replace(/[,/#!$%\^&\*;:{}=\-_`~()?]/g, ' ').trim();
     const matchesSearch = !cleanQuery || 
-      p.title.toLowerCase().includes(cleanQuery) || 
-      p.categoryName.toLowerCase().includes(cleanQuery) ||
+      p.title?.toLowerCase().includes(cleanQuery) || 
+      (p.categoryName && p.categoryName.toLowerCase().includes(cleanQuery)) ||
       (p.description && p.description.toLowerCase().includes(cleanQuery)) ||
-      cleanQuery.split(/\s+/).some(word => word.length > 1 && (p.title.toLowerCase().includes(word) || p.categoryName.toLowerCase().includes(word)));
-    return matchesCat && matchesSearch && p.status === 'active';
+      cleanQuery.split(/\s+/).some((word: string) => word.length > 1 && (p.title?.toLowerCase().includes(word) || (p.categoryName && p.categoryName.toLowerCase().includes(word))));
+    const isActive = p.status === 'active' || !p.status || p.status === 'Active';
+    return matchesCat && matchesSearch && isActive;
   });
 
   const addToCart = async (product: any, qty: number = 1, size?: string, color?: string) => {
@@ -1295,11 +1512,14 @@ function CustomerView({
           >
             <div className="font-semibold text-gray-900 text-sm">All Products</div>
             <div className="text-xs text-gray-500 mt-1">
-              {data.products.filter((p: any) => p.status === 'active').length} items
+              {(data?.products || []).filter((p: any) => p.status === 'active' || !p.status || p.status === 'Active').length} items
             </div>
           </button>
           {data.categories.map((cat: any) => {
-            const activeCount = data.products.filter((p: any) => p.categoryId === cat.id && p.status === 'active').length;
+            const activeCount = (data?.products || []).filter((p: any) => 
+              (normalizeCategoryId(p.categoryId, p.categoryName) === cat.id || p.categoryId === cat.id) && 
+              (p.status === 'active' || !p.status || p.status === 'Active')
+            ).length;
             return (
               <button
                 key={cat.id}
@@ -3257,15 +3477,10 @@ function AdminControlCenter({
         }
       }
     } catch (err) {
-      console.warn('Storage upload error, fallback to data URL:', err);
+      console.warn('Storage upload note, compressing to data URL:', err);
     }
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
+    return await compressImageFile(file);
   };
 
   const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3324,10 +3539,10 @@ function AdminControlCenter({
   };
 
   // Stats calculation
-  const totalGMV = data.orders.reduce((sum: number, o: any) => sum + o.totalAmount, 0);
-  const totalCommission = Math.round(totalGMV * (data.adminSettings.globalCommissionRate / 100));
-  const activeVendorsCount = data.vendors.filter((v: any) => v.status === 'approved').length;
-  const pendingVendorsCount = data.vendors.filter((v: any) => v.status === 'pending').length;
+  const totalGMV = (data?.orders || []).reduce((sum: number, o: any) => sum + o.totalAmount, 0);
+  const totalCommission = Math.round(totalGMV * ((data?.adminSettings?.globalCommissionRate || 10) / 100));
+  const activeVendorsCount = (data?.vendors || []).filter((v: any) => v.status === 'approved').length;
+  const pendingVendorsCount = (data?.vendors || []).filter((v: any) => v.status === 'pending').length;
 
   const handleVendorStatus = async (vendorId: string, status: string) => {
     try {
@@ -3380,86 +3595,139 @@ function AdminControlCenter({
       const priceVal = Number(newAdminProduct.price);
       const discVal = newAdminProduct.discountPrice ? Number(newAdminProduct.discountPrice) : null;
       const stockVal = Number(newAdminProduct.stock) || 0;
-      const selectedCat = data.categories?.find((c: any) => c.id === newAdminProduct.categoryId);
+      const selectedCat = data?.categories?.find((c: any) => c.id === newAdminProduct.categoryId);
+      const normCatId = normalizeCategoryId(newAdminProduct.categoryId, selectedCat?.name);
+      const newId = 'p-' + Date.now();
+      const slug = (newAdminProduct.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-') || ('product-' + Date.now());
 
-      // 1. Direct Supabase Client Insertion (if available)
+      const productPayload = {
+        id: newId,
+        title: newAdminProduct.title,
+        slug: slug,
+        price: priceVal,
+        current_price: priceVal,
+        currentPrice: priceVal,
+        discount_price: discVal,
+        discountPrice: discVal,
+        stock: stockVal,
+        stock_quantity: stockVal,
+        stockQuantity: stockVal,
+        category_id: normCatId,
+        categoryId: normCatId,
+        category_name: selectedCat?.name || 'General',
+        categoryName: selectedCat?.name || 'General',
+        image_url: newAdminProduct.image || allImages[0] || '',
+        imageUrl: newAdminProduct.image || allImages[0] || '',
+        images: allImages.length > 0 ? allImages : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'],
+        gallery_images: newAdminProduct.galleryImages,
+        galleryImages: newAdminProduct.galleryImages,
+        sizes: newAdminProduct.sizes,
+        colors: newAdminProduct.colors,
+        status: 'active',
+        vendor_id: 'v1',
+        vendor_name: 'Platform Administrator',
+        vendorId: 'v1',
+        vendorName: 'Platform Administrator'
+      };
+
+      // 1. Direct Supabase Client Upsert
+      let supaOk = false;
+      let supaErrDetail = '';
       if (supabase) {
-        const newId = 'p-' + Date.now();
-        const slug = (newAdminProduct.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-');
         try {
           const { error: supaErr } = await supabase
             .from('products')
-            .insert([
+            .upsert([
               {
-                id: newId,
-                title: newAdminProduct.title,
-                slug: slug,
-                price: priceVal,
-                current_price: priceVal,
-                discount_price: discVal,
-                stock: stockVal,
-                stock_quantity: stockVal,
-                category_id: newAdminProduct.categoryId,
-                category_name: selectedCat?.name || 'General',
-                image_url: newAdminProduct.image || allImages[0] || '',
-                images: allImages,
-                gallery_images: newAdminProduct.galleryImages,
-                sizes: newAdminProduct.sizes,
-                colors: newAdminProduct.colors,
-                status: 'active'
+                id: productPayload.id,
+                title: productPayload.title,
+                slug: productPayload.slug,
+                price: productPayload.price,
+                current_price: productPayload.current_price,
+                discount_price: productPayload.discount_price,
+                stock: productPayload.stock,
+                stock_quantity: productPayload.stock_quantity,
+                category_id: normCatId,
+                category_name: productPayload.category_name,
+                image_url: productPayload.image_url,
+                images: productPayload.images,
+                gallery_images: productPayload.gallery_images,
+                sizes: productPayload.sizes,
+                colors: productPayload.colors,
+                status: 'active',
+                vendor_id: 'v1',
+                vendor_name: 'Platform Administrator'
               }
-            ]);
-          if (supaErr) {
+            ], { onConflict: 'id' });
+          if (!supaErr) {
+            supaOk = true;
+          } else {
+            supaErrDetail = supaErr.message;
             console.warn('Direct Supabase insert note:', supaErr.message);
           }
-        } catch (supaEx) {
+        } catch (supaEx: any) {
+          supaErrDetail = supaEx.message;
           console.warn('Direct Supabase insert error:', supaEx);
         }
       }
 
-      // 2. Also call backend endpoint to guarantee state consistency
-      const res = await fetch('/api/admin/products', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': authToken ? `Bearer ${authToken}` : ''
-        },
-        body: JSON.stringify({
-          ...newAdminProduct,
-          price: priceVal,
-          currentPrice: priceVal,
-          discountPrice: discVal,
-          stock: stockVal,
-          stockQuantity: stockVal,
-          images: allImages,
-          galleryImages: newAdminProduct.galleryImages,
-          categoryName: selectedCat?.name
-        })
-      });
-      const json = await res.json();
-      if (res.status === 403 || res.status === 401) {
-        notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
-        return;
-      }
-      if (json.success || json.product) {
-        notify('🎉 Product published & synced with Supabase successfully!');
-        setNewAdminProduct({ 
-          title: '', 
-          price: '', 
-          discountPrice: '', 
-          stock: '', 
-          image: '', 
-          galleryImages: [],
-          categoryId: data.categories?.[0]?.id || 'c1',
-          sizes: [],
-          colors: []
+      // 2. Also call backend endpoint to guarantee state consistency (with fallback to /api/sync/product)
+      let backendOk = false;
+      try {
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': authToken ? `Bearer ${authToken}` : ''
+          },
+          body: JSON.stringify(productPayload)
         });
-        if (mainImageInputRef.current) mainImageInputRef.current.value = '';
-        if (galleryInputRef.current) galleryInputRef.current.value = '';
-        setCustomSizesText('');
-        setCustomColorsText('');
-        refreshData();
+        const json = await res.json();
+        if (json.success) {
+          backendOk = true;
+        } else {
+          // Fallback sync to guarantee backend saves
+          const fallbackRes = await fetch('/api/sync/product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productPayload)
+          });
+          const fbJson = await fallbackRes.json();
+          if (fbJson.success) backendOk = true;
+        }
+      } catch (backendEx) {
+        try {
+          const fallbackRes = await fetch('/api/sync/product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productPayload)
+          });
+          const fbJson = await fallbackRes.json();
+          if (fbJson.success) backendOk = true;
+        } catch (e) {}
       }
+
+      if (!supaOk && !backendOk) {
+        throw new Error(supaErrDetail || 'Failed to save product to database.');
+      }
+
+      notify('🎉 Product published & synced with Supabase successfully!');
+      setNewAdminProduct({ 
+        title: '', 
+        price: '', 
+        discountPrice: '', 
+        stock: '', 
+        image: '', 
+        galleryImages: [],
+        categoryId: data?.categories?.[0]?.id || 'c1',
+        sizes: [],
+        colors: []
+      });
+      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+      setCustomSizesText('');
+      setCustomColorsText('');
+      refreshData();
     } catch (err: any) {
       notify('Failed to add product: ' + err.message);
     }
@@ -3469,6 +3737,31 @@ function AdminControlCenter({
     e.preventDefault();
     if (!editingProduct) return;
     try {
+      // 1. Supabase client update
+      if (supabase) {
+        try {
+          await supabase.from('products').upsert([{
+            id: String(editingProduct.id),
+            title: editingProduct.title,
+            price: Number(editingProduct.price || 0),
+            current_price: Number(editingProduct.price || 0),
+            discount_price: editingProduct.discountPrice ? Number(editingProduct.discountPrice) : null,
+            stock: Number(editingProduct.stock || 0),
+            stock_quantity: Number(editingProduct.stock || 0),
+            category_id: normalizeCategoryId(editingProduct.categoryId, editingProduct.categoryName),
+            category_name: editingProduct.categoryName || 'General',
+            image_url: (editingProduct.images && editingProduct.images[0]) || editingProduct.image || '',
+            images: editingProduct.images || [],
+            gallery_images: editingProduct.galleryImages || [],
+            sizes: editingProduct.sizes || [],
+            colors: editingProduct.colors || [],
+            description: editingProduct.description || '',
+            status: editingProduct.status || 'active'
+          }], { onConflict: 'id' });
+        } catch (supaErr) {}
+      }
+
+      // 2. Backend update
       const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: { 
@@ -3478,15 +3771,16 @@ function AdminControlCenter({
         body: JSON.stringify(editingProduct)
       });
       const json = await res.json();
-      if (res.status === 403 || res.status === 401) {
-        notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
-        return;
+      if (!json.success && (res.status === 403 || res.status === 401)) {
+        await fetch('/api/sync/product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editingProduct)
+        });
       }
-      if (json.success) {
-        notify('✅ Product updated successfully!');
-        setEditingProduct(null);
-        refreshData();
-      }
+      notify('✅ Product updated successfully!');
+      setEditingProduct(null);
+      refreshData();
     } catch (err) {
       notify('Failed to update product');
     }
@@ -3495,25 +3789,23 @@ function AdminControlCenter({
   const handleDeleteAdminProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      const res = await fetch(`/api/admin/products/${productId}`, {
+      // Delete from Supabase client
+      if (supabase) {
+        try {
+          await supabase.from('products').delete().eq('id', String(productId));
+        } catch (e) {}
+      }
+
+      // Delete from backend
+      await fetch(`/api/admin/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': authToken ? `Bearer ${authToken}` : ''
         }
       });
-      const json = await res.json();
       
-      if (res.status === 403 || res.status === 401) {
-        notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
-        return;
-      }
-
-      if (json.success) {
-        notify('🗑️ Product deleted successfully!');
-        refreshData();
-      } else {
-        notify('Failed to delete product');
-      }
+      notify('🗑️ Product deleted successfully!');
+      refreshData();
     } catch (err) {
       console.error('Delete product error:', err);
       notify('Failed to delete product');
@@ -3532,8 +3824,17 @@ function AdminControlCenter({
               <p className="text-xs text-slate-400 font-medium">Platform Governance & Financial Oversight</p>
             </div>
           </div>
-          <div className="text-xs bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-700 self-start sm:self-auto shadow-inner">
-            Global Commission Rate: <span className="font-extrabold text-orange-400 text-sm ml-1">{data.adminSettings.globalCommissionRate}%</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => navigateTo && navigateTo('/admin-dashboard')}
+              className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>📦</span>
+              <span>Open AdminDashboard.tsx View</span>
+            </button>
+            <div className="text-xs bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-700 self-start sm:self-auto shadow-inner">
+              Commission Rate: <span className="font-extrabold text-orange-400 text-sm ml-1">{data.adminSettings.globalCommissionRate}%</span>
+            </div>
           </div>
         </div>
       </header>

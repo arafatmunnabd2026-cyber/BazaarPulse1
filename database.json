@@ -113,7 +113,33 @@
       "icon": "Trophy"
     }
   ],
-  "products": [],
+  "products": [
+    {
+      "id": "p-1790486363194",
+      "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
+      "slug": "charger-battery-charger-1-2-volt-battery-charger-aa-aaa-battery-charger-4-slot",
+      "price": 300,
+      "discountPrice": 219,
+      "stock": 9,
+      "categoryId": "c1",
+      "categoryName": "Electronics",
+      "vendorId": "v1",
+      "vendorName": "Platform Administrator",
+      "images": [
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10"
+      ],
+      "galleryImages": [],
+      "description": "",
+      "rating": 5,
+      "reviewsCount": 0,
+      "totalSold": 0,
+      "isFlashSale": false,
+      "flashSaleEnds": null,
+      "status": "active",
+      "sizes": [],
+      "colors": []
+    }
+  ],
   "orders": [],
   "withdrawals": [],
   "adminSettings": {
