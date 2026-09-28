@@ -1675,9 +1675,18 @@ function CustomerView({
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                     />
                     {product.discountPrice && (
-                      <span className="absolute top-2 left-2 bg-[#f85606] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                        -{discountPercent}%
-                      </span>
+                      <div className="absolute top-2 left-2 z-10 w-12 h-12 flex flex-col items-center justify-center text-white font-bold leading-none select-none">
+                        <div 
+                          className="absolute inset-0 bg-[#e53e3e]"
+                          style={{
+                            clipPath: 'polygon(50% 0%, 61% 0.5%, 72% 3%, 82% 7%, 89% 12%, 95% 19%, 98% 27%, 99% 36%, 100% 50%, 99% 64%, 98% 73%, 95% 81%, 89% 88%, 82% 93%, 72% 97%, 61% 99%, 50% 100%, 39% 99%, 28% 97%, 18% 93%, 11% 88%, 5% 81%, 2% 73%, 1% 64%, 0% 50%, 1% 36%, 2% 27%, 5% 19%, 11% 12%, 18% 7%, 28% 3%, 39% 0.5%)'
+                          }}
+                        />
+                        <div className="relative z-10 text-center">
+                          <div className="text-sm">{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%</div>
+                          <div className="text-[8px] uppercase">OFF</div>
+                        </div>
+                      </div>
                     )}
                   </div>
 
