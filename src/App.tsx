@@ -5775,24 +5775,24 @@ function RbacSecurityConsoleModal({
               🛡️ Admin Token
             </button>
             <button
-              onClick={() => handleQuickSwitch('vendor', 'approved', 'v1')}
+              onClick={() => handleQuickSwitch('vendor', 'approved')}
               className={`px-3 py-2 rounded-xl font-bold transition-all border ${
                 authUser?.role === 'vendor' && authUser?.status === 'approved'
                   ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg' 
                   : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🏪 Approved Vendor (v1)
+              🏪 Approved Vendor
             </button>
             <button
-              onClick={() => handleQuickSwitch('vendor', 'pending', 'v3')}
+              onClick={() => handleQuickSwitch('vendor', 'pending')}
               className={`px-3 py-2 rounded-xl font-bold transition-all border ${
                 authUser?.role === 'vendor' && authUser?.status === 'pending'
                   ? 'bg-amber-600 border-amber-400 text-white shadow-lg' 
                   : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              ⏳ Pending Vendor (v3)
+              ⏳ Pending Vendor
             </button>
             <button
               onClick={() => handleQuickSwitch('customer')}

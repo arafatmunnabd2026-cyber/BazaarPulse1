@@ -8,22 +8,6 @@
       "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150"
     },
     {
-      "id": "u2",
-      "name": "TechHaven Electronics",
-      "email": "vendor1@techhaven.com",
-      "role": "vendor",
-      "vendorId": "v1",
-      "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150"
-    },
-    {
-      "id": "u3",
-      "name": "Urban Chic Fashion",
-      "email": "vendor2@urbanchic.com",
-      "role": "vendor",
-      "vendorId": "v2",
-      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
-    },
-    {
       "id": "u4",
       "name": "Rahim Ahmed",
       "email": "customer@gmail.com",
@@ -31,50 +15,7 @@
       "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
     }
   ],
-  "vendors": [
-    {
-      "id": "v1",
-      "storeName": "TechHaven Electronics",
-      "ownerName": "Tanvir Ahmed",
-      "email": "vendor1@techhaven.com",
-      "phone": "+8801712345678",
-      "status": "approved",
-      "commissionRate": 10,
-      "balance": 0,
-      "totalSales": 0,
-      "rating": 0,
-      "joinedDate": "2025-01-15",
-      "logo": "https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=150"
-    },
-    {
-      "id": "v2",
-      "storeName": "Urban Chic Fashion",
-      "ownerName": "Nusrat Jahan",
-      "email": "vendor2@urbanchic.com",
-      "phone": "+8801812345679",
-      "status": "approved",
-      "commissionRate": 12,
-      "balance": 0,
-      "totalSales": 0,
-      "rating": 0,
-      "joinedDate": "2025-02-01",
-      "logo": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150"
-    },
-    {
-      "id": "v3",
-      "storeName": "Gadget Galaxy",
-      "ownerName": "Imran Khan",
-      "email": "vendor3@gadgetgalaxy.com",
-      "phone": "+8801912345680",
-      "status": "pending",
-      "commissionRate": 10,
-      "balance": 0,
-      "totalSales": 0,
-      "rating": 0,
-      "joinedDate": "2026-03-20",
-      "logo": "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=150"
-    }
-  ],
+  "vendors": [],
   "categories": [
     {
       "id": "c1",
@@ -202,6 +143,12 @@
       "size": "",
       "color": "",
       "addedAt": "2026-09-28T20:04:44.212Z"
+    },
+    {
+      "userId": "u4",
+      "productId": "p-1790600161282",
+      "quantity": 1,
+      "addedAt": "2026-09-28T20:07:27.015Z"
     }
   ]
 }

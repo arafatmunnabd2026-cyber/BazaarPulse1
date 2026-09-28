@@ -86,54 +86,9 @@ interface InitialData {
 const defaultData: InitialData = {
   users: [
     { id: 'u1', name: 'Admin User', email: 'arafatmunna14620022@gmail.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' },
-    { id: 'u2', name: 'TechHaven Electronics', email: 'vendor1@techhaven.com', role: 'vendor', vendorId: 'v1', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150' },
-    { id: 'u3', name: 'Urban Chic Fashion', email: 'vendor2@urbanchic.com', role: 'vendor', vendorId: 'v2', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' },
     { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' }
   ],
-  vendors: [
-    {
-      id: 'v1',
-      storeName: 'TechHaven Electronics',
-      ownerName: 'Tanvir Ahmed',
-      email: 'vendor1@techhaven.com',
-      phone: '+8801712345678',
-      status: 'approved',
-      commissionRate: 10,
-      balance: 14500,
-      totalSales: 128000,
-      rating: 4.8,
-      joinedDate: '2025-01-15',
-      logo: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=150'
-    },
-    {
-      id: 'v2',
-      storeName: 'Urban Chic Fashion',
-      ownerName: 'Nusrat Jahan',
-      email: 'vendor2@urbanchic.com',
-      phone: '+8801812345679',
-      status: 'approved',
-      commissionRate: 12,
-      balance: 8900,
-      totalSales: 74000,
-      rating: 4.6,
-      joinedDate: '2025-02-01',
-      logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150'
-    },
-    {
-      id: 'v3',
-      storeName: 'Gadget Galaxy',
-      ownerName: 'Imran Khan',
-      email: 'vendor3@gadgetgalaxy.com',
-      phone: '+8801912345680',
-      status: 'pending',
-      commissionRate: 10,
-      balance: 0,
-      totalSales: 0,
-      rating: 0,
-      joinedDate: '2026-03-20',
-      logo: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=150'
-    }
-  ],
+  vendors: [],
   categories: [
     { id: 'c1', name: 'Electronics', slug: 'electronics', icon: 'Laptop' },
     { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
@@ -775,10 +730,18 @@ async function getDb(): Promise<InitialData> {
       maintenanceMode: !!rawSettings.maintenance_mode
     };
     
+    // Sanitize and filter out legacy demo vendors
+    const realVendors = (vendors || []).filter((v: any) => 
+      v.id !== 'v1' && v.id !== 'v2' && v.id !== 'v3' &&
+      v.email !== 'vendor1@techhaven.com' &&
+      v.email !== 'vendor2@urbanchic.com' &&
+      v.email !== 'vendor3@gadgetgalaxy.com'
+    );
+
     return {
-      users,
+      users: (users || []).filter((u: any) => u.id !== 'u2' && u.id !== 'u3'),
       categories,
-      vendors,
+      vendors: realVendors,
       products,
       orders,
       withdrawals,
@@ -788,12 +751,26 @@ async function getDb(): Promise<InitialData> {
     };
   } catch (err) {
     console.error('Failed to query PostgreSQL, falling back to local file:', err);
+    let localData: any = defaultData;
     if (fs.existsSync(DB_FILE)) {
       try {
-        return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        localData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
       } catch (e) {}
     }
-    return defaultData;
+    
+    // Ensure demo vendors are filtered out
+    if (localData && Array.isArray(localData.vendors)) {
+      localData.vendors = localData.vendors.filter((v: any) => 
+        v.id !== 'v1' && v.id !== 'v2' && v.id !== 'v3' &&
+        v.email !== 'vendor1@techhaven.com' &&
+        v.email !== 'vendor2@urbanchic.com' &&
+        v.email !== 'vendor3@gadgetgalaxy.com'
+      );
+    }
+    if (localData && Array.isArray(localData.users)) {
+      localData.users = localData.users.filter((u: any) => u.id !== 'u2' && u.id !== 'u3');
+    }
+    return localData;
   }
 }
 

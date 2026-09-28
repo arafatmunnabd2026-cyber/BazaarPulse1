@@ -25,7 +25,16 @@ export default function VendorDashboard({
   navigateTo?: (path: string) => void;
   onLogout?: () => void;
 }) {
-  const currentVendor = data.vendors?.find((v: any) => v.id === currentVendorId) || data.vendors?.[0] || { id: 'v1', storeName: 'Vendor Store', balance: 0, totalSales: 0 };
+  const currentVendor = (data.vendors || []).find((v: any) => v.id === currentVendorId || v.id === authUser?.vendorId || v.email === authUser?.email) || 
+    (data.vendors || [])[0] || 
+    (authUser?.role === 'vendor' ? { 
+      id: authUser.vendorId || 'v_me', 
+      storeName: authUser.storeName || authUser.name || 'My Vendor Store', 
+      ownerName: authUser.name, 
+      email: authUser.email, 
+      balance: 0, 
+      totalSales: 0 
+    } : null);
   const vendorProducts = (data.products || []).filter((p: any) => p.vendorId === currentVendor?.id);
   const vendorOrders = (data.orders || []).filter((o: any) => (o.items || []).some((i: any) => i.vendorId === currentVendor?.id));
   const vendorWithdrawals = (data.withdrawals || []).filter((w: any) => w.vendorId === currentVendor?.id);
