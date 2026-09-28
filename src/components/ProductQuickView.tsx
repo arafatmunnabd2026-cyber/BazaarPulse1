@@ -223,9 +223,6 @@ export const ProductQuickView = ({
               </g>
               <text x="48" y="31" fill="#f85606" fontSize="23" fontWeight="900" fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" letterSpacing="-0.5px">BazaarPulse</text>
             </svg>
-            <span className="hidden sm:inline-block ml-3 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-[#f85606] border border-orange-200">
-              Quick View
-            </span>
           </div>
           <button 
             onClick={() => setSelectedProduct(null)} 
@@ -698,12 +695,12 @@ export const ProductQuickView = ({
                               e.stopPropagation();
                               if (addToCart) {
                                 addToCart(prod, 1);
-                                if (notify) notify(`🛒 "${prod.title.substring(0, 18)}..." কার্টে যোগ হয়েছে!`);
+                                if (notify) notify(`🛒 "${prod.title.substring(0, 18)}..." added to Cart!`);
                               }
                             }}
-                            className="w-full py-1.5 bg-gray-900 hover:bg-[#f85606] text-white text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                            className="w-full py-2 bg-[#f85606] hover:bg-[#e04d05] text-white text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                           >
-                            <ShoppingCart className="w-3 h-3" /> কার্ট
+                            <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
                           </button>
                         </div>
                       </div>
