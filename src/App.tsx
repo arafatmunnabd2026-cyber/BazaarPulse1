@@ -1528,7 +1528,7 @@ function CustomerView({
         if (supabase) {
           try {
             // 1. Insert order to orders table
-            await supabase.from('orders').upsert([{
+            const { error: orderErr } = await supabase.from('orders').upsert([{
               id: newOrder.id,
               customer_id: fullPayload.customerId,
               customer_name: fullPayload.customerName,
@@ -1541,6 +1541,13 @@ function CustomerView({
               status: 'pending'
             }]);
 
+            if (orderErr) {
+              console.error('Supabase orders table save error:', orderErr);
+              notify('⚠️ orders টেবিলে সেভ করার সময় ত্রুটি: ' + orderErr.message);
+            } else {
+              console.log('Supabase orders table save success: ' + newOrder.id);
+            }
+
             // 2. Insert order items to order_items table
             if (Array.isArray(fullPayload.items) && fullPayload.items.length > 0) {
               const dbItems = fullPayload.items.map((item: any) => ({
@@ -1552,10 +1559,17 @@ function CustomerView({
                 size: item.size || null,
                 color: item.color || null
               }));
-              await supabase.from('order_items').insert(dbItems);
+              const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
+              if (itemsErr) {
+                console.error('Supabase order_items table save error:', itemsErr);
+                notify('⚠️ order_items টেবিলে সেভ করার সময় ত্রুটি: ' + itemsErr.message);
+              } else {
+                console.log('Supabase order_items table save success: ' + dbItems.length + ' items');
+              }
             }
-          } catch (supaErr) {
-            console.warn('Supabase order/items insert note:', supaErr);
+          } catch (supaErr: any) {
+            console.warn('Supabase order/items sync exception:', supaErr);
+            notify('⚠️ Supabase সিঙ্ক এক্সেপশন: ' + (supaErr.message || supaErr));
           }
         }
 
