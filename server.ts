@@ -575,6 +575,54 @@ async function deleteProductFromSupabase(id: string) {
   }
 }
 
+async function syncOrderToSupabase(order: any) {
+  if (!supabase || !order || !order.id) return;
+  try {
+    // 1. Insert/Upsert the order to Supabase
+    const { error: orderErr } = await supabase.from('orders').upsert([{
+      id: order.id,
+      customer_id: order.customerId || order.user_id || 'u4',
+      customer_name: order.customerName || 'Customer',
+      customer_email: order.customerEmail || '',
+      phone: order.customerPhone || order.phone || '',
+      address: order.shippingAddress || order.address || '',
+      total_amount: Number(order.totalAmount || 0),
+      payment_method: order.paymentMethod || 'Cash on Delivery',
+      payment_status: order.paymentStatus || 'unpaid',
+      status: order.status || 'pending',
+      subtotal: Number(order.subtotal || order.totalAmount || 0),
+      delivery_fee: Number(order.deliveryFee || order.shippingFee || 80)
+    }]);
+
+    if (orderErr) {
+      console.error(`❌ Server Supabase order sync failed for ${order.id}:`, orderErr.message);
+      return;
+    }
+
+    // 2. Insert order items to Supabase
+    if (Array.isArray(order.items) && order.items.length > 0) {
+      const dbItems = order.items.map((item: any) => ({
+        order_id: order.id,
+        product_id: String(item.productId),
+        title: item.title,
+        price: Number(item.price),
+        quantity: Number(item.quantity || 1),
+        size: item.size || null,
+        color: item.color || null
+      }));
+
+      const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
+      if (itemsErr) {
+        console.error(`❌ Server Supabase order_items sync failed for ${order.id}:`, itemsErr.message);
+      } else {
+        console.log(`✅ Server Supabase order & order_items synced successfully for ${order.id}`);
+      }
+    }
+  } catch (err: any) {
+    console.error(`Exception during background Supabase order sync:`, err.message);
+  }
+}
+
 // Helper to fetch entire data structure (replaces getDb from JSON)
 async function getDb(): Promise<InitialData> {
   if (!isDbConfigured) {
@@ -2283,6 +2331,9 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         console.warn('Postgres place_order warning:', dbErr);
       }
 
+      // Sync to Supabase in background
+      syncOrderToSupabase(createdOrder);
+
       res.json({ 
         success: true, 
         message: 'Order placed successfully!', 
@@ -2305,6 +2356,10 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       db.cartItems = db.cartItems.filter(ci => ci.userId !== targetUserId);
       
       saveDb(db);
+
+      // Sync to Supabase in background
+      syncOrderToSupabase(createdOrder);
+
       res.json({ success: true, order: createdOrder });
     }
   } catch (error: any) {
