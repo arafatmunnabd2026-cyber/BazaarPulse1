@@ -54,10 +54,10 @@ export default function CheckoutModal({
   const discountedSubtotal = itemsToCheckout.reduce((sum, item) => sum + ((item.product.discountPrice || item.product.price) * item.quantity), 0);
   const savings = Math.max(0, rawSubtotal - discountedSubtotal);
 
-  // Delivery & Service Charge based on district
-  const deliveryCharge = shippingInfo.district === 'Dhaka' ? 80 : 120;
-  const serviceCharge = 15;
-  const totalDeliveryAndService = deliveryCharge + serviceCharge;
+  // Delivery Charge calculation based on selected district
+  const isInsideDhaka = shippingInfo.district === 'Dhaka' || shippingInfo.district === 'ঢাকা';
+  const deliveryCharge = isInsideDhaka ? 80 : 150;
+  const totalDeliveryAndService = deliveryCharge;
 
   // Promo Discount
   const promoDiscountAmount = appliedPromo ? appliedPromo.discount : 0;
@@ -410,13 +410,18 @@ export default function CheckoutModal({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
                     <option value="Dhaka">ঢাকা (Dhaka - ৳80 Delivery)</option>
-                    <option value="Chattogram">চট্টগ্রাম (Chattogram - ৳120 Delivery)</option>
-                    <option value="Sylhet">সিলেট (Sylhet - ৳120 Delivery)</option>
-                    <option value="Rajshahi">রাজশাহী (Rajshahi - ৳120 Delivery)</option>
-                    <option value="Khulna">খুলনা (Khulna - ৳120 Delivery)</option>
-                    <option value="Barishal">বরিশাল (Barishal - ৳120 Delivery)</option>
-                    <option value="Rangpur">রংপুর (Rangpur - ৳120 Delivery)</option>
-                    <option value="Mymensingh">ময়মনসিংহ (Mymensingh - ৳120 Delivery)</option>
+                    <option value="Chattogram">চট্টগ্রাম (Chattogram - ৳150 Delivery)</option>
+                    <option value="Sylhet">সিলেট (Sylhet - ৳150 Delivery)</option>
+                    <option value="Rajshahi">রাজশাহী (Rajshahi - ৳150 Delivery)</option>
+                    <option value="Khulna">খুলনা (Khulna - ৳150 Delivery)</option>
+                    <option value="Barishal">বরিশাল (Barishal - ৳150 Delivery)</option>
+                    <option value="Rangpur">রংপুর (Rangpur - ৳150 Delivery)</option>
+                    <option value="Mymensingh">ময়মনসিংহ (Mymensingh - ৳150 Delivery)</option>
+                    <option value="Cumilla">কুমিল্লা (Cumilla - ৳150 Delivery)</option>
+                    <option value="Gazipur">গাজীপুর (Gazipur - ৳150 Delivery)</option>
+                    <option value="Narayanganj">নারায়ণগঞ্জ (Narayanganj - ৳150 Delivery)</option>
+                    <option value="Bogura">বগুড়া (Bogura - ৳150 Delivery)</option>
+                    <option value="Outside Dhaka">অন্যান্য জেলা (Outside Dhaka - ৳150 Delivery)</option>
                   </select>
                 </div>
 
@@ -464,7 +469,7 @@ export default function CheckoutModal({
                 </div>
 
                 <div className="flex justify-between text-slate-600">
-                  <span>Delivery and Website Service Charge</span>
+                  <span>Delivery Charge ({isInsideDhaka ? 'ঢাকার ভেতরে' : 'ঢাকার বাইরে'})</span>
                   <span className="font-bold text-slate-900">৳{totalDeliveryAndService}</span>
                 </div>
 
@@ -484,46 +489,6 @@ export default function CheckoutModal({
                   <span>Payable Total</span>
                   <span className="font-black text-slate-900 text-base">৳{payableTotal}</span>
                 </div>
-              </div>
-
-              {/* Reward Points Earned Banner */}
-              <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 flex items-center justify-between text-amber-900 text-xs">
-                <span className="font-medium text-[11px]">
-                  আপনি অর্জন করবেন <strong className="font-extrabold text-amber-950">{pointsEarned} পয়েন্ট</strong>
-                </span>
-                <div className="w-6 h-6 rounded-full bg-amber-400 text-amber-900 font-black text-[10px] flex items-center justify-center shrink-0 shadow-xs">
-                  র
-                </div>
-              </div>
-
-              {/* Voucher or Promo Code Input Box */}
-              <div className="pt-1">
-                <form onSubmit={handleApplyPromo} className="space-y-1">
-                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-2 text-slate-600 flex-1">
-                      <Tag className="w-4 h-4 text-orange-500 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="Voucher or Promo Code"
-                        value={promoCode}
-                        onChange={e => {
-                          setPromoCode(e.target.value);
-                          if (promoError) setPromoError('');
-                        }}
-                        className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="text-xs font-extrabold text-blue-600 hover:text-blue-700 cursor-pointer pl-2 whitespace-nowrap"
-                    >
-                      Apply &gt;
-                    </button>
-                  </div>
-                  {promoError && (
-                    <p className="text-[10px] text-red-600 font-bold px-1">{promoError}</p>
-                  )}
-                </form>
               </div>
 
               {/* Primary Action Button: "অর্ডার নিশ্চিত করুন ৳..." */}
