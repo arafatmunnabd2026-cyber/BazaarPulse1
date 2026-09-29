@@ -22,6 +22,7 @@ import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
 import AdminDashboard from '../AdminDashboard';
 import VendorDashboard from './components/VendorDashboard';
+import CheckoutModal from './components/CheckoutModal';
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -1475,50 +1476,43 @@ function CustomerView({
     }
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cart.length === 0) return;
-
-    const items = cart.map(i => ({
-      productId: i.product.id,
-      title: i.product.title,
-      price: i.product.discountPrice || i.product.price,
-      quantity: i.quantity,
-      size: i.size,
-      color: i.color,
-      vendorId: i.product.vendorId,
-      vendorName: i.product.vendorName
-    }));
-
-    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const shippingFee = 150;
-
-    const orderPayload = {
-      customerId: authUser?.id || 'u4',
-      customerName: shippingInfo.name || authUser?.name || 'Guest Customer',
-      customerPhone: shippingInfo.phone,
-      shippingAddress: `${shippingInfo.houseRoad}, ${shippingInfo.area}, ${shippingInfo.district}`,
-      items,
-      totalAmount: subtotal + shippingFee,
-      shippingFee,
-      paymentMethod: shippingInfo.paymentMethod
-    };
-
+  const handleOrderSubmitPayload = async (orderPayload: any) => {
     try {
+      const fullPayload = {
+        customerId: authUser?.id || 'u4',
+        customerName: orderPayload.customerName || authUser?.name || 'Guest Customer',
+        customerPhone: orderPayload.phone || orderPayload.customerPhone,
+        customerEmail: orderPayload.customerEmail || authUser?.email,
+        shippingAddress: orderPayload.address || orderPayload.shippingAddress,
+        items: orderPayload.items,
+        subtotal: orderPayload.subtotal,
+        shippingFee: orderPayload.deliveryFee,
+        discountAmount: orderPayload.discountAmount || 0,
+        totalAmount: orderPayload.totalAmount,
+        paymentMethod: orderPayload.paymentMethod,
+        paymentStatus: orderPayload.paymentStatus || 'paid',
+        pointsEarned: orderPayload.pointsEarned || 0
+      };
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify(fullPayload)
       });
       const json = await res.json();
       if (json.success) {
         setOrderConfirmation(json.order);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
+        setCart([]);
+        localStorage.removeItem('bazaarpulse_cart');
+        notify('🎉 আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে!');
         refreshData();
+      } else {
+        notify('❌ ' + (json.error || 'Failed to place order'));
       }
-    } catch (err) {
-      notify('Failed to place order');
+    } catch (err: any) {
+      notify('❌ Failed to place order');
     }
   };
 
@@ -2132,140 +2126,15 @@ function CustomerView({
         </div>
       )}
 
-      {/* Checkout Modal */}
-      {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-orange-600" /> Secure Checkout
-              </h3>
-              <button onClick={() => setIsCheckoutOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCheckout} className="space-y-4 pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rahim Ahmed"
-                    value={shippingInfo.name}
-                    onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Mobile Number</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g. 01700000000"
-                    value={shippingInfo.phone}
-                    onChange={e => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">District</label>
-                  <select
-                    required
-                    value={shippingInfo.district}
-                    onChange={e => setShippingInfo({ ...shippingInfo, district: e.target.value })}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select District</option>
-                    <option value="Dhaka">Dhaka</option>
-                    <option value="Chattogram">Chattogram</option>
-                    <option value="Sylhet">Sylhet</option>
-                    <option value="Rajshahi">Rajshahi</option>
-                    <option value="Khulna">Khulna</option>
-                    <option value="Barishal">Barishal</option>
-                    <option value="Rangpur">Rangpur</option>
-                    <option value="Mymensingh">Mymensingh</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Area / Thana</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Banani"
-                    value={shippingInfo.area}
-                    onChange={e => setShippingInfo({ ...shippingInfo, area: e.target.value })}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">House / Road / Street</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. House 42, Road 11"
-                  value={shippingInfo.houseRoad}
-                  onChange={e => setShippingInfo({ ...shippingInfo, houseRoad: e.target.value })}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Payment Method</label>
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  {['Cash on Delivery', 'bKash', 'Nagad', 'Card'].map(method => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: method })}
-                      className={`p-3 rounded-xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${
-                        shippingInfo.paymentMethod === method 
-                          ? 'border-orange-600 bg-orange-50 text-orange-600' 
-                          : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                      }`}
-                    >
-                      {method === 'Cash on Delivery' && <span className="text-[10px] uppercase opacity-60">COD</span>}
-                      {method}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-slate-200">
-                <div className="flex justify-between mb-4 text-lg font-black text-slate-900">
-                  <span>Grand Total</span>
-                  <span className="text-orange-600">৳{cart.reduce((sum, i) => sum + (i.product.discountPrice || i.product.price) * i.quantity, 0) + 150}</span>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCheckoutOpen(false)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-xl transition-all"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-[2] bg-orange-600 hover:bg-orange-700 text-white font-black py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    Place Order Now
-                  </button>
-                </div>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+      {/* New Reference Checkout Modal */}
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        cart={cart}
+        authUser={authUser}
+        onSubmitOrder={handleOrderSubmitPayload}
+        notify={notify}
+      />
 
       {/* AI Advisor Chat Modal */}
       {isAiOpen && (
