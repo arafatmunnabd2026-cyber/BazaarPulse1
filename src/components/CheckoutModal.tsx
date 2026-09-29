@@ -457,37 +457,32 @@ export default function CheckoutModal({
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-left space-y-4 sticky top-4">
               
               {/* Summary Header */}
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-base font-extrabold text-slate-800">Checkout Summary</h3>
+              <div className="border-b border-slate-200 pb-3">
+                <h3 className="text-base font-bold text-black">Checkout Summary</h3>
               </div>
 
               {/* Price Breakdown List */}
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Subtotal</span>
-                  <span className="font-bold text-slate-900">৳{subtotalForCalc}</span>
+              <div className="space-y-3 text-xs sm:text-sm">
+                <div className="flex justify-between items-center text-black">
+                  <span className="font-medium">Subtotal</span>
+                  <span className="font-bold text-black">৳{subtotalForCalc}</span>
                 </div>
 
-                <div className="flex justify-between text-slate-600">
-                  <span>Delivery Charge ({isInsideDhaka ? 'ঢাকার ভেতরে' : 'ঢাকার বাইরে'})</span>
-                  <span className="font-bold text-slate-900">৳{totalDeliveryAndService}</span>
+                <div className="flex justify-between items-center text-black">
+                  <span className="font-medium">Delivery Charge ({isInsideDhaka ? 'ঢাকার ভেতরে' : 'ঢাকার বাইরে'})</span>
+                  <span className="font-bold text-black">৳{totalDeliveryAndService}</span>
                 </div>
 
                 {appliedPromo && (
-                  <div className="flex justify-between text-emerald-600 font-bold">
-                    <span>Voucher Discount ({appliedPromo.code})</span>
-                    <span>-৳{appliedPromo.discount}</span>
+                  <div className="flex justify-between items-center text-black">
+                    <span className="font-medium">Voucher Discount ({appliedPromo.code})</span>
+                    <span className="font-bold text-black">-৳{appliedPromo.discount}</span>
                   </div>
                 )}
 
-                <div className="border-t border-slate-100 pt-2 flex justify-between font-bold text-slate-800">
-                  <span>Total</span>
-                  <span className="font-extrabold text-slate-900">৳{payableTotal}</span>
-                </div>
-
-                <div className="border-t border-slate-100 pt-2 flex justify-between font-black text-sm text-slate-900">
-                  <span>Payable Total</span>
-                  <span className="font-black text-slate-900 text-base">৳{payableTotal}</span>
+                <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-black text-sm sm:text-base">
+                  <span className="font-medium">Total</span>
+                  <span className="font-extrabold text-black text-base sm:text-lg">৳{payableTotal}</span>
                 </div>
               </div>
 
