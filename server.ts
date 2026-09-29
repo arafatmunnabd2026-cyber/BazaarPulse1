@@ -1678,34 +1678,69 @@ app.put('/api/vendors/:id', authMiddleware, async (req: any, res: any) => {
     } = req.body;
 
     const db = await getDb();
-    const vendor = (db.vendors || []).find((v: any) => v.id === id);
-    if (!vendor) return res.status(404).json({ success: false, error: 'Vendor not found' });
+    if (!Array.isArray(db.vendors)) db.vendors = [];
 
-    if (storeName) vendor.storeName = storeName;
-    if (ownerName) vendor.ownerName = ownerName;
-    if (phone) vendor.phone = phone;
-    if (logo) vendor.logo = logo;
-    if (banner) vendor.banner = banner;
-    if (paymentMethod) vendor.paymentMethod = paymentMethod;
-    if (paymentNumber) vendor.paymentNumber = paymentNumber;
-    if (accountType) vendor.accountType = accountType;
+    let vendor = db.vendors.find((v: any) => 
+      v.id === id || 
+      (v.id && req.user?.vendorId && v.id === req.user.vendorId) ||
+      (v.email && req.user?.email && v.email.toLowerCase() === req.user.email.toLowerCase()) ||
+      (v.phone && req.user?.phone && v.phone === req.user.phone)
+    );
+
+    if (!vendor) {
+      const newVendorId = (id && id !== 'v_me') ? id : (req.user?.vendorId || 'v_' + Date.now());
+      vendor = {
+        id: newVendorId,
+        storeName: storeName || req.user?.storeName || req.user?.name || 'My Vendor Store',
+        ownerName: ownerName || req.user?.name || 'Store Owner',
+        email: req.user?.email || `vendor_${Date.now()}@bazaarpulse.com`,
+        phone: phone || req.user?.phone || '01700000000',
+        logo: logo || 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150',
+        banner: banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+        paymentMethod: paymentMethod || 'bkash',
+        paymentNumber: paymentNumber || phone || '',
+        accountType: accountType || 'Personal',
+        status: 'approved',
+        balance: 0,
+        totalSales: 0,
+        commissionRate: 10,
+        createdAt: new Date().toISOString()
+      };
+      db.vendors.unshift(vendor);
+    } else {
+      if (storeName) vendor.storeName = storeName;
+      if (ownerName) vendor.ownerName = ownerName;
+      if (phone) vendor.phone = phone;
+      if (logo) vendor.logo = logo;
+      if (banner) vendor.banner = banner;
+      if (paymentMethod) vendor.paymentMethod = paymentMethod;
+      if (paymentNumber) vendor.paymentNumber = paymentNumber;
+      if (accountType) vendor.accountType = accountType;
+    }
 
     if (isDbConfigured) {
       try {
         await pool.query(
-          `UPDATE vendors SET 
-             store_name = COALESCE($1, store_name),
-             owner_name = COALESCE($2, owner_name),
-             phone = COALESCE($3, phone),
-             logo = COALESCE($4, logo),
-             banner = COALESCE($5, banner),
-             payment_method = COALESCE($6, payment_method),
-             payment_number = COALESCE($7, payment_number)
-           WHERE id = $8`,
-          [storeName, ownerName, phone, logo, banner, paymentMethod, paymentNumber, id]
+          `INSERT INTO vendors (
+            id, store_name, owner_name, email, phone, logo, banner, 
+            payment_method, payment_number, account_type, status, commission_rate, balance, created_at
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 10, 0, NOW())
+           ON CONFLICT (id) DO UPDATE SET 
+             store_name = COALESCE(EXCLUDED.store_name, vendors.store_name),
+             owner_name = COALESCE(EXCLUDED.owner_name, vendors.owner_name),
+             phone = COALESCE(EXCLUDED.phone, vendors.phone),
+             logo = COALESCE(EXCLUDED.logo, vendors.logo),
+             banner = COALESCE(EXCLUDED.banner, vendors.banner),
+             payment_method = COALESCE(EXCLUDED.payment_method, vendors.payment_method),
+             payment_number = COALESCE(EXCLUDED.payment_number, vendors.payment_number);`,
+          [
+            vendor.id, vendor.storeName, vendor.ownerName, vendor.email, vendor.phone,
+            vendor.logo, vendor.banner, vendor.paymentMethod, vendor.paymentNumber, vendor.accountType, vendor.status
+          ]
         );
       } catch (dbErr) {
-        console.warn('Postgres vendor update fallback to local db:', dbErr);
+        console.warn('Postgres vendor upsert fallback to local db:', dbErr);
       }
     }
 

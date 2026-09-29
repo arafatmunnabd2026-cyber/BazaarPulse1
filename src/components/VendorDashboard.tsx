@@ -93,10 +93,10 @@ export default function VendorDashboard({
 
   const handleSaveStoreProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentVendor?.id) return;
+    const vendorTargetId = currentVendor?.id || authUser?.vendorId || authUser?.id || 'v_me';
     setLoading(true);
     try {
-      const res = await fetch(`/api/vendors/${currentVendor.id}`, {
+      const res = await fetch(`/api/vendors/${vendorTargetId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
