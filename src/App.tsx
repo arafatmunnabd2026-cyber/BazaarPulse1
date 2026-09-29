@@ -1132,6 +1132,7 @@ function CustomerView({
   refreshData, 
   notify, 
   authUser,
+  authToken,
   onOpenLogin,
   onLogout,
   navigateTo 
@@ -1140,6 +1141,7 @@ function CustomerView({
   refreshData: () => void; 
   notify: (msg: string) => void; 
   authUser: any;
+  authToken?: string;
   onOpenLogin: () => void;
   onLogout: () => void;
   navigateTo: (path: string) => void;
@@ -2441,30 +2443,31 @@ function CustomerView({
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Tracker Input search box */}
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 sm:p-5">
-                <h4 className="text-xs font-black uppercase text-orange-800 mb-2.5 tracking-wider">Track any Order instantly</h4>
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5 text-left">
+                <h4 className="text-xs font-bold uppercase text-black mb-2 tracking-wider">ইনস্ট্যান্ট অর্ডার আইডি ট্র্যাক করুন (Track Order ID)</h4>
                 <div className="flex gap-2.5 font-sans">
                   <input
                     type="text"
-                    placeholder="Enter Order ID (e.g. ord-1234)..."
+                    placeholder="অর্ডার আইডি লিখুন (e.g. ORD-1234)..."
                     value={trackOrderIdInput}
                     onChange={e => setTrackOrderIdInput(e.target.value)}
-                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                    className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   />
                   <button
+                    type="button"
                     onClick={() => {
                       const found = (data.orders || []).find((o: any) => o.id?.toLowerCase().trim() === trackOrderIdInput.toLowerCase().trim());
                       if (found) {
                         setTrackedOrder(found);
                       } else {
                         setTrackedOrder(null);
-                        notify('❌ Order not found! Please check the ID and try again.');
+                        notify('❌ অর্ডার আইডি পাওয়া যায়নি! অনুগ্রহ করে সঠিক নম্বর দিয়ে পুনরায় চেষ্টা করুন।');
                       }
                     }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-5 py-3 rounded-xl shadow transition-colors text-sm flex items-center gap-1.5"
+                    className="bg-[#0092d8] hover:bg-[#0081c2] text-white font-medium px-5 py-2.5 rounded-xl shadow-xs transition-colors text-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <Search className="w-4 h-4" />
-                    <span>Track</span>
+                    <span>ট্র্যাক করুন</span>
                   </button>
                 </div>
               </div>
@@ -2497,9 +2500,9 @@ function CustomerView({
                   {trackedOrder.status === 'cancelled' ? (
                     <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-center text-rose-800">
                       <p className="font-bold text-sm flex items-center justify-center gap-1.5">
-                        🚫 This order was cancelled.
+                        🚫 এই অর্ডারটি বাতিল করা হয়েছে।
                       </p>
-                      <p className="text-xs text-black mt-1 font-medium">Please contact our support for more information or place a new order.</p>
+                      <p className="text-xs text-black mt-1 font-medium">সহায়তার জন্য আমাদের কাস্টমার সার্ভিসে যোগাযোগ করুন অথবা নতুন অর্ডার প্লেস করুন।</p>
                     </div>
                   ) : (
                     <div className="relative py-4">
@@ -2620,64 +2623,15 @@ function CustomerView({
                 </div>
               )}
 
-              {/* Past Order History Section (only if authenticated user) */}
-              {authUser ? (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Your Order History</h4>
-                  {(() => {
-                    const myOrders = (data.orders || []).filter((o: any) => o.customerId === authUser.id);
-                    if (myOrders.length === 0) {
-                      return (
-                        <div className="text-center py-6 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 text-xs font-medium">
-                          You haven't placed any orders yet. Place your first order today!
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
-                        {myOrders.map((o: any) => (
-                          <div 
-                            key={o.id} 
-                            onClick={() => {
-                              setTrackOrderIdInput(o.id);
-                              setTrackedOrder(o);
-                            }}
-                            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
-                              trackedOrder?.id === o.id 
-                                ? 'bg-orange-50 border-orange-500/30' 
-                                : 'bg-white hover:bg-slate-50 border-slate-200'
-                            }`}
-                          >
-                            <div className="text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-xs font-mono text-slate-900">{o.id}</span>
-                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
-                                  o.status === 'processing' || o.status === 'pending'
-                                    ? 'bg-blue-50 text-blue-600'
-                                    : o.status === 'shipped'
-                                    ? 'bg-purple-50 text-purple-600'
-                                    : o.status === 'delivered'
-                                    ? 'bg-emerald-50 text-emerald-600'
-                                    : 'bg-rose-50 text-rose-600'
-                                }`}>
-                                  {o.status}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 font-bold mt-1 text-left">
-                                {new Date(o.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })} • ৳{o.totalAmount}
-                              </p>
-                            </div>
-                            <button className="text-orange-600 font-extrabold text-xs hover:underline flex items-center gap-0.5">
-                              <span>Track Live</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : (
+              {/* Full User Orders History with Details & Pre-shipping Cancellation */}
+              <UserOrders
+                userId={authUser?.id || 'u4'}
+                authToken={authToken}
+                notify={notify}
+                productsCatalog={data.products}
+              />
+
+              {!authUser && (
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center text-xs">
                   <p className="text-slate-500 font-bold">💡 Tip: Log in to save your orders to your account</p>
                   <button 

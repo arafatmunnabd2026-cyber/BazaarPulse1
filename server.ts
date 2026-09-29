@@ -1988,6 +1988,35 @@ app.patch('/api/orders/:id/status', (req: any, res: any, next: any) => {
   return next();
 }, handleOrderStatusUpdate);
 
+// Customer Order Cancellation Endpoint (before shipping)
+app.post('/api/orders/:id/cancel', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    if (isDbConfigured) {
+      const oRes = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (oRes.rowCount === 0) return res.status(404).json({ success: false, error: 'অর্ডার পাওয়া যায়নি' });
+      const order = oRes.rows[0];
+      if (order.status === 'shipped' || order.status === 'delivered') {
+        return res.status(400).json({ success: false, error: 'শিপিং সম্পন্ন হওয়ায় অর্ডারটি আর বাতিল করা সম্ভব নয়।' });
+      }
+      await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = $1", [id]);
+      res.json({ success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' });
+    } else {
+      const db = await getDb();
+      const order = db.orders.find((o: any) => o.id === id);
+      if (!order) return res.status(404).json({ success: false, error: 'অর্ডার পাওয়া যায়নি' });
+      if (order.status === 'shipped' || order.status === 'delivered') {
+        return res.status(400).json({ success: false, error: 'শিপিং সম্পন্ন হওয়ায় অর্ডারটি আর বাতিল করা সম্ভব নয়।' });
+      }
+      order.status = 'cancelled';
+      saveDb(db);
+      res.json({ success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
