@@ -266,18 +266,14 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                               )}
                             </div>
                             <div>
-                              {item.productUrl ? (
-                                <a 
-                                  href={item.productUrl} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="text-sm font-bold text-slate-800 hover:text-orange-600 transition-colors leading-tight block hover:underline"
-                                >
-                                  {item.title}
-                                </a>
-                              ) : (
-                                <p className="text-sm font-bold text-slate-800 leading-tight">{item.title}</p>
-                              )}
+                              <a 
+                                href={item.productUrl || `/product/${item.productId}`} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-sm font-bold text-slate-800 hover:text-orange-600 transition-colors leading-tight block hover:underline"
+                              >
+                                {item.title}
+                              </a>
                               <p className="text-[10px] text-slate-500 font-medium mt-0.5">
                                 {item.quantity} x ৳{item.price} {item.size && `• Size: ${item.size}`} {item.color && `• Color: ${item.color}`}
                               </p>
