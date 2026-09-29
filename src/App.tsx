@@ -2471,22 +2471,22 @@ function CustomerView({
 
               {/* Tracked Order Progress Visual Tracker */}
               {trackedOrder && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-sm text-left">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs text-left">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tracking Order</span>
-                      <h4 className="font-extrabold text-base text-orange-600 font-mono">{trackedOrder.id}</h4>
+                      <span className="text-xs font-medium text-black uppercase tracking-wider">Tracking Order</span>
+                      <h4 className="font-bold text-base text-black font-mono">{trackedOrder.id}</h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Status</span>
-                      <span className={`text-xs font-extrabold uppercase px-2.5 py-1 rounded-lg ${
+                      <span className="text-xs font-medium text-black uppercase tracking-wider block">Status</span>
+                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-lg inline-block ${
                         trackedOrder.status === 'processing' || trackedOrder.status === 'pending'
-                          ? 'bg-blue-100 text-blue-700'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
                           : trackedOrder.status === 'shipped'
-                          ? 'bg-purple-100 text-purple-700'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
                           : trackedOrder.status === 'delivered'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-rose-100 text-rose-700'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}>
                         {trackedOrder.status}
                       </span>
@@ -2495,26 +2495,26 @@ function CustomerView({
 
                   {/* Status Progress Stepper */}
                   {trackedOrder.status === 'cancelled' ? (
-                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl text-center text-rose-700">
-                      <p className="font-extrabold text-sm flex items-center justify-center gap-1.5">
+                    <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-center text-rose-800">
+                      <p className="font-bold text-sm flex items-center justify-center gap-1.5">
                         🚫 This order was cancelled.
                       </p>
-                      <p className="text-xs text-rose-600 mt-1 font-medium">Please contact our support for more information or place a new order.</p>
+                      <p className="text-xs text-black mt-1 font-medium">Please contact our support for more information or place a new order.</p>
                     </div>
                   ) : (
                     <div className="relative py-4">
                       {/* Stepper Lines */}
-                      <div className="absolute left-6 top-1/2 -translate-y-1/2 w-[80%] h-0.5 bg-slate-100 -z-10 hidden sm:block" />
+                      <div className="absolute left-6 top-1/2 -translate-y-1/2 w-[80%] h-0.5 bg-slate-200 -z-10 hidden sm:block" />
                       
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-4">
                         {/* Step 1: Order Placed */}
                         <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                          <div className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shadow-lg">
+                          <div className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold shadow-xs">
                             <Check className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="font-bold text-xs text-slate-900">Order Placed</p>
-                            <p className="text-[10px] text-slate-400">Order confirmed successfully</p>
+                            <p className="font-medium text-xs text-black">Order Placed</p>
+                            <p className="text-[11px] font-medium text-black opacity-80">Order confirmed successfully</p>
                           </div>
                         </div>
 
@@ -2523,14 +2523,14 @@ function CustomerView({
                           const active = ['processing', 'shipped', 'delivered'].includes(trackedOrder.status);
                           return (
                             <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black shadow transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
+                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
                               }`}>
-                                {active ? <Check className="w-5 h-5" /> : <Clock className="w-5 h-5 animate-spin" style={{ animationDuration: '4s' }} />}
+                                {active ? <Check className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                               </div>
                               <div>
-                                <p className={`font-bold text-xs ${active ? 'text-slate-900' : 'text-slate-400'}`}>Processing</p>
-                                <p className="text-[10px] text-slate-400">Items being packaged</p>
+                                <p className="font-medium text-xs text-black">Processing</p>
+                                <p className="text-[11px] font-medium text-black opacity-80">Items being packaged</p>
                               </div>
                             </div>
                           );
@@ -2541,14 +2541,14 @@ function CustomerView({
                           const active = ['shipped', 'delivered'].includes(trackedOrder.status);
                           return (
                             <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black shadow transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
+                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
                               }`}>
                                 {active ? <Check className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
                               </div>
                               <div>
-                                <p className={`font-bold text-xs ${active ? 'text-slate-900' : 'text-slate-400'}`}>Shipped</p>
-                                <p className="text-[10px] text-slate-400">In transit to your city</p>
+                                <p className="font-medium text-xs text-black">Shipped</p>
+                                <p className="text-[11px] font-medium text-black opacity-80">In transit to your city</p>
                               </div>
                             </div>
                           );
@@ -2559,14 +2559,14 @@ function CustomerView({
                           const active = trackedOrder.status === 'delivered';
                           return (
                             <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black shadow transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
+                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
                               }`}>
                                 {active ? <Check className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
                               </div>
                               <div>
-                                <p className={`font-bold text-xs ${active ? 'text-slate-900' : 'text-slate-400'}`}>Delivered</p>
-                                <p className="text-[10px] text-slate-400">Package received safely</p>
+                                <p className="font-medium text-xs text-black">Delivered</p>
+                                <p className="text-[11px] font-medium text-black opacity-80">Package received safely</p>
                               </div>
                             </div>
                           );
@@ -2576,43 +2576,43 @@ function CustomerView({
                   )}
 
                   {/* Order Details summary */}
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3.5 text-left">
+                  <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-3.5 text-left">
                     <div>
-                      <h5 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ordered Items</h5>
-                      <div className="space-y-2 mt-1.5">
+                      <h5 className="text-xs uppercase font-medium text-black tracking-wider mb-2">ORDERED ITEMS</h5>
+                      <div className="space-y-2">
                         {(trackedOrder.items || []).map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-xs">
-                            <span className="text-slate-700 max-w-[80%] truncate">
-                              <span className="font-extrabold text-slate-900 mr-1">×{item.quantity}</span> {item.title} 
+                          <div key={idx} className="flex justify-between items-center text-xs sm:text-sm">
+                            <span className="font-medium text-black max-w-[80%] truncate">
+                              <span className="font-bold text-black mr-1.5">x{item.quantity}</span> {item.title} 
                               {(item.size || item.color) && ` (${item.size || ''}${item.size && item.color ? ', ' : ''}${item.color || ''})`}
                             </span>
-                            <span className="font-bold text-slate-900">৳{item.price * item.quantity}</span>
+                            <span className="font-medium text-black">৳{item.price * item.quantity}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-semibold">Shipping Charge</span>
-                      <span className="font-bold text-slate-900">৳{trackedOrder.shippingFee || 150}</span>
+                    <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-xs sm:text-sm">
+                      <span className="font-medium text-black">Shipping Charge</span>
+                      <span className="font-medium text-black">৳{trackedOrder.shippingFee || trackedOrder.deliveryFee || 150}</span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-sm font-black text-slate-900">
-                      <span>Total Price</span>
-                      <span className="text-orange-600">৳{trackedOrder.totalAmount}</span>
+                    <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-sm font-bold text-black">
+                      <span className="font-bold text-black">Total Price</span>
+                      <span className="font-bold text-orange-600 text-base">৳{trackedOrder.totalAmount}</span>
                     </div>
 
-                    <div className="border-t border-slate-200 pt-2 grid grid-cols-2 gap-4 text-xs">
+                    <div className="border-t border-slate-200 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div>
-                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Deliver to:</span>
-                        <p className="font-bold text-slate-800">{trackedOrder.customerName}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium leading-relaxed">{trackedOrder.shippingAddress}</p>
+                        <span className="text-[10px] uppercase font-medium text-black block mb-0.5">DELIVER TO:</span>
+                        <p className="font-medium text-black text-xs sm:text-sm">{trackedOrder.customerName}</p>
+                        <p className="text-xs font-medium text-black mt-1 leading-relaxed">{trackedOrder.shippingAddress}</p>
                       </div>
                       <div>
-                        <span className="text-[9px] uppercase font-bold text-slate-400 block">Payment Method:</span>
-                        <p className="font-bold text-slate-800">{trackedOrder.paymentMethod || 'Cash on Delivery'}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 font-semibold">
-                          Status: <span className="text-orange-600 font-extrabold">{trackedOrder.paymentStatus || 'pending'}</span>
+                        <span className="text-[10px] uppercase font-medium text-black block mb-0.5">PAYMENT METHOD:</span>
+                        <p className="font-medium text-black text-xs sm:text-sm">{trackedOrder.paymentMethod || 'Cash on Delivery'}</p>
+                        <p className="text-xs font-medium text-black mt-1">
+                          Status: <span className="font-bold text-orange-600">{trackedOrder.paymentStatus || 'pending'}</span>
                         </p>
                       </div>
                     </div>
