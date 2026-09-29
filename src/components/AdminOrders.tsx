@@ -199,15 +199,15 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                     {order.status === 'delivered' ? <CheckCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 flex items-center gap-2">
+                    <h4 className="text-lg font-black text-black flex items-center gap-2.5">
                       {order.id}
-                      <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                      <span className="text-xs bg-slate-100 text-black border border-slate-200 px-2.5 py-0.5 rounded-full uppercase font-bold tracking-tighter">
                         {order.paymentMethod}
                       </span>
                     </h4>
-                    <p className="text-[10px] text-slate-500 font-black mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
+                    <p className="text-sm font-semibold text-black mt-1 flex items-center gap-2 uppercase tracking-wide">
                       📅 {new Date(order.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
-                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                       👤 {order.customerName}
                     </p>
                   </div>
