@@ -126,11 +126,52 @@ export default function VendorDashboard({
     discountPrice: '',
     stock: '',
     categoryId: data.categories?.[0]?.id || '',
-    images: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600',
+    images: [] as string[],
     description: '',
     keyFeatures: ''
   });
+  const [productImageUrlInput, setProductImageUrlInput] = useState('');
+  const productImageFileInputRef = useRef<HTMLInputElement>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
+
+  const handleAddProductImages = (files: FileList) => {
+    const currentLength = newProduct.images.length;
+    const remainingSlots = 5 - currentLength;
+    if (remainingSlots <= 0) {
+      notify('⚠️ সর্বোচ্চ ৫টি প্রডাক্ট ছবি আপলোড করা যাবে');
+      return;
+    }
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setNewProduct(prev => {
+            if (prev.images.length >= 5) return prev;
+            return { ...prev, images: [...prev.images, e.target!.result as string] };
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAddImageUrl = () => {
+    if (!productImageUrlInput.trim()) return;
+    if (newProduct.images.length >= 5) {
+      notify('⚠️ সর্বোচ্চ ৫টি প্রডাক্ট ছবি আপলোড করা যাবে');
+      return;
+    }
+    setNewProduct(prev => ({ ...prev, images: [...prev.images, productImageUrlInput.trim()] }));
+    setProductImageUrlInput('');
+  };
+
+  const handleRemoveProductImage = (indexToRemove: number) => {
+    setNewProduct(prev => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove)
+    }));
+  };
 
   // Withdrawal request amount
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -163,7 +204,17 @@ export default function VendorDashboard({
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newProduct.images || newProduct.images.length === 0) {
+      notify('⚠️ অনুগ্রহ করে সর্বনিম্ন ১টি প্রোডাক্ট ছবি আপলোড বা যুক্ত করুন (সর্বোচ্চ ৫টি)');
+      return;
+    }
+    if (newProduct.images.length > 5) {
+      notify('⚠️ সর্বোচ্চ ৫টি প্রডাক্ট ছবি নির্বাচন করা যাবে');
+      return;
+    }
+
     const cat = data.categories.find((c: any) => c.id === newProduct.categoryId);
+    const vendorTargetId = currentVendor?.id || authUser?.vendorId || authUser?.id || 'v_me';
 
     const payload = {
       title: newProduct.title,
@@ -172,9 +223,9 @@ export default function VendorDashboard({
       stock: parseInt(newProduct.stock) || 10,
       categoryId: newProduct.categoryId,
       categoryName: cat ? cat.name : 'General',
-      vendorId: currentVendor.id,
-      vendorName: currentVendor.storeName,
-      images: [newProduct.images],
+      vendorId: vendorTargetId,
+      vendorName: currentVendor?.storeName || 'Vendor Store',
+      images: newProduct.images,
       description: newProduct.description
     };
 
@@ -868,15 +919,84 @@ export default function VendorDashboard({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Image URL</label>
+              {/* Product Multi-Image Upload (Min 1, Max 5) */}
+              <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black uppercase text-slate-800 tracking-wider">
+                    🖼️ প্রডাক্ট ছবি আপলোড (Product Images) *
+                  </label>
+                  <span className="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
+                    ({newProduct.images.length}/5 টি ছবি নির্বাচিত)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  সর্বনিম্ন ১টি এবং সর্বোচ্চ ৫টি প্রোডাক্ট ছবি আপলোড করতে পারবেন।
+                </p>
+
+                {/* Hidden File Input for Multi Upload */}
                 <input
-                  type="url"
-                  required
-                  value={newProduct.images}
-                  onChange={e => setNewProduct({ ...newProduct, images: e.target.value })}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                  ref={productImageFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => e.target.files && handleAddProductImages(e.target.files)}
+                  className="hidden"
+                  id="product-images-file-input"
                 />
+
+                {/* Image Previews Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                  {newProduct.images.map((imgUrl, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border-2 border-slate-300 bg-white group shadow-xs">
+                      <img src={imgUrl} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                      
+                      <span className="absolute top-1 left-1 bg-black/70 backdrop-blur-md text-white px-1.5 py-0.5 rounded text-[9px] font-bold">
+                        {idx === 0 ? 'Main Photo' : `Photo ${idx + 1}`}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProductImage(idx)}
+                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-full shadow transition-transform hover:scale-110 cursor-pointer"
+                        title="ছবিটি রিমুভ করুন"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add More Button slot if < 5 */}
+                  {newProduct.images.length < 5 && (
+                    <label
+                      htmlFor="product-images-file-input"
+                      className="flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-orange-500 bg-white hover:bg-orange-50/50 cursor-pointer p-2 text-center transition-all group"
+                    >
+                      <Plus className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform mb-1" />
+                      <span className="text-[10px] font-bold text-slate-700">ছবি আপলোড</span>
+                      <span className="text-[8px] text-slate-400">({5 - newProduct.images.length}টি ফাঁকা)</span>
+                    </label>
+                  )}
+                </div>
+
+                {/* Optional URL Input Alternative */}
+                {newProduct.images.length < 5 && (
+                  <div className="flex gap-2 pt-2">
+                    <input
+                      type="url"
+                      placeholder="অথবা সরাসরি ইমেজ লিংক (URL) পেস্ট করুন..."
+                      value={productImageUrlInput}
+                      onChange={e => setProductImageUrlInput(e.target.value)}
+                      className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImageUrl}
+                      className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2 rounded-xl text-xs shrink-0 cursor-pointer"
+                    >
+                      + লিংক যোগ করুন
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
