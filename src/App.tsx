@@ -1527,6 +1527,7 @@ function CustomerView({
         // Try syncing order to Supabase table
         if (supabase) {
           try {
+            // 1. Insert order to orders table
             await supabase.from('orders').upsert([{
               id: newOrder.id,
               customer_id: fullPayload.customerId,
@@ -1539,8 +1540,22 @@ function CustomerView({
               payment_status: fullPayload.paymentStatus,
               status: 'pending'
             }]);
+
+            // 2. Insert order items to order_items table
+            if (Array.isArray(fullPayload.items) && fullPayload.items.length > 0) {
+              const dbItems = fullPayload.items.map((item: any) => ({
+                order_id: newOrder.id,
+                product_id: String(item.productId),
+                title: item.title,
+                price: Number(item.price),
+                quantity: Number(item.quantity),
+                size: item.size || null,
+                color: item.color || null
+              }));
+              await supabase.from('order_items').insert(dbItems);
+            }
           } catch (supaErr) {
-            console.warn('Supabase order insert note:', supaErr);
+            console.warn('Supabase order/items insert note:', supaErr);
           }
         }
 
