@@ -1524,55 +1524,6 @@ function CustomerView({
           console.warn('LocalStorage my orders save error:', e);
         }
 
-        // Try syncing order to Supabase table
-        if (supabase) {
-          try {
-            // 1. Insert order to orders table
-            const { error: orderErr } = await supabase.from('orders').upsert([{
-              id: newOrder.id,
-              customer_id: fullPayload.customerId,
-              customer_name: fullPayload.customerName,
-              customer_email: fullPayload.customerEmail,
-              phone: fullPayload.customerPhone,
-              address: fullPayload.shippingAddress,
-              total_amount: fullPayload.totalAmount,
-              payment_method: fullPayload.paymentMethod,
-              payment_status: fullPayload.paymentStatus,
-              status: 'pending'
-            }]);
-
-            if (orderErr) {
-              console.error('Supabase orders table save error:', orderErr);
-              notify('⚠️ orders টেবিলে সেভ করার সময় ত্রুটি: ' + orderErr.message);
-            } else {
-              console.log('Supabase orders table save success: ' + newOrder.id);
-            }
-
-            // 2. Insert order items to order_items table
-            if (Array.isArray(fullPayload.items) && fullPayload.items.length > 0) {
-              const dbItems = fullPayload.items.map((item: any) => ({
-                order_id: newOrder.id,
-                product_id: String(item.productId),
-                title: item.title,
-                price: Number(item.price),
-                quantity: Number(item.quantity),
-                size: item.size || null,
-                color: item.color || null
-              }));
-              const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
-              if (itemsErr) {
-                console.error('Supabase order_items table save error:', itemsErr);
-                notify('⚠️ order_items টেবিলে সেভ করার সময় ত্রুটি: ' + itemsErr.message);
-              } else {
-                console.log('Supabase order_items table save success: ' + dbItems.length + ' items');
-              }
-            }
-          } catch (supaErr: any) {
-            console.warn('Supabase order/items sync exception:', supaErr);
-            notify('⚠️ Supabase সিঙ্ক এক্সেপশন: ' + (supaErr.message || supaErr));
-          }
-        }
-
         // Notify and dispatch event
         window.dispatchEvent(new CustomEvent('bazaarpulse-order-created', { detail: newOrder }));
         notify('🎉 আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে!');
