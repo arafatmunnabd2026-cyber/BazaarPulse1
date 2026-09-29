@@ -1662,6 +1662,60 @@ const handleVendorStatusUpdate = async (req: any, res: any) => {
   }
 };
 
+// Update Vendor Profile & Store Photos (Logo & Banner)
+app.put('/api/vendors/:id', authMiddleware, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { 
+      storeName, 
+      ownerName, 
+      phone, 
+      logo, 
+      banner, 
+      paymentMethod, 
+      paymentNumber, 
+      accountType 
+    } = req.body;
+
+    const db = await getDb();
+    const vendor = (db.vendors || []).find((v: any) => v.id === id);
+    if (!vendor) return res.status(404).json({ success: false, error: 'Vendor not found' });
+
+    if (storeName) vendor.storeName = storeName;
+    if (ownerName) vendor.ownerName = ownerName;
+    if (phone) vendor.phone = phone;
+    if (logo) vendor.logo = logo;
+    if (banner) vendor.banner = banner;
+    if (paymentMethod) vendor.paymentMethod = paymentMethod;
+    if (paymentNumber) vendor.paymentNumber = paymentNumber;
+    if (accountType) vendor.accountType = accountType;
+
+    if (isDbConfigured) {
+      try {
+        await pool.query(
+          `UPDATE vendors SET 
+             store_name = COALESCE($1, store_name),
+             owner_name = COALESCE($2, owner_name),
+             phone = COALESCE($3, phone),
+             logo = COALESCE($4, logo),
+             banner = COALESCE($5, banner),
+             payment_method = COALESCE($6, payment_method),
+             payment_number = COALESCE($7, payment_number)
+           WHERE id = $8`,
+          [storeName, ownerName, phone, logo, banner, paymentMethod, paymentNumber, id]
+        );
+      } catch (dbErr) {
+        console.warn('Postgres vendor update fallback to local db:', dbErr);
+      }
+    }
+
+    saveDb(db);
+    res.json({ success: true, message: 'Store profile and photos updated successfully!', vendor });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.patch('/api/admin/vendors/:id/status', authMiddleware, verifyAdmin, handleVendorStatusUpdate);
 app.patch('/api/vendors/:id/status', authMiddleware, verifyAdmin, handleVendorStatusUpdate);
 

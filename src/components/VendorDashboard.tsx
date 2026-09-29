@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { 
-  ShoppingBag, LogOut, Plus, Star, Package, X, Sparkles 
+  ShoppingBag, LogOut, Plus, Star, Package, X, Sparkles, TrendingUp, DollarSign,
+  Settings, Upload, Image, Store, Check, Camera
 } from 'lucide-react';
 
 export default function VendorDashboard({ 
@@ -39,7 +40,83 @@ export default function VendorDashboard({
   const vendorOrders = (data.orders || []).filter((o: any) => (o.items || []).some((i: any) => i.vendorId === currentVendor?.id));
   const vendorWithdrawals = (data.withdrawals || []).filter((w: any) => w.vendorId === currentVendor?.id);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payouts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payouts' | 'settings'>('overview');
+  const [loading, setLoading] = useState(false);
+
+  // Store Profile & Photos Form State
+  const [storeForm, setStoreForm] = useState({
+    storeName: currentVendor?.storeName || '',
+    ownerName: currentVendor?.ownerName || '',
+    phone: currentVendor?.phone || '',
+    logo: currentVendor?.logo || 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150',
+    banner: currentVendor?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+    paymentMethod: currentVendor?.paymentMethod || 'bkash',
+    paymentNumber: currentVendor?.paymentNumber || ''
+  });
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (currentVendor) {
+      setStoreForm({
+        storeName: currentVendor.storeName || '',
+        ownerName: currentVendor.ownerName || '',
+        phone: currentVendor.phone || '',
+        logo: currentVendor.logo || 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150',
+        banner: currentVendor.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+        paymentMethod: currentVendor.paymentMethod || 'bkash',
+        paymentNumber: currentVendor.paymentNumber || ''
+      });
+    }
+  }, [currentVendor?.id, currentVendor?.logo, currentVendor?.banner]);
+
+  const handleLogoUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setStoreForm(prev => ({ ...prev, logo: e.target!.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBannerUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setStoreForm(prev => ({ ...prev, banner: e.target!.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveStoreProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentVendor?.id) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/vendors/${currentVendor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
+        },
+        body: JSON.stringify(storeForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        notify('🎉 স্টোর ছবি ও প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে!');
+        refreshData();
+      } else {
+        notify('❌ ' + (data.error || 'Failed to update store profile'));
+      }
+    } catch (err: any) {
+      notify('❌ Error updating store profile');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // New Product Modal & AI description generator
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -182,95 +259,132 @@ export default function VendorDashboard({
 
   return (
     <div className="min-h-screen bg-slate-100 pb-20">
-      {/* Vendor Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200 sticky top-[41px] z-30">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={currentVendor.logo} alt="" className="w-12 h-12 rounded-xl object-cover border" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-bold text-lg text-slate-900">{currentVendor.storeName}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                  currentVendor.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {currentVendor.status.toUpperCase()}
-                </span>
+      {/* Fixed Clean Vendor Header & Navigation Panel */}
+      <div className="bg-white border-b border-slate-200 shadow-sm relative z-20">
+        <div className="max-w-7xl mx-auto px-4 pt-5 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            {/* Store Branding */}
+            <div className="flex items-center gap-3.5">
+              <img 
+                src={currentVendor?.logo || 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=150'} 
+                alt={currentVendor?.storeName || 'Vendor Store'} 
+                className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0 bg-slate-100" 
+              />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                    {currentVendor?.storeName || 'Vendor Portal'}
+                  </h2>
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                    currentVendor?.status === 'approved' 
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                      : currentVendor?.status === 'pending'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : 'bg-red-100 text-red-800 border border-red-200'
+                  }`}>
+                    {currentVendor?.status === 'approved' ? 'APPROVED (অনুমোদিত)' : currentVendor?.status?.toUpperCase() || 'APPROVED'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                  <span>Commission Rate: <strong className="text-orange-600 font-bold">{currentVendor?.commissionRate || 10}%</strong></span>
+                  <span>•</span>
+                  <span>Available Balance: <strong className="text-emerald-700 font-bold">৳{currentVendor?.balance || 0}</strong></span>
+                </div>
               </div>
-              <p className="text-xs text-slate-500">Commission Rate: {currentVendor.commissionRate}% • Balance: ৳{currentVendor.balance}</p>
+            </div>
+
+            {/* Quick Actions & Store Switcher */}
+            <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center">
+              {data?.vendors && data.vendors.length > 1 && (
+                <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                  <span className="text-xs text-slate-600 font-medium">Switch Store:</span>
+                  <select
+                    value={currentVendorId}
+                    onChange={e => setCurrentVendorId(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
+                  >
+                    {data.vendors.map((v: any) => (
+                      <option key={v.id} value={v.id}>{v.storeName} ({v.status})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {navigateTo && (
+                <button
+                  onClick={() => navigateTo('/')}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all shadow-xs cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4 text-orange-600" />
+                  <span>Storefront (স্টোরফ্রন্ট)</span>
+                </button>
+              )}
+
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-red-200 transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs text-slate-500 font-medium hidden sm:inline">Switch Store:</span>
-            <select
-              value={currentVendorId}
-              onChange={e => setCurrentVendorId(e.target.value)}
-              className="bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:bg-white focus:ring-2 focus:ring-orange-500"
+          {/* Clean Navigation Tabs inside Header Area */}
+          <div className="pt-3.5 flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === 'overview' ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
             >
-              {data.vendors.map((v: any) => (
-                <option key={v.id} value={v.id}>{v.storeName} ({v.status})</option>
-              ))}
-            </select>
-
-            {navigateTo && (
-              <button
-                onClick={() => navigateTo('/')}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all shadow-sm"
-              >
-                <ShoppingBag className="w-3.5 h-3.5 text-orange-600" />
-                <span>Storefront</span>
-              </button>
-            )}
-
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-red-200 transition-all"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
-              </button>
-            )}
+              <TrendingUp className="w-4 h-4" />
+              <span>Analytics & Earnings</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === 'products' ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span>Products ({vendorProducts.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === 'orders' ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>Orders ({vendorOrders.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('payouts')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === 'payouts' ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>Payouts & Withdrawals</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                activeTab === 'settings' ? 'bg-orange-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Store Profile & Photos (স্টোর ছবি ও তথ্য)</span>
+            </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Tabs */}
+      {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 mt-6">
-        <div className="flex gap-2 border-b border-slate-200 pb-3">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'overview' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            📊 Analytics & Earnings
-          </button>
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'products' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            📦 Products ({vendorProducts.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'orders' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            📋 Orders ({vendorOrders.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('payouts')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'payouts' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            💰 Payouts & Withdrawals
-          </button>
-        </div>
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
@@ -451,6 +565,211 @@ export default function VendorDashboard({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Store Settings & Photo Upload Tab */}
+        {activeTab === 'settings' && (
+          <form onSubmit={handleSaveStoreProfile} className="mt-6 space-y-6 text-left">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                    <Store className="w-6 h-6 text-orange-600" />
+                    <span>স্টোর ছবি ও প্রোফাইল সেটিংস (Store Profile & Photo Upload)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    আপনার দোকানের লোগো, ব্যানার ফটো এবং পেআউট তথ্য আপডেট করুন
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-black px-6 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{loading ? 'সংরক্ষণ হচ্ছে...' : 'স্টোর তথ্য সেভ করুন'}</span>
+                </button>
+              </div>
+
+              {/* 1. Banner Photo Upload */}
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  🖼️ স্টোর ব্যানার ফটো (Store Cover Banner Photo)
+                </label>
+
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={e => e.target.files?.[0] && handleBannerUpload(e.target.files[0])}
+                  className="hidden"
+                  id="store-banner-file"
+                />
+
+                <div className="relative h-44 sm:h-56 w-full rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 bg-slate-900 group shadow-inner">
+                  <img 
+                    src={storeForm.banner} 
+                    alt="Store Banner Preview" 
+                    className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <label
+                      htmlFor="store-banner-file"
+                      className="bg-white hover:bg-slate-100 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs shadow-lg cursor-pointer flex items-center gap-1.5 transition-transform hover:scale-105"
+                    >
+                      <Camera className="w-4 h-4 text-orange-600" />
+                      <span>গ্যালারি থেকে ব্যানার ছবি আপলোড করুন</span>
+                    </label>
+                  </div>
+                  <label
+                    htmlFor="store-banner-file"
+                    className="absolute bottom-3 right-3 bg-slate-900/80 hover:bg-slate-950 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer flex items-center gap-1.5 shadow"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Upload Banner Image</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">অথবা ব্যানার লিংক (Image URL):</span>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/photo-..."
+                    value={storeForm.banner}
+                    onChange={e => setStoreForm(prev => ({ ...prev, banner: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* 2. Store Logo Avatar Upload */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                  🏬 স্টোর লোগো ছবি (Store Logo Avatar)
+                </label>
+
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={e => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+                  className="hidden"
+                  id="store-logo-file"
+                />
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-300 bg-white shrink-0 group shadow-md">
+                    <img 
+                      src={storeForm.logo} 
+                      alt="Store Logo Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                    <label
+                      htmlFor="store-logo-file"
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                    >
+                      <Camera className="w-6 h-6 text-orange-400" />
+                    </label>
+                  </div>
+
+                  <div className="space-y-2 flex-1 w-full text-center sm:text-left">
+                    <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                      <label
+                        htmlFor="store-logo-file"
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition-all cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>লোগো ছবি আপলোড করুন</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">(Square Image PNG/JPG Max 5MB)</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">অথবা লোগো লিংক:</span>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={storeForm.logo}
+                        onChange={e => setStoreForm(prev => ({ ...prev, logo: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Store Info Text Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">দোকানের নাম (Store Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={storeForm.storeName}
+                    onChange={e => setStoreForm(prev => ({ ...prev, storeName: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">স্বত্বাধিকারীর নাম (Owner Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={storeForm.ownerName}
+                    onChange={e => setStoreForm(prev => ({ ...prev, ownerName: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">যোগাযোগ নম্বর (Phone) *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={storeForm.phone}
+                    onChange={e => setStoreForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">পেমেন্ট গেটওয়ে ও নম্বর (Payout Mobile Number)</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={storeForm.paymentMethod}
+                      onChange={e => setStoreForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                    >
+                      <option value="bkash">বিকাশ</option>
+                      <option value="nagad">নগদ</option>
+                      <option value="rocket">রকেট</option>
+                      <option value="bank">ব্যাংক</option>
+                    </select>
+                    <input
+                      type="tel"
+                      placeholder="017XXXXXXXX"
+                      value={storeForm.paymentNumber}
+                      onChange={e => setStoreForm(prev => ({ ...prev, paymentNumber: e.target.value }))}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white font-black px-8 py-3 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{loading ? 'সংরক্ষণ হচ্ছে...' : 'স্টোর ছবি ও তথ্য সংরক্ষণ করুন (Save Profile & Photos)'}</span>
+                </button>
+              </div>
+            </div>
+          </form>
         )}
       </div>
 
