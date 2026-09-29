@@ -1463,21 +1463,23 @@ app.post('/api/auth/vendor-login', async (req, res) => {
     if (!vendor && isDbConfigured) {
       try {
         const vRes = await pool.query(
-          `SELECT * FROM vendors WHERE LOWER(phone) = $1 OR LOWER(email) = $1 OR LOWER(name) = $1 OR LOWER(id) = $1`,
+          `SELECT * FROM vendors WHERE LOWER(phone) = $1 OR LOWER(email) = $1 OR LOWER(store_name) = $1 OR LOWER(owner_name) = $1 OR LOWER(id) = $1`,
           [clean]
         );
         if (vRes.rowCount! > 0) {
           const row = vRes.rows[0];
           vendor = {
             id: row.id,
-            storeName: row.name,
-            ownerName: row.name,
+            storeName: row.store_name || row.owner_name || row.id,
+            ownerName: row.owner_name || row.store_name,
             email: row.email,
             phone: row.phone,
             status: row.status || 'approved'
           };
         }
-      } catch (dbErr) {}
+      } catch (dbErr) {
+        console.warn('Vendor login DB search warning:', dbErr);
+      }
     }
 
     // Default demo fallback if no vendor exists yet

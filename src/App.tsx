@@ -4997,6 +4997,49 @@ function AuthModal({
           navigateTo('/vendor');
         }
       } else {
+        if (data.notFound && supabase) {
+          try {
+            const cleanIdent = sellerLoginIdentifier.trim();
+            const { data: supaVendors } = await supabase
+              .from('vendors')
+              .select('*')
+              .or(`email.ilike.${cleanIdent},phone.eq.${cleanIdent},store_name.ilike.${cleanIdent},owner_name.ilike.${cleanIdent}`);
+
+            if (supaVendors && supaVendors.length > 0) {
+              const v = supaVendors[0];
+              if (v.status === 'pending') {
+                setSellerLoginStatus('pending');
+                setErrorMessage('আপনার অ্যাকাউন্টটি এখনো অ্যাডমিন অনুমোদনের অপেক্ষায় রয়েছে (Pending Approval)।');
+                notify('⏳ সেলার অ্যাকাউন্টটি অ্যাডমিন অনুমোদনের অপেক্ষায় রয়েছে');
+                return;
+              } else if (v.status === 'rejected' || v.status === 'suspended') {
+                setSellerLoginStatus('rejected');
+                setErrorMessage('আপনার অ্যাকাউন্টটি রিজেক্ট বা স্থগিত করা হয়েছে।');
+                notify('❌ সেলার অ্যাকাউন্টটি রিজেক্ট করা হয়েছে');
+                return;
+              } else {
+                const payloadUser = {
+                  id: 'u_' + v.id,
+                  name: v.owner_name || v.store_name,
+                  storeName: v.store_name,
+                  email: v.email,
+                  phone: v.phone,
+                  role: 'vendor',
+                  status: 'approved',
+                  vendorId: v.id
+                };
+                onLoginUser(payloadUser, 'supa_v_token_' + Date.now());
+                notify(`🎉 স্বাগতম! "${v.store_name}" বিক্রেতা প্যানেলে প্রবেশ করছেন...`);
+                onClose();
+                if (navigateTo) navigateTo('/vendor');
+                return;
+              }
+            }
+          } catch (supaErr) {
+            console.warn('Supabase client fallback search error:', supaErr);
+          }
+        }
+
         setErrorMessage(data.error || 'Seller login failed');
         if (data.isRejected) {
           setSellerLoginStatus('rejected');
