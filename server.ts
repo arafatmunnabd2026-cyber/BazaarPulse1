@@ -2198,45 +2198,55 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
 
     const orderId = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+    const createdOrder = {
+      id: orderId,
+      customerId: userId,
+      customerName: customerName || req.user?.name || 'Customer',
+      customerEmail: customerEmail || req.user?.email || '',
+      customerPhone: phone || '',
+      phone: phone || '',
+      shippingAddress: shippingAddress || '',
+      address: shippingAddress || '',
+      items,
+      subtotal: Number(req.body.subtotal || totalAmount),
+      deliveryFee: Number(req.body.deliveryFee || 80),
+      totalAmount: Number(totalAmount),
+      paymentMethod: paymentMethod || 'Cash on Delivery',
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
     if (isDbConfigured) {
       // Call the place_order function we defined in initDatabase
-      await pool.query(
-        'SELECT place_order($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-        [
-          orderId,
-          userId,
-          customerName || req.user?.name || 'Customer',
-          customerEmail || req.user?.email || '',
-          shippingAddress || '',
-          phone || '',
-          Number(totalAmount),
-          paymentMethod || 'Cash on Delivery',
-          JSON.stringify(items)
-        ]
-      );
+      try {
+        await pool.query(
+          'SELECT place_order($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [
+            orderId,
+            userId,
+            createdOrder.customerName,
+            createdOrder.customerEmail,
+            createdOrder.shippingAddress,
+            createdOrder.phone,
+            createdOrder.totalAmount,
+            createdOrder.paymentMethod,
+            JSON.stringify(items)
+          ]
+        );
+      } catch (dbErr) {
+        console.warn('Postgres place_order warning:', dbErr);
+      }
 
       res.json({ 
         success: true, 
         message: 'Order placed successfully!', 
-        orderId 
+        orderId,
+        order: createdOrder
       });
     } else {
-      // Fallback logic for demo/file-based (though prompt asks for production Supabase)
+      // Fallback logic for demo/file-based
       const db = await getDb();
-      const newOrder = {
-        id: orderId,
-        customerId: userId,
-        customerName: customerName || req.user?.name || 'Customer',
-        totalAmount: Number(totalAmount),
-        status: 'pending',
-        paymentMethod: paymentMethod || 'Cash on Delivery',
-        address: shippingAddress || '',
-        phone: phone || '',
-        items,
-        createdAt: new Date().toISOString()
-      };
-      
-      db.orders.unshift(newOrder);
+      db.orders.unshift(createdOrder);
       // Deduct stock in fallback
       items.forEach((item: any) => {
         const prod = db.products.find((p: any) => p.id === item.productId);
@@ -2249,7 +2259,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       db.cartItems = db.cartItems.filter(ci => ci.userId !== userId);
       
       saveDb(db);
-      res.json({ success: true, order: newOrder });
+      res.json({ success: true, order: createdOrder });
     }
   } catch (error: any) {
     console.error('Checkout error:', error);

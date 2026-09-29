@@ -23,6 +23,7 @@ import UserOrders from './components/UserOrders';
 import AdminDashboard from '../AdminDashboard';
 import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
+import OrderConfirmationModal from './components/OrderConfirmationModal';
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -2399,41 +2400,12 @@ function CustomerView({
       </AnimatePresence>
 
       {/* Order Confirmation Success Modal */}
-      {orderConfirmation && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border border-slate-200"
-          >
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Order Confirmed!</h2>
-            <p className="text-slate-600 mb-6 text-sm text-center">
-              Thank you for shopping with BazaarPulse! Your order has been successfully placed and is now being processed.
-            </p>
-            
-            <div className="bg-slate-50 rounded-2xl p-4 mb-6 text-left border border-slate-100">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Order ID</span>
-                <span className="text-sm font-black text-orange-600">{orderConfirmation.id}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Amount</span>
-                <span className="text-sm font-black text-slate-900">৳{orderConfirmation.totalAmount}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setOrderConfirmation(null)}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-lg"
-            >
-              Continue Shopping
-            </button>
-          </motion.div>
-        </div>
-      )}
+      <OrderConfirmationModal
+        order={orderConfirmation}
+        onClose={() => setOrderConfirmation(null)}
+        onTrackOrder={() => setIsMyOrdersOpen(true)}
+        notify={notify}
+      />
 
       {/* Robust My Orders & Live Tracking Modal */}
       {isMyOrdersOpen && (
