@@ -504,16 +504,42 @@ export default function CheckoutModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-black mb-1">থানা / এলাকা (Select Thana) *</label>
-                    <select
-                      value={shippingInfo.thana}
-                      onChange={e => setShippingInfo({ ...shippingInfo, thana: e.target.value })}
-                      className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      {districtThanas.map(th => (
-                        <option key={th} value={th}>{th}</option>
+                    <label className="block text-xs font-medium text-black mb-1">থানা / এলাকা (Thana / Upazila - টাইপ বা সিলেক্ট করুন) *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        list="thana-list-options"
+                        required
+                        placeholder="থানার নাম লিখুন বা সিলেক্ট করুন..."
+                        value={shippingInfo.thana}
+                        onChange={e => setShippingInfo({ ...shippingInfo, thana: e.target.value })}
+                        className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <datalist id="thana-list-options">
+                        {districtThanas.map((th, idx) => (
+                          <option key={idx} value={th} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    {/* Quick suggestion pills for instant 1-tap selection */}
+                    <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                      <span className="text-[10px] text-slate-500 font-bold w-full">দ্রুত সিলেক্ট করুন:</span>
+                      {districtThanas.map((th, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setShippingInfo({ ...shippingInfo, thana: th })}
+                          className={`px-2 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                            shippingInfo.thana === th
+                              ? 'bg-blue-600 text-white font-bold'
+                              : 'bg-white border border-slate-300 text-black hover:bg-slate-100'
+                          }`}
+                        >
+                          {th}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 </div>
 
