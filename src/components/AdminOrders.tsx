@@ -51,8 +51,17 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
   useEffect(() => {
     fetchOrders();
 
+    // Fast poll interval fallback to guarantee instant updates on any system
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 3000);
+
     // Enable Realtime for Admin
-    if (!supabase) return;
+    if (!supabase) {
+      return () => {
+        clearInterval(pollInterval);
+      };
+    }
 
     const channel = supabase
       .channel('admin-order-updates')
@@ -60,13 +69,22 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('Realtime change received:', payload);
+          console.log('Realtime orders change received:', payload);
+          fetchOrders(); // Refresh list on any change
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items' },
+        (payload) => {
+          console.log('Realtime order_items change received:', payload);
           fetchOrders(); // Refresh list on any change
         }
       )
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       if (supabase) {
         supabase.removeChannel(channel);
       }

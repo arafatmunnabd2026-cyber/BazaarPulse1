@@ -601,17 +601,46 @@ async function syncOrderToSupabase(order: any) {
 
     // 2. Insert order items to Supabase
     if (Array.isArray(order.items) && order.items.length > 0) {
-      const dbItems = order.items.map((item: any) => ({
-        order_id: order.id,
-        product_id: String(item.productId),
-        title: item.title,
-        price: Number(item.price),
-        quantity: Number(item.quantity || 1),
-        size: item.size || null,
-        color: item.color || null,
-        image: item.image || null,
-        product_url: item.productUrl || item.product_url || null
-      }));
+      const dbItems = [];
+      for (const item of order.items) {
+        let finalImage = item.image || item.imageUrl || item.image_url || null;
+        let finalProductUrl = item.productUrl || item.product_url || null;
+
+        // Self-healing: if image or productUrl is missing, query database catalog
+        try {
+          if (!finalImage || !finalProductUrl) {
+            const { data: prodData } = await supabase
+              .from('products')
+              .select('*')
+              .eq('id', String(item.productId || item.product_id))
+              .maybeSingle();
+
+            if (prodData) {
+              if (!finalImage) {
+                const parsedImgs = parseJsonSafe(prodData.images, []);
+                finalImage = (Array.isArray(parsedImgs) && parsedImgs.length > 0 ? parsedImgs[0] : null) || prodData.image_url || prodData.image || null;
+              }
+              if (!finalProductUrl) {
+                finalProductUrl = `https://bazaarpulse.com/product/${prodData.id}`;
+              }
+            }
+          }
+        } catch (dbErr: any) {
+          console.warn('Fallback product query warning:', dbErr.message);
+        }
+
+        dbItems.push({
+          order_id: order.id,
+          product_id: String(item.productId || item.product_id),
+          title: item.title,
+          price: Number(item.price),
+          quantity: Number(item.quantity || 1),
+          size: item.size || null,
+          color: item.color || null,
+          image: finalImage,
+          product_url: finalProductUrl
+        });
+      }
 
       const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
       if (itemsErr) {
@@ -712,21 +741,7 @@ async function getDb(): Promise<InitialData> {
             }))
           }));
 
-          const ordersMap = new Map<string, any>();
-          
-          formattedOrders.forEach((so: any) => {
-            if (so && so.id) ordersMap.set(String(so.id), so);
-          });
-
-          const localOrders = Array.isArray(db.orders) ? db.orders : [];
-          localOrders.forEach((lo: any) => {
-            if (lo && lo.id && !ordersMap.has(String(lo.id))) {
-              ordersMap.set(String(lo.id), lo);
-              syncOrderToSupabase(lo);
-            }
-          });
-
-          db.orders = Array.from(ordersMap.values());
+          db.orders = formattedOrders;
         }
 
         // Persist to local database.json cache so file is never out of sync!
@@ -755,7 +770,31 @@ async function getDb(): Promise<InitialData> {
     
     client.release();
     
-    const allOrderItems = orderItemsRes.rows;
+    let allOrderItems = orderItemsRes.rows;
+    let rawOrders = ordersRes.rows;
+
+    // Treat Supabase as the source of truth if available
+    if (supabase) {
+      try {
+        const { data: supaOrders, error: ordersErr } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        const { data: supaItems, error: itemsErr } = await supabase
+          .from('order_items')
+          .select('*');
+
+        if (!ordersErr && Array.isArray(supaOrders)) {
+          rawOrders = supaOrders;
+        }
+        if (!itemsErr && Array.isArray(supaItems)) {
+          allOrderItems = supaItems;
+        }
+      } catch (supaErr) {
+        console.error('Failed to sync live Supabase orders in Postgres branch:', supaErr);
+      }
+    }
     
     const users = usersRes.rows;
     const categories = categoriesRes.rows;
@@ -777,12 +816,12 @@ async function getDb(): Promise<InitialData> {
     const products = productsRes.rows.map(formatProductRow);
 
 
-    const orders = ordersRes.rows.map(o => ({
+    const orders = rawOrders.map(o => ({
       id: o.id,
       status: o.status,
-      paymentStatus: o.payment_status,
-      paymentMethod: o.payment_method,
-      totalAmount: Number(o.total_amount),
+      paymentStatus: o.payment_status || o.paymentStatus || 'unpaid',
+      paymentMethod: o.payment_method || o.paymentMethod || 'Cash on Delivery',
+      totalAmount: Number(o.total_amount || o.totalAmount || 0),
       customerId: o.customer_id || o.customerId || 'u4',
       user_id: o.customer_id || o.customerId || 'u4',
       customerName: o.customer_name || o.customerName || 'Customer',
