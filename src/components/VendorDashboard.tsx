@@ -856,10 +856,12 @@ export default function VendorDashboard({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Wireless Mechanical Gaming Keyboard"
+                    placeholder=""
+                    autoComplete="off"
+                    spellCheck={false}
                     value={newProduct.title}
                     onChange={e => setNewProduct({ ...newProduct, title: e.target.value })}
-                    className="flex-1 bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                    className="flex-1 bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                   <button
                     type="button"
@@ -1003,10 +1005,12 @@ export default function VendorDashboard({
                 <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Key Features (for AI Writer)</label>
                 <input
                   type="text"
-                  placeholder="RGB backlit, blue switches, 2.4G wireless..."
+                  placeholder=""
+                  autoComplete="off"
+                  spellCheck={false}
                   value={newProduct.keyFeatures}
                   onChange={e => setNewProduct({ ...newProduct, keyFeatures: e.target.value })}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
