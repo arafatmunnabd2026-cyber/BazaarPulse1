@@ -737,7 +737,9 @@ async function getDb(): Promise<InitialData> {
               price: Number(item.price),
               quantity: Number(item.quantity || 1),
               size: item.size || null,
-              color: item.color || null
+              color: item.color || null,
+              image: item.image || null,
+              productUrl: item.product_url || item.productUrl || null
             }))
           }));
 
