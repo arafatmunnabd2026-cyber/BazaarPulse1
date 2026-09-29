@@ -1966,6 +1966,19 @@ const handleOrderStatusUpdate = async (req: any, res: any) => {
     const { id } = req.params;
     const { status } = req.body;
     
+    // Sync update to Supabase orders table so that realtime clients automatically get notified!
+    if (supabase) {
+      try {
+        await supabase
+          .from('orders')
+          .update({ status: status })
+          .eq('id', id);
+        console.log(`Supabase order status synced: #${id} -> ${status}`);
+      } catch (supaErr: any) {
+        console.warn('Supabase status sync note:', supaErr.message);
+      }
+    }
+
     if (isDbConfigured) {
       const result = await pool.query(
         'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',

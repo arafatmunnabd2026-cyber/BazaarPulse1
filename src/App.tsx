@@ -2667,6 +2667,7 @@ function CustomerView({
                 notify={notify}
                 productsCatalog={data.products}
                 onSelectTrackOrder={setTrackedOrder}
+                currentTrackedOrder={trackedOrder}
               />
 
               {!authUser && (

@@ -37,9 +37,10 @@ interface UserOrdersProps {
   notify?: (msg: string) => void;
   productsCatalog?: any[];
   onSelectTrackOrder?: (order: any) => void;
+  currentTrackedOrder?: any;
 }
 
-export default function UserOrders({ userId, authToken, notify, productsCatalog = [], onSelectTrackOrder }: UserOrdersProps) {
+export default function UserOrders({ userId, authToken, notify, productsCatalog = [], onSelectTrackOrder, currentTrackedOrder }: UserOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
@@ -93,9 +94,16 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
 
       setOrders(matchedOrders);
 
-      // Auto tracking: automatically select the newest order to track instantly
+      // Auto tracking: automatically select the newest order to track instantly if none is selected
       if (matchedOrders.length > 0 && onSelectTrackOrder) {
-        onSelectTrackOrder(matchedOrders[0]);
+        if (currentTrackedOrder) {
+          const newestState = matchedOrders.find(o => String(o.id) === String(currentTrackedOrder.id));
+          if (newestState) {
+            onSelectTrackOrder(newestState);
+          }
+        } else {
+          onSelectTrackOrder(matchedOrders[0]);
+        }
       }
     } catch (err) {
       console.error('Fetch my orders error:', err);
@@ -107,6 +115,11 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   useEffect(() => {
     fetchMyOrders();
 
+    // Fast poll to ensure instant zero-latency updates even on local fallback DB
+    const pollInterval = setInterval(() => {
+      fetchMyOrders();
+    }, 3000);
+
     const handleOrderCreated = (e: any) => {
       fetchMyOrders();
     };
@@ -115,6 +128,7 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
     // Live tracking using Supabase Channel
     if (!supabase) {
       return () => {
+        clearInterval(pollInterval);
         window.removeEventListener('bazaarpulse-order-created', handleOrderCreated);
       };
     }
@@ -142,6 +156,7 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener('bazaarpulse-order-created', handleOrderCreated);
       if (supabase) {
         supabase.removeChannel(channel);
