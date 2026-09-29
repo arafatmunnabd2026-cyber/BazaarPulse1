@@ -641,12 +641,13 @@ async function getDb(): Promise<InitialData> {
 
     if (supabase) {
       try {
-        const { data: supaProducts, error } = await supabase
+        // 1. Fetch live products from Supabase
+        const { data: supaProducts, error: prodErr } = await supabase
           .from('products')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && Array.isArray(supaProducts)) {
+        if (!prodErr && Array.isArray(supaProducts)) {
           const formattedSupa = supaProducts.map(formatProductRow);
           
           // Safe Merge: Supabase products + any local products not yet in Supabase
@@ -668,11 +669,68 @@ async function getDb(): Promise<InitialData> {
           });
 
           db.products = Array.from(mergedMap.values());
-          // Persist to local database.json cache so file is never out of sync!
-          saveDb(db);
         }
+
+        // 2. Fetch live orders and order_items from Supabase to prevent loss on browser refresh!
+        const { data: supaOrders, error: ordersErr } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        const { data: supaItems, error: itemsErr } = await supabase
+          .from('order_items')
+          .select('*');
+
+        if (!ordersErr && Array.isArray(supaOrders)) {
+          const itemsList = Array.isArray(supaItems) ? supaItems : [];
+          const formattedOrders = supaOrders.map((o: any) => ({
+            id: o.id,
+            customerId: o.customer_id || 'u4',
+            user_id: o.customer_id || 'u4',
+            customerName: o.customer_name || 'Customer',
+            customerEmail: o.customer_email || '',
+            customerPhone: o.phone || '',
+            phone: o.phone || '',
+            shippingAddress: o.address || '',
+            address: o.address || '',
+            paymentMethod: o.payment_method || 'Cash on Delivery',
+            paymentStatus: o.payment_status || 'unpaid',
+            status: o.status || 'pending',
+            totalAmount: Number(o.total_amount || 0),
+            subtotal: Number(o.subtotal || o.total_amount || 0),
+            deliveryFee: Number(o.delivery_fee || 80),
+            createdAt: o.created_at || o.createdAt || new Date().toISOString(),
+            items: itemsList.filter((item: any) => item.order_id === o.id).map((item: any) => ({
+              productId: item.product_id,
+              title: item.title,
+              price: Number(item.price),
+              quantity: Number(item.quantity || 1),
+              size: item.size || null,
+              color: item.color || null
+            }))
+          }));
+
+          const ordersMap = new Map<string, any>();
+          
+          formattedOrders.forEach((so: any) => {
+            if (so && so.id) ordersMap.set(String(so.id), so);
+          });
+
+          const localOrders = Array.isArray(db.orders) ? db.orders : [];
+          localOrders.forEach((lo: any) => {
+            if (lo && lo.id && !ordersMap.has(String(lo.id))) {
+              ordersMap.set(String(lo.id), lo);
+              syncOrderToSupabase(lo);
+            }
+          });
+
+          db.orders = Array.from(ordersMap.values());
+        }
+
+        // Persist to local database.json cache so file is never out of sync!
+        saveDb(db);
       } catch (err) {
-        console.error('Error fetching live products from Supabase in fallback:', err);
+        console.error('Error fetching live products/orders from Supabase in fallback:', err);
       }
     }
 
