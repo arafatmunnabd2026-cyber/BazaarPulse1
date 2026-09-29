@@ -205,19 +205,25 @@ export default function VendorDashboard({
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(withdrawAmount);
-    if (amt <= 0 || amt > currentVendor.balance) {
-      notify('Invalid withdrawal amount or insufficient balance');
+    if (!amt || amt <= 0) {
+      notify('⚠️ অনুগ্রহ করে সঠিক উত্তোলনের পরিমাণ লিখুন');
+      return;
+    }
+    const currentBal = Number(currentVendor?.balance || 0);
+    if (currentBal < amt) {
+      notify(`⚠️ অপর্যাপ্ত ব্যালেন্স! আপনার বর্তমান ব্যালেন্স ৳${currentBal}`);
       return;
     }
 
     try {
+      const vendorTargetId = currentVendor?.id || authUser?.vendorId || authUser?.id || 'v_me';
       const res = await fetch('/api/vendor/withdrawals', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': authToken ? `Bearer ${authToken}` : ''
         },
-        body: JSON.stringify({ vendorId: currentVendor.id, amount: amt, bankDetails })
+        body: JSON.stringify({ vendorId: vendorTargetId, amount: amt, bankDetails })
       });
       const json = await res.json();
       if (res.status === 403 || res.status === 401) {
@@ -225,13 +231,15 @@ export default function VendorDashboard({
         return;
       }
       if (json.success) {
-        notify('💸 Withdrawal request submitted to admin!');
+        notify('💸 পেআউট আবেদনের অনুরোধ সফলভাবে জমা দেওয়া হয়েছে!');
         setWithdrawAmount('');
         setBankDetails('');
         refreshData();
+      } else {
+        notify('❌ ' + (json.error || 'Withdrawal request failed'));
       }
     } catch (err) {
-      notify('Failed to request withdrawal');
+      notify('❌ Failed to request withdrawal');
     }
   };
 
@@ -513,11 +521,11 @@ export default function VendorDashboard({
                   <input
                     type="number"
                     required
-                    max={currentVendor.balance}
-                    placeholder={`Max ৳${currentVendor.balance}`}
+                    min="1"
+                    placeholder="উত্তোলনের পরিমাণ লিখুন (টাকা)"
                     value={withdrawAmount}
                     onChange={e => setWithdrawAmount(e.target.value)}
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-900"
                   />
                 </div>
                 <div>
