@@ -158,15 +158,22 @@ export default function CheckoutModal({
       const fullAddressString = `${shippingInfo.fullAddressDetails}, থানা: ${shippingInfo.thana}, জেলা: ${shippingInfo.district}, ${shippingInfo.country} (টাইপ: ${shippingInfo.addressType})`;
 
       const orderPayload = {
-        items: itemsToCheckout.map(i => ({
-          productId: i.product.id,
-          title: i.product.title,
-          price: i.product.discountPrice || i.product.price,
-          quantity: i.quantity,
-          vendorId: i.product.vendorId,
-          size: i.size,
-          color: i.color
-        })),
+        items: itemsToCheckout.map(i => {
+          const firstImg = Array.isArray(i.product.images) && i.product.images.length > 0
+            ? i.product.images[0]
+            : (i.product.image || i.product.images || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200');
+          return {
+            productId: i.product.id,
+            title: i.product.title,
+            price: i.product.discountPrice || i.product.price,
+            quantity: i.quantity,
+            vendorId: i.product.vendorId,
+            size: i.size,
+            color: i.color,
+            image: firstImg,
+            productUrl: `${window.location.origin}/product/${i.product.id}`
+          };
+        }),
         customerName: shippingInfo.name,
         customerEmail: authUser?.email || `${shippingInfo.phone}@customer.com`,
         phone: shippingInfo.phone,

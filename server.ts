@@ -608,7 +608,9 @@ async function syncOrderToSupabase(order: any) {
         price: Number(item.price),
         quantity: Number(item.quantity || 1),
         size: item.size || null,
-        color: item.color || null
+        color: item.color || null,
+        image: item.image || null,
+        product_url: item.productUrl || item.product_url || null
       }));
 
       const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
