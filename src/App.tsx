@@ -2511,7 +2511,7 @@ function CustomerView({
 
               {/* Tracked Order Progress Visual Tracker */}
               {trackedOrder && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs text-left">
+                <div id="bazaarpulse-live-tracker-title" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs text-left scroll-mt-6">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
                       <span className="text-xs font-medium text-black uppercase tracking-wider">Tracking Order</span>
@@ -2666,6 +2666,7 @@ function CustomerView({
                 authToken={authToken}
                 notify={notify}
                 productsCatalog={data.products}
+                onSelectTrackOrder={setTrackedOrder}
               />
 
               {!authUser && (

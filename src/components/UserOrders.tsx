@@ -36,9 +36,10 @@ interface UserOrdersProps {
   authToken?: string;
   notify?: (msg: string) => void;
   productsCatalog?: any[];
+  onSelectTrackOrder?: (order: any) => void;
 }
 
-export default function UserOrders({ userId, authToken, notify, productsCatalog = [] }: UserOrdersProps) {
+export default function UserOrders({ userId, authToken, notify, productsCatalog = [], onSelectTrackOrder }: UserOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
@@ -81,8 +82,21 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
         );
       });
 
-      // If user has matched orders use them, otherwise show all available orders so list is never empty
-      setOrders(filtered.length > 0 ? filtered : allOrdersList);
+      const matchedOrders = filtered.length > 0 ? filtered : allOrdersList;
+
+      // Sort matchedOrders by date descending so the newest order is first
+      matchedOrders.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
+        const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+
+      setOrders(matchedOrders);
+
+      // Auto tracking: automatically select the newest order to track instantly
+      if (matchedOrders.length > 0 && onSelectTrackOrder) {
+        onSelectTrackOrder(matchedOrders[0]);
+      }
     } catch (err) {
       console.error('Fetch my orders error:', err);
     } finally {
@@ -267,15 +281,35 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                 {/* Action Buttons Row */}
                 <div className="px-4 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
                   
-                  {/* Left: Dedicated Order Details Button */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedOrderDetails(order)}
-                    className="flex items-center gap-1.5 border border-blue-500 text-blue-700 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span>অর্ডার ডিটেইলস দেখুন</span>
-                  </button>
+                  {/* Left: Dedicated Order Details Button & Track Button */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrderDetails(order)}
+                      className="flex items-center gap-1.5 border border-blue-500 text-blue-700 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>অর্ডার ডিটেইলস দেখুন</span>
+                    </button>
+
+                    {onSelectTrackOrder && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectTrackOrder(order);
+                          const trackerEl = document.getElementById('bazaarpulse-live-tracker-title');
+                          if (trackerEl) {
+                            trackerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                          if (notify) notify(`📍 অর্ডার নম্বর #${order.id} ট্র্যাক করা হচ্ছে!`);
+                        }}
+                        className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-xs"
+                      >
+                        <Truck className="w-4 h-4 animate-bounce" />
+                        <span>লাইভ ট্র্যাক করুন</span>
+                      </button>
+                    )}
+                  </div>
 
                   {/* Right: Conditional Cancel Button (only before shipping) */}
                   {canCancel && (
