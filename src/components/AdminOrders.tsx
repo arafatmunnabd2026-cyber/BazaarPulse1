@@ -10,6 +10,8 @@ interface OrderItem {
   quantity: number;
   size?: string;
   color?: string;
+  image?: string;
+  productUrl?: string;
 }
 
 interface Order {
@@ -256,12 +258,27 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                         {order.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                                <Package className="w-5 h-5 text-slate-400" />
+                              <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                                {item.image ? (
+                                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Package className="w-5 h-5 text-slate-400" />
+                                )}
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-800 leading-tight">{item.title}</p>
-                                <p className="text-[10px] text-slate-500 font-medium">
+                                {item.productUrl ? (
+                                  <a 
+                                    href={item.productUrl} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="text-sm font-bold text-slate-800 hover:text-orange-600 transition-colors leading-tight block hover:underline"
+                                  >
+                                    {item.title}
+                                  </a>
+                                ) : (
+                                  <p className="text-sm font-bold text-slate-800 leading-tight">{item.title}</p>
+                                )}
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
                                   {item.quantity} x ৳{item.price} {item.size && `• Size: ${item.size}`} {item.color && `• Color: ${item.color}`}
                                 </p>
                               </div>

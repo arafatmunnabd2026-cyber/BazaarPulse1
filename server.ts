@@ -836,7 +836,9 @@ async function getDb(): Promise<InitialData> {
         price: Number(item.price),
         quantity: item.quantity,
         size: item.size,
-        color: item.color
+        color: item.color,
+        image: item.image || null,
+        productUrl: item.product_url || item.productUrl || null
       })),
       createdAt: o.created_at || o.createdAt
     }));
@@ -2379,6 +2381,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       paymentMethod, 
       shippingAddress, 
       phone, 
+      customerPhone,
       items, 
       customerName, 
       customerEmail 
@@ -2390,14 +2393,15 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
 
     const orderId = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+    const realPhone = customerPhone || phone || '';
     const createdOrder = {
       id: orderId,
       customerId: targetUserId,
       user_id: targetUserId,
       customerName: customerName || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.name : 'Customer'),
       customerEmail: customerEmail || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.email : ''),
-      customerPhone: phone || '',
-      phone: phone || '',
+      customerPhone: realPhone,
+      phone: realPhone,
       shippingAddress: shippingAddress || '',
       address: shippingAddress || '',
       items,
