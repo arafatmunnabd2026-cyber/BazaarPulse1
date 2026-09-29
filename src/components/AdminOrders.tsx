@@ -250,63 +250,67 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
               </div>
 
               {expandedId === order.id && (
-                <div className="p-5 border-t border-slate-100 bg-slate-50/50 animate-in slide-in-from-top duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h5 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Ordered Items</h5>
-                      <div className="space-y-2">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-                                {item.image ? (
-                                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                                ) : (
-                                  <Package className="w-5 h-5 text-slate-400" />
-                                )}
-                              </div>
-                              <div>
-                                {item.productUrl ? (
-                                  <a 
-                                    href={item.productUrl} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    className="text-sm font-bold text-slate-800 hover:text-orange-600 transition-colors leading-tight block hover:underline"
-                                  >
-                                    {item.title}
-                                  </a>
-                                ) : (
-                                  <p className="text-sm font-bold text-slate-800 leading-tight">{item.title}</p>
-                                )}
-                                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                                  {item.quantity} x ৳{item.price} {item.size && `• Size: ${item.size}`} {item.color && `• Color: ${item.color}`}
-                                </p>
-                              </div>
+                <div className="p-5 border-t border-slate-100 bg-slate-50/50 animate-in slide-in-from-top duration-300 space-y-6 text-left">
+                  {/* Ordered Items Section */}
+                  <div>
+                    <h5 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Ordered Items</h5>
+                    <div className="space-y-2 max-w-3xl">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                              {item.image ? (
+                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <Package className="w-5 h-5 text-slate-400" />
+                              )}
                             </div>
-                            <p className="text-sm font-black text-slate-900">৳{item.price * item.quantity}</p>
+                            <div>
+                              {item.productUrl ? (
+                                <a 
+                                  href={item.productUrl} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="text-sm font-bold text-slate-800 hover:text-orange-600 transition-colors leading-tight block hover:underline"
+                                >
+                                  {item.title}
+                                </a>
+                              ) : (
+                                <p className="text-sm font-bold text-slate-800 leading-tight">{item.title}</p>
+                              )}
+                              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                {item.quantity} x ৳{item.price} {item.size && `• Size: ${item.size}`} {item.color && `• Color: ${item.color}`}
+                              </p>
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                          <p className="text-sm font-black text-slate-900">৳{item.price * item.quantity}</p>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <h5 className="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Delivery Details</h5>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Truck className="w-4 h-4 text-slate-400 mt-0.5" />
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">Shipping Address</p>
-                            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{order.address}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-[8px] font-bold text-blue-600">P</div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">Contact Number</p>
-                            <p className="text-xs text-slate-600 mt-0.5">{order.phone}</p>
-                          </div>
-                        </div>
-                        <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-500">Payment Status</span>
+                  </div>
+
+                  {/* Delivery Details Block - Exactly like the Reference Image */}
+                  <div className="border-t border-slate-200 pt-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Column 1: Contact */}
+                      <div>
+                        <h4 className="text-sm font-bold text-black mb-1">Contact</h4>
+                        <p className="text-sm font-medium text-black leading-tight">{order.customerName},</p>
+                        <p className="text-sm font-medium text-black leading-tight mt-0.5">{order.phone}</p>
+                      </div>
+
+                      {/* Column 2: Shipping Address */}
+                      <div>
+                        <h4 className="text-sm font-bold text-black mb-1">Shipping Address</h4>
+                        <p className="text-sm font-medium text-black leading-relaxed">{order.address}</p>
+                      </div>
+
+                      {/* Column 3: Payment Method */}
+                      <div>
+                        <h4 className="text-sm font-bold text-black mb-1">Payment Method</h4>
+                        <p className="text-sm font-medium text-black leading-tight">{order.paymentMethod}</p>
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <span className="text-xs text-slate-500 font-medium">Status:</span>
                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
                             order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
                           }`}>
