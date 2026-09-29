@@ -1497,18 +1497,55 @@ function CustomerView({
         pointsEarned: orderPayload.pointsEarned || 0
       };
 
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+        },
         body: JSON.stringify(fullPayload)
       });
       const json = await res.json();
-      if (json.success) {
-        setOrderConfirmation(json.order);
+      if (json.success && json.order) {
+        const newOrder = json.order;
+        setOrderConfirmation(newOrder);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
         setCart([]);
         localStorage.removeItem('bazaarpulse_cart');
+
+        // Save order to localStorage for instant client persistence
+        try {
+          const existingMyOrders = JSON.parse(localStorage.getItem('bazaarpulse_my_orders') || '[]');
+          const updatedMyOrders = [newOrder, ...existingMyOrders.filter((o: any) => o.id !== newOrder.id)];
+          localStorage.setItem('bazaarpulse_my_orders', JSON.stringify(updatedMyOrders));
+        } catch (e) {
+          console.warn('LocalStorage my orders save error:', e);
+        }
+
+        // Try syncing order to Supabase table
+        if (supabase) {
+          try {
+            await supabase.from('orders').upsert([{
+              id: newOrder.id,
+              customer_id: fullPayload.customerId,
+              customer_name: fullPayload.customerName,
+              customer_email: fullPayload.customerEmail,
+              phone: fullPayload.customerPhone,
+              address: fullPayload.shippingAddress,
+              total_amount: fullPayload.totalAmount,
+              payment_method: fullPayload.paymentMethod,
+              payment_status: fullPayload.paymentStatus,
+              status: 'pending'
+            }]);
+          } catch (supaErr) {
+            console.warn('Supabase order insert note:', supaErr);
+          }
+        }
+
+        // Notify and dispatch event
+        window.dispatchEvent(new CustomEvent('bazaarpulse-order-created', { detail: newOrder }));
         notify('🎉 আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে!');
         refreshData();
       } else {

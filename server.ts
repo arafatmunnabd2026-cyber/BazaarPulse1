@@ -675,6 +675,14 @@ async function getDb(): Promise<InitialData> {
       paymentStatus: o.payment_status,
       paymentMethod: o.payment_method,
       totalAmount: Number(o.total_amount),
+      customerId: o.customer_id || o.customerId || 'u4',
+      user_id: o.customer_id || o.customerId || 'u4',
+      customerName: o.customer_name || o.customerName || 'Customer',
+      customerEmail: o.customer_email || o.customerEmail || '',
+      customerPhone: o.phone || o.customerPhone || '',
+      phone: o.phone || o.customerPhone || '',
+      shippingAddress: o.address || o.shippingAddress || '',
+      address: o.address || o.shippingAddress || '',
       items: allOrderItems.filter(item => item.order_id === o.id).map(item => ({
         productId: item.product_id,
         title: item.title,
@@ -683,11 +691,7 @@ async function getDb(): Promise<InitialData> {
         size: item.size,
         color: item.color
       })),
-      customerName: o.customer_name,
-      customerEmail: o.customer_email,
-      address: o.address,
-      phone: o.phone,
-      createdAt: o.created_at
+      createdAt: o.created_at || o.createdAt
     }));
     
     const withdrawals = withdrawalsRes.rows.map(w => ({
@@ -2208,8 +2212,7 @@ app.delete('/api/cart', authMiddleware, async (req, res) => {
 // Real Order Placement using Atomic Transaction (RPC)
 app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized login required' });
+    const targetUserId = req.body.customerId || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.id : 'u4');
 
     const { 
       totalAmount, 
@@ -2229,9 +2232,10 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
 
     const createdOrder = {
       id: orderId,
-      customerId: userId,
-      customerName: customerName || req.user?.name || 'Customer',
-      customerEmail: customerEmail || req.user?.email || '',
+      customerId: targetUserId,
+      user_id: targetUserId,
+      customerName: customerName || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.name : 'Customer'),
+      customerEmail: customerEmail || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.email : ''),
       customerPhone: phone || '',
       phone: phone || '',
       shippingAddress: shippingAddress || '',
@@ -2252,7 +2256,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
           'SELECT place_order($1, $2, $3, $4, $5, $6, $7, $8, $9)',
           [
             orderId,
-            userId,
+            targetUserId,
             createdOrder.customerName,
             createdOrder.customerEmail,
             createdOrder.shippingAddress,
@@ -2285,7 +2289,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         }
       });
       // Clear cart
-      db.cartItems = db.cartItems.filter(ci => ci.userId !== userId);
+      db.cartItems = db.cartItems.filter(ci => ci.userId !== targetUserId);
       
       saveDb(db);
       res.json({ success: true, order: createdOrder });
