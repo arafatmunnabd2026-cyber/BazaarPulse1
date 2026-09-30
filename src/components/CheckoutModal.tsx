@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, ShieldCheck } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  ArrowLeft, 
+  Check, 
+  ShoppingBag, 
+  Truck, 
+  Lock, 
+  CreditCard, 
+  Tag, 
+  AlertCircle, 
+  ChevronRight, 
+  X, 
+  Phone, 
+  MapPin, 
+  CheckCircle2 
+} from 'lucide-react';
 
 interface CartItem {
   product: any;
@@ -11,7 +26,7 @@ interface CartItem {
 }
 
 interface CheckoutModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   cart: CartItem[];
   authUser: any;
@@ -88,7 +103,7 @@ const BD_DISTRICTS_DATA: Record<string, string[]> = {
 };
 
 export default function CheckoutModal({
-  isOpen,
+  isOpen = true,
   onClose,
   cart,
   authUser,
@@ -104,15 +119,13 @@ export default function CheckoutModal({
     thana: 'আগারগাঁও',
     fullAddressDetails: '',
     addressType: 'Home' as 'Home' | 'Office',
-    paymentMethod: 'card',
+    paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket',
     savePaymentMethod: true
   });
 
-  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  if (!isOpen) return null;
 
   // Selected cart items or all cart items if non-selected
   const activeItems = cart.filter(i => i.selected !== false);
@@ -125,6 +138,39 @@ export default function CheckoutModal({
   // Delivery Charge calculation based on selected district
   const isInsideDhaka = shippingInfo.district === 'Dhaka' || shippingInfo.district === 'ঢাকা';
   const deliveryCharge = isInsideDhaka ? 80 : 150;
+
+  // Promo handling
+  const handleApplyPromo = () => {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) return;
+
+    if (code === 'BAZAAR50') {
+      setAppliedPromo({ code, discount: 50 });
+      notify('🎉 প্রোমো কোড BAZAAR50 প্রয়োগ করা হয়েছে! ৳৫০ ছাড়');
+    } else if (code === 'WELCOME100') {
+      if (discountedSubtotal < 500) {
+        notify('⚠️ WELCOME100 কোডের জন্য ন্যূনতম ৳৫০০ অর্ডারের প্রয়োজন');
+        return;
+      }
+      setAppliedPromo({ code, discount: 100 });
+      notify('🎉 প্রোমো কোড WELCOME100 প্রয়োগ করা হয়েছে! ৳১০০ ছাড়');
+    } else if (code === 'SAVE10') {
+      const tenPercent = Math.round(discountedSubtotal * 0.1);
+      setAppliedPromo({ code, discount: tenPercent });
+      notify(`🎉 প্রোমো কোড SAVE10 প্রয়োগ করা হয়েছে! ৳${tenPercent} ছাড় (১০%)`);
+    } else if (code === 'EID2026') {
+      setAppliedPromo({ code, discount: 150 });
+      notify('🎉 ঈদ অফার কোড EID2026 প্রয়োগ করা হয়েছে! ৳১৫০ ছাড়');
+    } else {
+      notify('❌ দুঃখিত, এই কুপন কোডটি সঠিক নয় বা মেয়াদোত্তীর্ণ');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    notify('কুপন কোড সরানো হয়েছে');
+  };
 
   // Final Total
   const subtotalForCalc = discountedSubtotal;
@@ -142,6 +188,11 @@ export default function CheckoutModal({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (itemsToCheckout.length === 0) {
+      notify('⚠️ আপনার কার্টে কোনো পণ্য নেই!');
+      return;
+    }
 
     if (!shippingInfo.name.trim() || !shippingInfo.phone.trim()) {
       notify('⚠️ অনুগ্রহ করে আপনার নাম ও মোবাইল নম্বর প্রদান করুন');
@@ -200,59 +251,128 @@ export default function CheckoutModal({
 
   const districtThanas = BD_DISTRICTS_DATA[shippingInfo.district] || ["সদর"];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
-      <motion.div
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        className="bg-slate-50 border border-slate-200 text-black rounded-2xl max-w-6xl w-full shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
-      >
-        {/* Top Header */}
-        <div className="bg-white border-b border-slate-200 px-5 py-3.5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-base font-bold text-black tracking-tight">
-              BazaarPulse Secure Checkout (পেমেন্ট ও অর্ডার নিশ্চিতকরণ)
-            </h2>
+  // Empty checkout state
+  if (itemsToCheckout.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 shadow-sm space-y-5">
+          <div className="w-20 h-20 bg-orange-50 text-[#f85606] rounded-full flex items-center justify-center mx-auto">
+            <ShoppingBag className="w-10 h-10" />
           </div>
-          <button
+          <h2 className="text-2xl font-black text-slate-900">আপনার কার্ট বর্তমানে খালি আছে</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto">
+            চেকআউট সম্পন্ন করার জন্য অনুগ্রহ করে বাজার প্লাসের পছন্দের পণ্যগুলো কার্টে যোগ করুন।
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-2 bg-[#f85606] hover:bg-[#e04d05] text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>কেনাকাটা শুরু করুন</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Dedicated Full Page (SPA View) Layout - No modal wrapper, no fixed position, no dark overlay
+  return (
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6">
+      
+      {/* 1. Breadcrumbs & Back Navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 font-medium">
+          <button 
             type="button"
-            onClick={onClose}
-            className="text-slate-500 hover:text-black p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            onClick={onClose} 
+            className="hover:text-[#f85606] transition-colors cursor-pointer flex items-center gap-1"
           >
-            <X className="w-5 h-5" />
+            হোম (Home)
           </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="hover:text-[#f85606] transition-colors cursor-pointer"
+          >
+            কার্ট (Cart)
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-slate-900 font-bold">চেকআউট (Checkout)</span>
         </div>
 
-        {/* Main Grid: Left Column Payment Options, Right Column Summary */}
-        <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 hover:text-[#f85606] bg-white border border-slate-200 hover:border-orange-300 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>কেনাকাটায় ফিরে যান (Continue Shopping)</span>
+        </button>
+      </div>
+
+      {/* 2. Top Banner / Header Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              BazaarPulse Secure Checkout
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              আপনার ডেলিভারি ঠিকানা ও সুবিধাজনক পেমেন্ট পদ্ধতি নির্বাচন করে অর্ডার নিশ্চিত করুন
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+            <Lock className="w-3.5 h-3.5" />
+            256-bit SSL সিকিউরড
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+            <Truck className="w-3.5 h-3.5" />
+            দ্রুততম হোম ডেলিভারি
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Main Grid: Left Column (Payment & Address), Right Column (Review, Summary & Confirm) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        
+        {/* LEFT COLUMN: Payment Methods & Add Address Form */}
+        <div className="lg:col-span-2 space-y-6">
           
-          {/* LEFT COLUMN: Payment Methods & Add Address Form */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Payment Method Header Box */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-left">
-              <div className="border-b border-slate-100 pb-3 mb-4">
-                <h3 className="text-lg font-bold text-black">Payment Method</h3>
-                <p className="text-xs font-medium text-black">(Please select a payment method)</p>
+          {/* Payment Method Header Box */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left">
+            <div className="border-b border-slate-100 pb-3 mb-4">
+              <h2 className="text-lg font-bold text-black flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                Payment Method (পেমেন্ট পদ্ধতি)
+              </h2>
+              <p className="text-xs font-medium text-slate-500">অনুগ্রহ করে আপনার পছন্দের পেমেন্ট পদ্ধতি বেছে নিন</p>
+            </div>
+
+            {/* CATEGORY 1: ক্যাশ অন ডেলিভারি (Cash on Delivery) */}
+            <div className="mb-6 space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">ক্যাশ অন ডেলিভারি (Cash on Delivery)</h3>
+                <p className="text-xs font-medium text-slate-500">পণ্য হাতে পেয়ে দেখে টাকা পরিশোধ করুন</p>
               </div>
 
-              {/* CATEGORY 1: ক্যাশ অন ডেলিভারি (Cash on Delivery) */}
-              <div className="mb-6 space-y-2">
-                <div className="text-left">
-                  <h4 className="font-bold text-sm text-black">ক্যাশ অন ডেলিভারি</h4>
-                  <p className="text-xs font-medium text-black">পণ্য হাতে পেয়ে টাকা পরিশোধ করুন</p>
-                </div>
-
-                <div 
-                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'cod' })}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
-                    shippingInfo.paymentMethod === 'cod'
-                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
+              <div 
+                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'cod' })}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between bg-white ${
+                  shippingInfo.paymentMethod === 'cod'
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
                     shippingInfo.paymentMethod === 'cod' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
                   }`}>
@@ -266,399 +386,552 @@ export default function CheckoutModal({
                       <circle cx="12" cy="12" r="3" />
                       <path d="M6 12h0.01M18 12h0.01" />
                     </svg>
-                    <span className="text-sm font-bold text-black">ক্যাশ অন ডেলিভারি</span>
+                    <div>
+                      <span className="text-sm font-bold text-black block">ক্যাশ অন ডেলিভারি (COD)</span>
+                      <span className="text-[11px] text-slate-500">অগ্রিম কোনো পেমেন্ট ছাড়া পণ্য বুঝে পেয়ে টাকা দিন</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Checkbox: Save Payment Method for COD */}
-                <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
-                  <input
-                    type="checkbox"
-                    id="save-payment-cod"
-                    checked={shippingInfo.savePaymentMethod}
-                    onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                  />
-                  <label htmlFor="save-payment-cod" className="cursor-pointer font-medium text-black">Save Payment Method</label>
-                </div>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                  জনপ্রিয়
+                </span>
               </div>
 
-              {/* CATEGORY 2: মোবাইল ওয়ালেট (Mobile Wallet) */}
-              <div className="mb-6 space-y-2">
-                <div className="text-left">
-                  <h4 className="font-bold text-sm text-black">মোবাইল ওয়ালেট</h4>
-                  <p className="text-xs font-medium text-black">মোবাইল ওয়ালেট মাধ্যমে টাকা পরিশোধ করুন</p>
-                </div>
+              {/* Checkbox: Save Payment Method for COD */}
+              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment-cod"
+                  checked={shippingInfo.savePaymentMethod}
+                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment-cod" className="cursor-pointer font-medium text-black">
+                  পরবর্তী অর্ডারের জন্য পেমেন্ট পদ্ধতি সেভ করে রাখুন
+                </label>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  
-                  {/* bKash */}
-                  <div
-                    onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
-                      shippingInfo.paymentMethod === 'bkash'
-                        ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                    }`}>
-                      {shippingInfo.paymentMethod === 'bkash' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <div className="bg-[#e2136e] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                        bKash
-                      </div>
-                      <span className="text-xs font-medium text-black">বিকাশ</span>
-                    </div>
-                  </div>
-
-                  {/* Nagad */}
-                  <div
-                    onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
-                      shippingInfo.paymentMethod === 'nagad'
-                        ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                    }`}>
-                      {shippingInfo.paymentMethod === 'nagad' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                        নগদ
-                      </div>
-                      <span className="text-xs font-medium text-black">Nagad</span>
-                    </div>
-                  </div>
-
-                  {/* Rocket */}
-                  <div
-                    onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
-                      shippingInfo.paymentMethod === 'rocket'
-                        ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                    }`}>
-                      {shippingInfo.paymentMethod === 'rocket' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <div className="bg-[#8c3494] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                        রকেট
-                      </div>
-                      <span className="text-xs font-medium text-black">Rocket</span>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Checkbox: Save Payment Method for Mobile Wallet */}
-                <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
-                  <input
-                    type="checkbox"
-                    id="save-payment-wallet"
-                    checked={shippingInfo.savePaymentMethod}
-                    onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                  />
-                  <label htmlFor="save-payment-wallet" className="cursor-pointer font-medium text-black">Save Payment Method</label>
-                </div>
+            {/* CATEGORY 2: মোবাইল ওয়ালেট (Mobile Wallet) */}
+            <div className="mb-6 space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">মোবাইল ওয়ালেট (Mobile Banking)</h3>
+                <p className="text-xs font-medium text-slate-500">বিকাশ, নগদ বা রকেট এর মাধ্যমে নিরাপদে তাৎক্ষণিক পেমেন্ট করুন</p>
               </div>
 
-              {/* CATEGORY 3: ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card) */}
-              <div className="space-y-2">
-                <div className="text-left">
-                  <h4 className="font-bold text-sm text-black">ডেবিট / ক্রেডিট কার্ড</h4>
-                  <p className="text-xs font-medium text-black">কার্ড এর মাধ্যমে টাকা পরিশোধ করুন</p>
-                </div>
-
-                <div 
-                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'card' })}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between flex-wrap gap-3 bg-white ${
-                    shippingInfo.paymentMethod === 'card'
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                
+                {/* bKash */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                    shippingInfo.paymentMethod === 'bkash'
                       ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                      shippingInfo.paymentMethod === 'card' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                    }`}>
-                      {shippingInfo.paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-white" />}
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <div className="bg-[#e2136e] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
+                      bKash
                     </div>
-
-                    {/* Bank Operator Logos */}
-                    <div className="flex items-center flex-wrap gap-1.5">
-                      <div className="bg-[#1a1f71] text-white px-2 py-1 rounded font-bold text-xs italic tracking-tighter shadow-xs border border-blue-900">
-                        VISA
-                      </div>
-                      
-                      <div className="bg-slate-900 text-white px-2 py-1 rounded font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-800">
-                        <span className="flex shrink-0">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block -mr-1" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block opacity-90" />
-                        </span>
-                        <span className="text-[10px]">mastercard</span>
-                      </div>
-
-                      <div className="bg-[#006fcf] text-white px-2 py-1 rounded font-bold text-[10px] tracking-tighter uppercase shadow-xs">
-                        AMEX
-                      </div>
-
-                      <div className="bg-emerald-800 text-white px-1.5 py-1 rounded font-bold text-[10px] flex items-center gap-0.5 shadow-xs">
-                        <span className="bg-red-500 px-0.5 text-[8px]">Union</span>
-                        <span className="bg-blue-600 px-0.5 text-[8px]">Pay</span>
-                      </div>
-
-                      <div className="bg-red-600 text-white px-2 py-1 rounded font-bold text-[10px] italic shadow-xs">
-                        QCash
-                      </div>
-                    </div>
+                    <span className="text-xs font-medium text-black">বিকাশ</span>
                   </div>
                 </div>
 
-                {/* Checkbox: Save Payment Method */}
-                <div className="pt-2 flex items-center gap-2 text-xs text-black">
-                  <input
-                    type="checkbox"
-                    id="save-payment"
-                    checked={shippingInfo.savePaymentMethod}
-                    onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                  />
-                  <label htmlFor="save-payment" className="cursor-pointer font-medium text-black">Save Payment Method</label>
+                {/* Nagad */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                    shippingInfo.paymentMethod === 'nagad'
+                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
+                      নগদ
+                    </div>
+                    <span className="text-xs font-medium text-black">Nagad</span>
+                  </div>
                 </div>
+
+                {/* Rocket */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                    shippingInfo.paymentMethod === 'rocket'
+                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <div className="bg-[#8c3494] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
+                      রকেট
+                    </div>
+                    <span className="text-xs font-medium text-black">Rocket</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Checkbox: Save Payment Method for Mobile Wallet */}
+              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment-wallet"
+                  checked={shippingInfo.savePaymentMethod}
+                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment-wallet" className="cursor-pointer font-medium text-black">Save Payment Method</label>
               </div>
             </div>
 
-            {/* REFERENCE EXACT DESIGN: Add Address Box */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-left space-y-4">
-              <h3 className="text-xl font-bold text-black">Add Address</h3>
+            {/* CATEGORY 3: ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card) */}
+            <div className="space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card)</h3>
+                <p className="text-xs font-medium text-slate-500">ভিসা, মাস্টারকার্ড বা অন্যান্য কার্ডের মাধ্যমে দ্রুত পেমেন্ট</p>
+              </div>
 
-              <div className="space-y-3.5">
-                {/* Input 1: Full Name */}
-                <div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Name / নাম"
-                    value={shippingInfo.name}
-                    onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
-                    className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+              <div 
+                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'card' })}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between flex-wrap gap-3 bg-white ${
+                  shippingInfo.paymentMethod === 'card'
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'card' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+
+                  {/* Bank Operator Logos */}
+                  <div className="flex items-center flex-wrap gap-1.5">
+                    <div className="bg-[#1a1f71] text-white px-2 py-1 rounded font-bold text-xs italic tracking-tighter shadow-xs border border-blue-900">
+                      VISA
+                    </div>
+                    
+                    <div className="bg-slate-900 text-white px-2 py-1 rounded font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-800">
+                      <span className="flex shrink-0">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block -mr-1" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block opacity-90" />
+                      </span>
+                      <span className="text-[10px]">mastercard</span>
+                    </div>
+
+                    <div className="bg-[#006fcf] text-white px-2 py-1 rounded font-bold text-[10px] tracking-tighter uppercase shadow-xs">
+                      AMEX
+                    </div>
+
+                    <div className="bg-emerald-800 text-white px-1.5 py-1 rounded font-bold text-[10px] flex items-center gap-0.5 shadow-xs">
+                      <span className="bg-red-500 px-0.5 text-[8px]">Union</span>
+                      <span className="bg-blue-600 px-0.5 text-[8px]">Pay</span>
+                    </div>
+
+                    <div className="bg-red-600 text-white px-2 py-1 rounded font-bold text-[10px] italic shadow-xs">
+                      QCash
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                {/* Input 2: Mobile Number */}
+              {/* Checkbox: Save Payment Method */}
+              <div className="pt-2 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment"
+                  checked={shippingInfo.savePaymentMethod}
+                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment" className="cursor-pointer font-medium text-black">Save Payment Method</label>
+              </div>
+            </div>
+          </div>
+
+          {/* REFERENCE EXACT DESIGN: Add Address Box */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-600" />
+                Add Address (ডেলিভারির ঠিকানা)
+              </h2>
+              <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Input 1: Full Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name / প্রাপকের নাম <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Full Name / নাম লিখুন"
+                  value={shippingInfo.name}
+                  onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              {/* Input 2 & 3: Mobile Numbers */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Mobile Number / মোবাইল নম্বর <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     required
-                    placeholder="8801756482001"
+                    placeholder="88017XXXXXXXX"
                     value={shippingInfo.phone}
                     onChange={e => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
-                    className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
 
-                {/* Input 3: Alt. Mobile Number */}
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Alt. Mobile Number (বিকল্প নম্বর - ঐচ্ছিক)
+                  </label>
                   <input
                     type="tel"
                     placeholder="Alt. Mobile Number"
                     value={shippingInfo.altPhone}
                     onChange={e => setShippingInfo({ ...shippingInfo, altPhone: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
+              </div>
 
-                {/* Input 4: Country Dropdown */}
+              {/* Input 4: Country Dropdown */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Country / দেশ</label>
+                <select
+                  value={shippingInfo.country}
+                  onChange={e => setShippingInfo({ ...shippingInfo, country: e.target.value })}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="বাংলাদেশ">বাংলাদেশ (Bangladesh)</option>
+                </select>
+              </div>
+
+              {/* Input 5 & 6: District & Thana Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    জেলা (Select District - 64 Districts) <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    value={shippingInfo.country}
-                    onChange={e => setShippingInfo({ ...shippingInfo, country: e.target.value })}
-                    className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    value={shippingInfo.district}
+                    onChange={e => handleDistrictChange(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
-                    <option value="বাংলাদেশ">বাংলাদেশ</option>
+                    {Object.keys(BD_DISTRICTS_DATA).map(dist => (
+                      <option key={dist} value={dist}>
+                        {dist === 'Dhaka' ? 'ঢাকা (Dhaka - ডেলিভারি ৳80)' : `${dist} (ডেলিভারি ৳150)`}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Input 5 & 6: District & Thana Selectors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-black mb-1">জেলা (Select District - 64 Districts) *</label>
-                    <select
-                      value={shippingInfo.district}
-                      onChange={e => handleDistrictChange(e.target.value)}
-                      className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      {Object.keys(BD_DISTRICTS_DATA).map(dist => (
-                        <option key={dist} value={dist}>
-                          {dist === 'Dhaka' ? 'ঢাকা (Dhaka - ৳80)' : `${dist} (৳150)`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-black mb-1">থানা / এলাকা (Thana / Upazila - টাইপ বা সিলেক্ট করুন) *</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list="thana-list-options"
-                        required
-                        placeholder="থানার নাম লিখুন বা সিলেক্ট করুন..."
-                        value={shippingInfo.thana}
-                        onChange={e => setShippingInfo({ ...shippingInfo, thana: e.target.value })}
-                        className="w-full bg-white border border-blue-400 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <datalist id="thana-list-options">
-                        {districtThanas.map((th, idx) => (
-                          <option key={idx} value={th} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    {/* Quick suggestion pills for instant 1-tap selection */}
-                    <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold w-full">দ্রুত সিলেক্ট করুন:</span>
-                      {districtThanas.map((th, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setShippingInfo({ ...shippingInfo, thana: th })}
-                          className={`px-2 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                            shippingInfo.thana === th
-                              ? 'bg-blue-600 text-white font-bold'
-                              : 'bg-white border border-slate-300 text-black hover:bg-slate-100'
-                          }`}
-                        >
-                          {th}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Input 7: Full Address Textarea */}
                 <div>
-                  <textarea
-                    rows={2}
-                    required
-                    placeholder="বাসা/ফ্ল্যাট নম্বর, পাড়া-মহল্লার নাম, পরিচিতির এলাকা উল্লেখ করুন"
-                    value={shippingInfo.fullAddressDetails}
-                    onChange={e => setShippingInfo({ ...shippingInfo, fullAddressDetails: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  ></textarea>
-                </div>
-
-                {/* Field 8: Select Address Type * */}
-                <div className="space-y-2 pt-1">
-                  <label className="block text-sm font-medium text-black">
-                    Select Address Type <span className="text-red-500">*</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    থানা / এলাকা (Thana / Upazila) <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShippingInfo({ ...shippingInfo, addressType: 'Home' })}
-                      className={`px-6 py-2 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
-                        shippingInfo.addressType === 'Home'
-                          ? 'border-blue-500 bg-blue-50 text-black shadow-xs font-bold'
-                          : 'border-slate-300 text-black hover:bg-slate-100'
-                      }`}
-                    >
-                      Home
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShippingInfo({ ...shippingInfo, addressType: 'Office' })}
-                      className={`px-6 py-2 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
-                        shippingInfo.addressType === 'Office'
-                          ? 'border-blue-500 bg-blue-50 text-black shadow-xs font-bold'
-                          : 'border-slate-300 text-black hover:bg-slate-100'
-                      }`}
-                    >
-                      Office
-                    </button>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      list="thana-list-options"
+                      required
+                      placeholder="থানার নাম লিখুন বা সিলেক্ট করুন..."
+                      value={shippingInfo.thana}
+                      onChange={e => setShippingInfo({ ...shippingInfo, thana: e.target.value })}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <datalist id="thana-list-options">
+                      {districtThanas.map((th, idx) => (
+                        <option key={idx} value={th} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* Quick suggestion pills for instant 1-tap selection */}
+                  <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="text-[10px] text-slate-500 font-bold w-full">দ্রুত সিলেক্ট করুন:</span>
+                    {districtThanas.map((th, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setShippingInfo({ ...shippingInfo, thana: th })}
+                        className={`px-2 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                          shippingInfo.thana === th
+                            ? 'bg-blue-600 text-white font-bold'
+                            : 'bg-white border border-slate-300 text-black hover:bg-slate-100'
+                        }`}
+                      >
+                        {th}
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </div>
 
-                {/* Field 9: Save & Proceed Primary Cyan/Blue Button */}
-                <div className="pt-3">
+              {/* Input 7: Full Address Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  বিস্তারিত ঠিকানা (House, Road, Area) <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="বাসা/ফ্ল্যাট নম্বর, রোড নম্বর, পাড়া-মহল্লার নাম বা পরিচিত কোনো ল্যান্ডমার্ক উল্লেখ করুন"
+                  value={shippingInfo.fullAddressDetails}
+                  onChange={e => setShippingInfo({ ...shippingInfo, fullAddressDetails: e.target.value })}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              {/* Field 8: Select Address Type */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Select Address Type (ঠিকানার ধরন) <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => handleSubmit()}
-                    disabled={submitting}
-                    className="w-full bg-[#0092d8] hover:bg-[#0081c2] text-white font-medium text-base py-3.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    onClick={() => setShippingInfo({ ...shippingInfo, addressType: 'Home' })}
+                    className={`px-5 py-2 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                      shippingInfo.addressType === 'Home'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-xs'
+                        : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                    }`}
                   >
-                    <span>{submitting ? 'সেভ হচ্ছে...' : 'সেভ করে এগিয়ে যান'}</span>
+                    🏠 Home (বাসা)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShippingInfo({ ...shippingInfo, addressType: 'Office' })}
+                    className={`px-5 py-2 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                      shippingInfo.addressType === 'Office'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-xs'
+                        : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    🏢 Office (অফিস)
                   </button>
                 </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          {/* RIGHT COLUMN: Checkout Summary Card */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-left space-y-4 sticky top-4">
-              
-              {/* Summary Header */}
-              <div className="border-b border-slate-200 pb-3">
-                <h3 className="text-base font-bold text-black">Checkout Summary</h3>
               </div>
 
-              {/* Price Breakdown List */}
-              <div className="space-y-3 text-xs sm:text-sm">
-                <div className="flex justify-between items-center text-black">
-                  <span className="font-medium">Subtotal</span>
-                  <span className="font-bold text-black">৳{subtotalForCalc}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-black">
-                  <span className="font-medium">Delivery Charge ({isInsideDhaka ? 'ঢাকার ভেতরে' : 'ঢাকার বাইরে'})</span>
-                  <span className="font-bold text-black">৳{deliveryCharge}</span>
-                </div>
-
-                {appliedPromo && (
-                  <div className="flex justify-between items-center text-black">
-                    <span className="font-medium">Voucher Discount ({appliedPromo.code})</span>
-                    <span className="font-bold text-black">-৳{appliedPromo.discount}</span>
-                  </div>
-                )}
-
-                <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-black text-sm sm:text-base">
-                  <span className="font-medium">Total</span>
-                  <span className="font-extrabold text-black text-base sm:text-lg">৳{payableTotal}</span>
-                </div>
+              {/* Field 9: Save & Proceed Primary Cyan/Blue Button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleSubmit()}
+                  disabled={submitting}
+                  className="w-full bg-[#0092d8] hover:bg-[#0081c2] text-white font-bold text-sm sm:text-base py-3 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>{submitting ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করে অর্ডার জমা দিন'}</span>
+                </button>
               </div>
-
-              {/* Primary Action Button: "অর্ডার নিশ্চিত করুন ৳..." */}
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                disabled={submitting}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <span>{submitting ? 'অর্ডার জমা হচ্ছে...' : `অর্ডার নিশ্চিত করুন ৳${payableTotal}`}</span>
-              </button>
 
             </div>
           </div>
 
         </div>
-      </motion.div>
+
+        {/* RIGHT COLUMN: Items List, Promo Box, Summary Card & Confirm Action */}
+        <div className="lg:col-span-1 space-y-6">
+          
+          {/* Order Items Review Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-left">
+            <div className="border-b border-slate-100 pb-3 mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-orange-600" />
+                অর্ডারকৃত পণ্যসমূহ ({itemsToCheckout.length})
+              </h2>
+              <span className="text-[11px] font-bold text-slate-500">
+                মোট: {itemsToCheckout.reduce((s, i) => s + i.quantity, 0)} পিস
+              </span>
+            </div>
+
+            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1 space-y-2">
+              {itemsToCheckout.map((item, idx) => {
+                const img = Array.isArray(item.product.images) && item.product.images.length > 0
+                  ? item.product.images[0]
+                  : (item.product.image || item.product.images || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200');
+                const price = item.product.discountPrice || item.product.price;
+
+                return (
+                  <div key={idx} className="pt-2 flex items-center gap-3">
+                    <img 
+                      src={img} 
+                      alt={item.product.title} 
+                      className="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-50"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 truncate">
+                        {item.product.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                        <span>পরিমাণ: <strong className="text-slate-800">{item.quantity}</strong></span>
+                        {item.size && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.size}</span>}
+                        {item.color && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.color}</span>}
+                      </div>
+                      <div className="text-xs font-black text-orange-600 mt-0.5">
+                        ৳{price * item.quantity}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Promo / Coupon Voucher Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs text-left space-y-2">
+            <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-blue-600" />
+              ভাউচার কোড (Promo Code)
+            </label>
+
+            {appliedPromo ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-black text-emerald-800">{appliedPromo.code}</span>
+                  <span className="text-xs text-emerald-600 font-bold">(-৳{appliedPromo.discount})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemovePromo}
+                  className="text-xs text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                >
+                  মুছুন
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="যেমন: BAZAAR50, WELCOME100"
+                  value={promoCodeInput}
+                  onChange={e => setPromoCodeInput(e.target.value)}
+                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold uppercase text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                >
+                  প্রয়োগ
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Checkout Summary Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-left space-y-4">
+            
+            {/* Summary Header */}
+            <div className="border-b border-slate-200 pb-3">
+              <h2 className="text-base font-bold text-black">Checkout Summary</h2>
+            </div>
+
+            {/* Price Breakdown List */}
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div className="flex justify-between items-center text-black">
+                <span className="font-medium text-slate-600">Subtotal (মোট পণ্যের মূল্য)</span>
+                <span className="font-bold text-black">৳{subtotalForCalc}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-black">
+                <span className="font-medium text-slate-600">
+                  Delivery Charge ({isInsideDhaka ? 'ঢাকার ভেতরে' : 'ঢাকার বাইরে'})
+                </span>
+                <span className="font-bold text-black">৳{deliveryCharge}</span>
+              </div>
+
+              {appliedPromo && (
+                <div className="flex justify-between items-center text-emerald-600 font-bold">
+                  <span>Voucher Discount ({appliedPromo.code})</span>
+                  <span>-৳{appliedPromo.discount}</span>
+                </div>
+              )}
+
+              <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-black text-sm sm:text-base">
+                <span className="font-bold text-slate-900">Total (সর্বমোট প্রদেয়)</span>
+                <span className="font-black text-[#f85606] text-lg sm:text-xl">৳{payableTotal}</span>
+              </div>
+            </div>
+
+            {/* Primary Action Button: "অর্ডার নিশ্চিত করুন ৳..." */}
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={submitting}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>অর্ডার জমা হচ্ছে...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-5 h-5" />
+                  <span>অর্ডার নিশ্চিত করুন ৳{payableTotal}</span>
+                </>
+              )}
+            </button>
+
+            {/* Trust Badges */}
+            <div className="pt-2 border-t border-slate-100 space-y-2 text-[11px] text-slate-500 font-medium">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>১০০% আসল ও কোয়ালিটি পণ্য গ্যারান্টি</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>সারা বাংলাদেশে হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>৭ দিনের সহজ রিটার্ন পলিসি ও গ্রাহক সুরক্ষা</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

@@ -2041,8 +2041,20 @@ function CustomerView({
         </div>
       </header>
       
-      {/* Categories Bar */}
-      <div className="bg-white border-b border-gray-100 py-3 shadow-sm">
+      {/* Conditionally Render Dedicated Checkout Single Page View OR Storefront Content */}
+      {isCheckoutOpen ? (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={handleCloseCheckout}
+          cart={directCheckoutItem ? [directCheckoutItem] : cart}
+          authUser={authUser}
+          onSubmitOrder={handleOrderSubmitPayload}
+          notify={notify}
+        />
+      ) : (
+        <>
+          {/* Categories Bar */}
+          <div className="bg-white border-b border-gray-100 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 overflow-x-auto pb-1 scrollbar-thin">
           <a
             href="/"
@@ -2243,6 +2255,8 @@ function CustomerView({
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Cart Drawer Modal - Rokomari Inspired Multi-Selection System */}
       {isCartOpen && (
@@ -2428,16 +2442,6 @@ function CustomerView({
           </motion.div>
         </div>
       )}
-
-      {/* New Reference Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={handleCloseCheckout}
-        cart={directCheckoutItem ? [directCheckoutItem] : cart}
-        authUser={authUser}
-        onSubmitOrder={handleOrderSubmitPayload}
-        notify={notify}
-      />
 
       {/* AI Advisor Chat Modal */}
       {isAiOpen && (
