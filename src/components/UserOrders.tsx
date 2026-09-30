@@ -61,25 +61,35 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
         localOrders = JSON.parse(localStorage.getItem('bazaarpulse_my_orders') || '[]');
       } catch (e) {}
 
-      // 3. Deduplicate combined orders by ID
+      // 3. Deduplicate combined orders by ID - SERVER DATA MUST OVERWRITE LOCAL DATA
       const orderMap = new Map<string, any>();
-      [...localOrders, ...serverOrders].forEach(o => {
-        if (o && o.id && !orderMap.has(o.id)) {
-          orderMap.set(o.id, o);
+      
+      // Add local orders first
+      localOrders.forEach(o => {
+        if (o && o.id) {
+          orderMap.set(String(o.id), o);
         }
       });
+      
+      // Overwrite with server orders (server is source of truth for status)
+      serverOrders.forEach(o => {
+        if (o && o.id) {
+          orderMap.set(String(o.id), o);
+        }
+      });
+      
       const allOrdersList = Array.from(orderMap.values());
 
       // 4. Smart match user orders
       const filtered = allOrdersList.filter((o: any) => {
         if (!userId) return true;
+        const oId = String(o.customerId || o.user_id || '');
+        const uId = String(userId);
         return (
-          o.customerId === userId ||
-          o.user_id === userId ||
-          o.customerId === 'u4' ||
-          o.user_id === 'u4' ||
-          (o.customerPhone && o.customerPhone === userId) ||
-          (o.phone && o.phone === userId)
+          oId === uId ||
+          oId === 'u4' ||
+          (o.customerPhone && String(o.customerPhone) === uId) ||
+          (o.phone && String(o.phone) === uId)
         );
       });
 

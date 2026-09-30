@@ -373,7 +373,7 @@ export default function App() {
         { event: '*', schema: 'public', table: 'products' },
         () => {
           console.log('Realtime product update received!');
-          loadData(); // Re-fetch entire dataset to ensure consistency
+          loadData(); 
         }
       )
       .on(
@@ -384,10 +384,24 @@ export default function App() {
           loadData();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Realtime order update received!', payload);
+          loadData(); // Re-fetch entire dataset to ensure tracking UI updates
+        }
+      )
       .subscribe();
+
+    // Background safety poll to guarantee UI freshness even on local storage DB
+    const globalPoll = setInterval(() => {
+      loadData();
+    }, 15000);
 
     return () => {
       window.removeEventListener('supabase-product-added', handleProductAdded);
+      clearInterval(globalPoll);
       if (supabase) {
         supabase.removeChannel(channel);
       }
@@ -1237,6 +1251,16 @@ function CustomerView({
   );
   const [trackOrderIdInput, setTrackOrderIdInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
+
+  // Synchronize Tracked Order state with global data to ensure live status updates
+  useEffect(() => {
+    if (trackedOrder && data?.orders) {
+      const updated = data.orders.find((o: any) => String(o.id) === String(trackedOrder.id));
+      if (updated && JSON.stringify(updated) !== JSON.stringify(trackedOrder)) {
+        setTrackedOrder(updated);
+      }
+    }
+  }, [data?.orders, trackedOrder?.id]);
 
   // Wishlist State with LocalStorage Persistence
   const [isWishlistOpen, setIsWishlistOpen] = useState(() => location.pathname === '/wishlist');
