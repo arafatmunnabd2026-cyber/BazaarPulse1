@@ -1,10 +1,26 @@
 -- ==============================================================================
--- BAZAARPULSE: USER LOGIN & SAVED DELIVERY ADDRESS SCHEMA
--- Fixes: ERROR 42P01: relation "public.users" does not exist
--- Adds: saved_address (JSONB), phone, and automatic bidirectional sync
+-- BAZAARPULSE: FINAL FIX FOR USER LOGIN & SAVED DELIVERY ADDRESS
+-- Resolves: ERROR 42P01: relation "public.users" does not exist
+-- Ensures: 'saved_address' column exists in BOTH 'user_logins' and 'users'
+-- Logic: Automatic bi-directional sync between login and profile tables.
 -- ==============================================================================
 
--- 1. Create or Update 'user_logins' table (Primary login table in Supabase)
+-- 1. Create 'users' table FIRST (to prevent relation does not exist errors)
+CREATE TABLE IF NOT EXISTS public.users (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(50),
+  role VARCHAR(50) DEFAULT 'customer',
+  avatar TEXT,
+  password TEXT,
+  status VARCHAR(50) DEFAULT 'active',
+  saved_address JSONB DEFAULT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. Create 'user_logins' table (The table you see in your reference)
 CREATE TABLE IF NOT EXISTS public.user_logins (
   id VARCHAR(255) PRIMARY KEY,
   name VARCHAR(255),
@@ -20,59 +36,52 @@ CREATE TABLE IF NOT EXISTS public.user_logins (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- Safely add columns if user_logins already exists
-ALTER TABLE public.user_logins ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
-ALTER TABLE public.user_logins ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
-ALTER TABLE public.user_logins ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+-- 3. Safety Check: Force add 'saved_address' and 'phone' if they are missing
+DO $$ 
+BEGIN 
+    -- For user_logins
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_logins' AND column_name='saved_address') THEN
+        ALTER TABLE public.user_logins ADD COLUMN saved_address JSONB DEFAULT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_logins' AND column_name='phone') THEN
+        ALTER TABLE public.user_logins ADD COLUMN phone VARCHAR(50);
+    END IF;
 
--- 2. Create or Update 'users' table (Prevents 42P01 error if any query targets 'users')
-CREATE TABLE IF NOT EXISTS public.users (
-  id VARCHAR(255) PRIMARY KEY,
-  name VARCHAR(255),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  phone VARCHAR(50),
-  avatar TEXT,
-  role VARCHAR(50) DEFAULT 'customer',
-  password TEXT,
-  status VARCHAR(50) DEFAULT 'active',
-  saved_address JSONB DEFAULT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+    -- For users
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='saved_address') THEN
+        ALTER TABLE public.users ADD COLUMN saved_address JSONB DEFAULT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
+        ALTER TABLE public.users ADD COLUMN phone VARCHAR(50);
+    END IF;
+END $$;
 
--- Safely add columns if users already exists
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
-
--- 3. Row Level Security (RLS) Configuration
+-- 4. Enable Row Level Security (RLS)
 ALTER TABLE public.user_logins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Reset policies for user_logins
-DROP POLICY IF EXISTS "Public Read user_logins" ON public.user_logins;
-DROP POLICY IF EXISTS "Public Insert user_logins" ON public.user_logins;
-DROP POLICY IF EXISTS "Public Update user_logins" ON public.user_logins;
-DROP POLICY IF EXISTS "Public Delete user_logins" ON public.user_logins;
+-- 5. Clear and Recreate Policies (Ensures full access for Bazar Plus)
+DROP POLICY IF EXISTS "Allow public read" ON public.user_logins;
+DROP POLICY IF EXISTS "Allow public insert" ON public.user_logins;
+DROP POLICY IF EXISTS "Allow public update" ON public.user_logins;
+DROP POLICY IF EXISTS "Allow public delete" ON public.user_logins;
 
-CREATE POLICY "Public Read user_logins" ON public.user_logins FOR SELECT TO public USING (true);
-CREATE POLICY "Public Insert user_logins" ON public.user_logins FOR INSERT TO public WITH CHECK (true);
-CREATE POLICY "Public Update user_logins" ON public.user_logins FOR UPDATE TO public USING (true);
-CREATE POLICY "Public Delete user_logins" ON public.user_logins FOR DELETE TO public WITH CHECK (true);
+CREATE POLICY "Allow public read" ON public.user_logins FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public insert" ON public.user_logins FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public update" ON public.user_logins FOR UPDATE TO public USING (true);
+CREATE POLICY "Allow public delete" ON public.user_logins FOR DELETE TO public USING (true);
 
--- Reset policies for users
-DROP POLICY IF EXISTS "Public Read users" ON public.users;
-DROP POLICY IF EXISTS "Public Insert users" ON public.users;
-DROP POLICY IF EXISTS "Public Update users" ON public.users;
-DROP POLICY IF EXISTS "Public Delete users" ON public.users;
+DROP POLICY IF EXISTS "Allow public read" ON public.users;
+DROP POLICY IF EXISTS "Allow public insert" ON public.users;
+DROP POLICY IF EXISTS "Allow public update" ON public.users;
+DROP POLICY IF EXISTS "Allow public delete" ON public.users;
 
-CREATE POLICY "Public Read users" ON public.users FOR SELECT TO public USING (true);
-CREATE POLICY "Public Insert users" ON public.users FOR INSERT TO public WITH CHECK (true);
-CREATE POLICY "Public Update users" ON public.users FOR UPDATE TO public USING (true);
-CREATE POLICY "Public Delete users" ON public.users FOR DELETE TO public WITH CHECK (true);
+CREATE POLICY "Allow public read" ON public.users FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public insert" ON public.users FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public update" ON public.users FOR UPDATE TO public USING (true);
+CREATE POLICY "Allow public delete" ON public.users FOR DELETE TO public USING (true);
 
--- 4. Automatic Address Sync Function & Trigger between user_logins and users
--- When user updates saved_address in user_logins, automatically mirror it to users table and vice versa!
+-- 6. Bi-directional Sync Function
 CREATE OR REPLACE FUNCTION public.sync_user_address_trigger()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -95,18 +104,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply triggers
+-- 7. Apply Sync Triggers
 DROP TRIGGER IF EXISTS trigger_sync_user_logins_address ON public.user_logins;
 CREATE TRIGGER trigger_sync_user_logins_address
-AFTER UPDATE OF saved_address ON public.user_logins
+AFTER UPDATE OF saved_address, phone, name ON public.user_logins
 FOR EACH ROW EXECUTE FUNCTION public.sync_user_address_trigger();
 
 DROP TRIGGER IF EXISTS trigger_sync_users_address ON public.users;
 CREATE TRIGGER trigger_sync_users_address
-AFTER UPDATE OF saved_address ON public.users
+AFTER UPDATE OF saved_address, phone, name ON public.users
 FOR EACH ROW EXECUTE FUNCTION public.sync_user_address_trigger();
 
--- 5. Seed / Update Demo Accounts with sample Saved Delivery Address
+-- 8. Seed / Update Demo Account (customer@gmail.com)
 INSERT INTO public.user_logins (id, name, email, role, phone, saved_address)
 VALUES (
   'u4',
@@ -129,6 +138,7 @@ ON CONFLICT (email) DO UPDATE SET
   saved_address = EXCLUDED.saved_address,
   phone = EXCLUDED.phone;
 
+-- Also seed users table for Rahim
 INSERT INTO public.users (id, name, email, role, phone, saved_address)
 VALUES (
   'u4',
@@ -151,6 +161,5 @@ ON CONFLICT (email) DO UPDATE SET
   saved_address = EXCLUDED.saved_address,
   phone = EXCLUDED.phone;
 
--- 6. Verification: Check the saved_address column in user_logins
-SELECT id, name, email, phone, saved_address 
-FROM public.user_logins;
+-- 9. Final Verification Query
+SELECT id, name, email, phone, saved_address FROM public.user_logins;
