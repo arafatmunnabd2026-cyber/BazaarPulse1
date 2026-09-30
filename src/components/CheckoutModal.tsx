@@ -860,11 +860,12 @@ export default function CheckoutModal({
                   <select
                     value={shippingInfo.district}
                     onChange={e => handleDistrictChange(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-semibold text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   >
-                    {Object.keys(BD_DISTRICTS_DATA).map(dist => (
+                    <option value="" disabled>Select District</option>
+                    {Object.keys(BD_DISTRICTS_DATA).sort().map(dist => (
                       <option key={dist} value={dist}>
-                        {dist === 'Dhaka' ? 'ঢাকা (Dhaka - ডেলিভারি ৳80)' : `${dist} (ডেলিভারি ৳150)`}
+                        {dist}
                       </option>
                     ))}
                   </select>
