@@ -107,11 +107,11 @@ const PAYMENT_LOGOS = {
   bkash: "/bkash.png",
   nagad: "/nagad.png",
   rocket: "/rocket.png",
-  visa: "https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg",
+  visa: "/visa.png",
   mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
   amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
   unionpay: "https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg",
-  qcash: "https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png", 
+  qcash: "/qcash.png", 
   cod_icon: "https://cdn-icons-png.flaticon.com/512/1554/1554401.png"
 };
 
@@ -715,7 +715,6 @@ export default function CheckoutModal({
                     src={PAYMENT_LOGOS.qcash} 
                     alt="QCash" 
                     className="h-5 sm:h-6 w-auto" 
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/60x24?text=QCash'; }}
                   />
                 </div>
               </div>
