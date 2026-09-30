@@ -135,6 +135,8 @@ export default function CheckoutModal({
   const [submitting, setSubmitting] = useState(false);
   const [addressLoadedFromDb, setAddressLoadedFromDb] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
+  const [showNoAddressError, setShowNoAddressError] = useState(false);
 
   // Fetch saved delivery address on component load (useEffect) and automatically pre-fill form
   useEffect(() => {
@@ -326,7 +328,7 @@ export default function CheckoutModal({
     }
 
     if (!shippingInfo.fullAddressDetails.trim()) {
-      notify('⚠️ অনুগ্রহ করে বাসা/ফ্ল্যাট নম্বর ও পাড়া-মহল্লার নাম উল্লেখ করুন');
+      setShowNoAddressError(true);
       return;
     }
 
@@ -470,6 +472,41 @@ export default function CheckoutModal({
           <span>কেনাকাটায় ফিরে যান (Continue Shopping)</span>
         </button>
       </div>
+
+      {/* No Address Error View (Reference Image) */}
+      <AnimatePresence>
+        {showNoAddressError && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-6"
+            >
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">কোনো শিপিং এড্রেস নেই!</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  অর্ডার সম্পন্ন করতে দয়া করে একটি শিপিং এড্রেস যোগ করুন।
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNoAddressError(false);
+                  setIsAddingNewAddress(true);
+                  // Scroll to address section if needed
+                  const addrEl = document.getElementById('address-form-section');
+                  if (addrEl) addrEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className="w-full py-3 bg-[#4096ff] hover:bg-[#3285e6] text-white font-bold rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>+ Add Address</span>
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main Grid: Left Column (Payment & Address), Right Column (Review, Summary & Confirm) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -703,49 +740,73 @@ export default function CheckoutModal({
           </div>
 
           {/* REFERENCE EXACT DESIGN: Add Address Box */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  Add Address (ডেলিভারির ঠিকানা)
-                </h2>
-                <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                {addressLoadedFromDb && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>সেভ করা ঠিকানা প্রি-ফিল্ড</span>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={handleManualSaveAddress}
-                  disabled={savingAddress}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {savingAddress ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করুন'}
-                </button>
-              </div>
+          <div id="address-form-section" className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
+            <div className="pb-3">
+              <h2 className="text-lg font-bold text-slate-900">Shipping Address</h2>
             </div>
 
-            <div className="space-y-4">
-              {/* Input 1: Full Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name / প্রাপকের নাম <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Full Name / নাম লিখুন"
-                  value={shippingInfo.name}
-                  onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
-              </div>
+            {!isAddingNewAddress && !addressLoadedFromDb ? (
+              <button
+                type="button"
+                onClick={() => setIsAddingNewAddress(true)}
+                className="w-full py-4 border border-blue-500 rounded-xl bg-white text-blue-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-all cursor-pointer group"
+              >
+                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>+ Add Shipping Address</span>
+              </button>
+            ) : (
+              <>
+                <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      Add Address (ডেলিভারির ঠিকানা)
+                    </h2>
+                    <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {addressLoadedFromDb && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>সেভ করা ঠিকানা প্রি-ফিল্ড</span>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleManualSaveAddress}
+                      disabled={savingAddress}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {savingAddress ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করুন'}
+                    </button>
+                    {(isAddingNewAddress || addressLoadedFromDb) && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingNewAddress(false)}
+                        className="text-xs font-bold text-slate-500 hover:text-red-500 px-2 py-1 transition-colors cursor-pointer"
+                      >
+                        বাতিল
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Input 1: Full Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Full Name / প্রাপকের নাম <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Full Name / নাম লিখুন"
+                      value={shippingInfo.name}
+                      onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
 
               {/* Input 2 & 3: Mobile Numbers */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -908,9 +969,10 @@ export default function CheckoutModal({
                   <span>{submitting ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করে অর্ডার জমা দিন'}</span>
                 </button>
               </div>
-
             </div>
-          </div>
+          </>
+        )}
+      </div>
 
         </div>
 
