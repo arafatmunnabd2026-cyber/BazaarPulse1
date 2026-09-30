@@ -619,11 +619,7 @@ export default function CheckoutModal({
                   </div>
 
                   {/* bKash Logo */}
-                  <img 
-                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png" 
-                    alt="bKash" 
-                    className="h-7 w-auto object-contain"
-                  />
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png" alt="bKash" className="w-6 h-6 object-contain" />
                 </div>
 
                 {/* Nagad */}
@@ -641,11 +637,8 @@ export default function CheckoutModal({
                     {shippingInfo.paymentMethod === 'nagad' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
-                  <img 
-                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png" 
-                    alt="Nagad" 
-                    className="h-7 w-auto object-contain"
-                  />
+                  {/* Nagad Logo */}
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png" alt="Nagad" className="w-6 h-6 object-contain" />
                 </div>
 
                 {/* Rocket */}
@@ -663,11 +656,8 @@ export default function CheckoutModal({
                     {shippingInfo.paymentMethod === 'rocket' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
-                  <img 
-                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png" 
-                    alt="Rocket" 
-                    className="h-7 w-auto object-contain"
-                  />
+                  {/* Rocket Logo */}
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png" alt="Rocket" className="w-6 h-6 object-contain" />
                 </div>
 
               </div>
