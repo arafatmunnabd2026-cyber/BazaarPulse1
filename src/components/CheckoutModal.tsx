@@ -13,7 +13,8 @@ import {
   X, 
   Phone, 
   MapPin, 
-  CheckCircle2 
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 
 interface CartItem {

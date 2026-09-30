@@ -1049,7 +1049,7 @@ app.post('/api/auth/token', async (req, res) => {
 // Real login authentication endpoint
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, role, name } = req.body;
     const cleanEmail = email?.trim().toLowerCase();
     const cleanPassword = password?.trim();
     const isLoggingInAsAdmin = (role === 'admin' || cleanEmail === 'arafatmunna14620022@gmail.com');
