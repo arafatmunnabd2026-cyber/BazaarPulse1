@@ -1141,10 +1141,13 @@ app.post('/api/auth/login', async (req, res) => {
       id: targetUser.id,
       name: targetUser.name,
       email: targetUser.email,
+      phone: targetUser.phone || '',
       role: targetUser.role,
       status: userStatus,
       vendorId,
-      avatar: targetUser.avatar
+      avatar: targetUser.avatar,
+      saved_address: parseJsonSafe(targetUser.saved_address, null),
+      savedAddress: parseJsonSafe(targetUser.saved_address, null)
     };
 
     const token = generateToken(payload, '7d');
@@ -1203,16 +1206,48 @@ app.post('/api/auth/google', async (req, res) => {
     }
     
     const token = generateToken(user, '7d');
-    res.json({ success: true, token, user });
+    const userWithAddress = {
+      ...user,
+      saved_address: parseJsonSafe(user.saved_address, null),
+      savedAddress: parseJsonSafe(user.saved_address, null)
+    };
+    res.json({ success: true, token, user: userWithAddress });
   } catch (error) {
     console.error('Google Auth Error:', error);
     res.status(401).json({ success: false, error: 'Google authentication failed' });
   }
 });
 
-// 2. Get current authenticated user profile
-app.get('/api/auth/me', authMiddleware, (req, res) => {
-  res.json({ success: true, user: req.user });
+// 2. Get current authenticated user profile with saved delivery address
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    let fullUser: any = req.user;
+    if (req.user && req.user.id !== 'admin-bypass-id') {
+      if (isDbConfigured) {
+        const uRes = await pool.query('SELECT id, name, email, phone, role, avatar, status, saved_address FROM users WHERE id = $1', [req.user.id]);
+        if (uRes.rows[0]) {
+          fullUser = {
+            ...uRes.rows[0],
+            saved_address: parseJsonSafe(uRes.rows[0].saved_address, null),
+            savedAddress: parseJsonSafe(uRes.rows[0].saved_address, null)
+          };
+        }
+      } else {
+        const db = await getDb();
+        const u = db.users.find((user: any) => user.id === req.user?.id || user.email?.toLowerCase() === req.user?.email?.toLowerCase());
+        if (u) {
+          fullUser = {
+            ...u,
+            saved_address: u.saved_address || u.savedAddress || null,
+            savedAddress: u.saved_address || u.savedAddress || null
+          };
+        }
+      }
+    }
+    res.json({ success: true, user: fullUser });
+  } catch (e: any) {
+    res.json({ success: true, user: req.user });
+  }
 });
 
 // --- User Saved Delivery Address API Routes ---

@@ -109,15 +109,17 @@ export default function CheckoutModal({
   onSubmitOrder,
   notify
 }: CheckoutModalProps) {
+  const userAddr = authUser?.saved_address || authUser?.savedAddress;
+
   const [shippingInfo, setShippingInfo] = useState({
-    name: authUser?.name || 'Arafat Munna',
-    phone: authUser?.phone || '8801756482001',
-    altPhone: '',
-    country: 'বাংলাদেশ',
-    district: 'Dhaka',
-    thana: 'আগারগাঁও',
-    fullAddressDetails: '',
-    addressType: 'Home' as 'Home' | 'Office',
+    name: userAddr?.fullName || authUser?.name || 'Arafat Munna',
+    phone: userAddr?.phoneNumber || authUser?.phone || '8801756482001',
+    altPhone: userAddr?.altPhone || '',
+    country: userAddr?.country || 'বাংলাদেশ',
+    district: userAddr?.district || 'Dhaka',
+    thana: userAddr?.thana || 'আগারগাঁও',
+    fullAddressDetails: userAddr?.addressDetails || '',
+    addressType: (userAddr?.addressType as 'Home' | 'Office') || 'Home',
     paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket'
   });
 
