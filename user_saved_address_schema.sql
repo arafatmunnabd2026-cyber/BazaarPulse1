@@ -115,51 +115,6 @@ CREATE TRIGGER trigger_sync_users_address
 AFTER UPDATE OF saved_address, phone, name ON public.users
 FOR EACH ROW EXECUTE FUNCTION public.sync_user_address_trigger();
 
--- 8. Seed / Update Demo Account (customer@gmail.com)
-INSERT INTO public.user_logins (id, name, email, role, phone, saved_address)
-VALUES (
-  'u4',
-  'Rahim Ahmed',
-  'customer@gmail.com',
-  'customer',
-  '01756482001',
-  '{
-    "fullName": "Rahim Ahmed",
-    "phoneNumber": "01756482001",
-    "district": "Dhaka",
-    "thana": "মিরপুর",
-    "addressDetails": "বাড়ি ১২, রোড ৫, সেকশন ১০, মিরপুর, ঢাকা",
-    "altPhone": "01812345678",
-    "addressType": "Home",
-    "country": "বাংলাদেশ"
-  }'::jsonb
-)
-ON CONFLICT (email) DO UPDATE SET
-  saved_address = EXCLUDED.saved_address,
-  phone = EXCLUDED.phone;
-
--- Also seed users table for Rahim
-INSERT INTO public.users (id, name, email, role, phone, saved_address)
-VALUES (
-  'u4',
-  'Rahim Ahmed',
-  'customer@gmail.com',
-  'customer',
-  '01756482001',
-  '{
-    "fullName": "Rahim Ahmed",
-    "phoneNumber": "01756482001",
-    "district": "Dhaka",
-    "thana": "মিরপুর",
-    "addressDetails": "বাড়ি ১২, রোড ৫, সেকশন ১০, মিরপুর, ঢাকা",
-    "altPhone": "01812345678",
-    "addressType": "Home",
-    "country": "বাংলাদেশ"
-  }'::jsonb
-)
-ON CONFLICT (email) DO UPDATE SET
-  saved_address = EXCLUDED.saved_address,
-  phone = EXCLUDED.phone;
-
+-- 8. [REMOVED DEMO SEEDING AS PER USER REQUEST]
 -- 9. Final Verification Query
 SELECT id, name, email, phone, saved_address FROM public.user_logins;

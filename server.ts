@@ -98,23 +98,7 @@ interface InitialData {
 
 const defaultData: InitialData = {
   users: [
-    { id: 'u1', name: 'Admin User', email: 'arafatmunna14620022@gmail.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' },
-    { 
-      id: 'u4', 
-      name: 'Rahim Ahmed', 
-      email: 'customer@gmail.com', 
-      role: 'customer', 
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      saved_address: {
-        fullName: 'Rahim Ahmed',
-        phoneNumber: '8801756482001',
-        district: 'Dhaka',
-        thana: 'আগারগাঁও',
-        addressDetails: 'House 12, Road 4, Sector 2, Agargaon',
-        altPhone: '8801812345678',
-        addressType: 'Home'
-      }
-    }
+    { id: 'u1', name: 'Admin User', email: 'arafatmunna14620022@gmail.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' }
   ],
   vendors: [],
   categories: [
@@ -1034,11 +1018,12 @@ app.post('/api/auth/token', async (req, res) => {
       };
     } else if (role === 'customer') {
       payload = {
-        id: 'u4',
-        name: 'Rahim Ahmed',
-        email: 'customer@gmail.com',
+        id: 'u-' + Date.now(),
+        name: name || 'Customer User',
+        email: email || 'customer@gmail.com',
         role: 'customer',
-        status: 'active'
+        status: 'active',
+        saved_address: null
       };
     }
 
@@ -1120,8 +1105,8 @@ app.post('/api/auth/login', async (req, res) => {
             targetUser = ins.rows[0];
           } else if (cleanEmail === 'customer@gmail.com' || role === 'customer') {
             const ins = await pool.query(
-              'INSERT INTO users (id, name, email, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-              ['u4', 'Rahim Ahmed', 'customer@gmail.com', 'customer', 'active']
+              'INSERT INTO users (id, name, email, role, status, saved_address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+              ['u-' + Date.now(), name || 'Customer User', cleanEmail || 'customer@gmail.com', 'customer', 'active', null]
             );
             targetUser = ins.rows[0];
           }
