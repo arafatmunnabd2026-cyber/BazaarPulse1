@@ -6,7 +6,6 @@ import {
   Check, 
   ShoppingBag, 
   Truck, 
-  Lock, 
   CreditCard, 
   Tag, 
   AlertCircle, 
@@ -313,35 +312,7 @@ export default function CheckoutModal({
         </button>
       </div>
 
-      {/* 2. Top Banner / Header Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              BazaarPulse Secure Checkout
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              আপনার ডেলিভারি ঠিকানা ও সুবিধাজনক পেমেন্ট পদ্ধতি নির্বাচন করে অর্ডার নিশ্চিত করুন
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-            <Lock className="w-3.5 h-3.5" />
-            256-bit SSL সিকিউরড
-          </span>
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-            <Truck className="w-3.5 h-3.5" />
-            দ্রুততম হোম ডেলিভারি
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Main Grid: Left Column (Payment & Address), Right Column (Review, Summary & Confirm) */}
+      {/* Main Grid: Left Column (Payment & Address), Right Column (Review, Summary & Confirm) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
         {/* LEFT COLUMN: Payment Methods & Add Address Form */}
