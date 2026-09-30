@@ -619,8 +619,8 @@ export default function CheckoutModal({
                   </div>
 
                   {/* bKash Logo */}
-                  <div className="flex items-center gap-2">
-                    <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="w-8 h-8 object-contain" />
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="h-12 w-auto object-contain min-w-[60px]" />
                     <span className="text-sm font-bold text-black">bKash</span>
                   </div>
                 </div>
@@ -641,8 +641,8 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Nagad Logo */}
-                  <div className="flex items-center gap-2">
-                    <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="w-8 h-8 object-contain" />
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="h-12 w-auto object-contain min-w-[60px]" />
                     <span className="text-sm font-bold text-black">Nagad</span>
                   </div>
                 </div>
@@ -663,8 +663,8 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Rocket Logo */}
-                  <div className="flex items-center gap-2">
-                    <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="w-8 h-8 object-contain" />
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="h-12 w-auto object-contain min-w-[60px]" />
                     <span className="text-sm font-bold text-black">Rocket</span>
                   </div>
                 </div>
