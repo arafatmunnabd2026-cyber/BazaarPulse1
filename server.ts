@@ -48,6 +48,19 @@ const ai = new GoogleGenAI({ apiKey });
 // Database initialization file path
 const DB_FILE = path.join(__dirname, 'database.json');
 
+// User Saved Delivery Address Model
+export interface SavedDeliveryAddress {
+  fullName: string;
+  phoneNumber: string;
+  district: string;
+  thana: string;
+  addressDetails: string;
+  altPhone?: string;
+  addressType?: 'Home' | 'Office' | string;
+  country?: string;
+  updatedAt?: string;
+}
+
 interface InitialData {
   users: any[];
   vendors: any[];
@@ -86,7 +99,22 @@ interface InitialData {
 const defaultData: InitialData = {
   users: [
     { id: 'u1', name: 'Admin User', email: 'arafatmunna14620022@gmail.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' },
-    { id: 'u4', name: 'Rahim Ahmed', email: 'customer@gmail.com', role: 'customer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' }
+    { 
+      id: 'u4', 
+      name: 'Rahim Ahmed', 
+      email: 'customer@gmail.com', 
+      role: 'customer', 
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      saved_address: {
+        fullName: 'Rahim Ahmed',
+        phoneNumber: '8801756482001',
+        district: 'Dhaka',
+        thana: 'আগারগাঁও',
+        addressDetails: 'House 12, Road 4, Sector 2, Agargaon',
+        altPhone: '8801812345678',
+        addressType: 'Home'
+      }
+    }
   ],
   vendors: [],
   categories: [
@@ -158,6 +186,8 @@ async function initDatabase() {
       
       -- Ensure password column exists if the table was already created
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
       
       CREATE TABLE IF NOT EXISTS categories (
         id VARCHAR(255) PRIMARY KEY,
@@ -337,8 +367,8 @@ async function initDatabase() {
       // Users
       for (const u of initialData.users || []) {
         await client.query(
-          'INSERT INTO users (id, name, email, role, avatar, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (email) DO NOTHING',
-          [u.id, u.name, u.email, u.role, u.avatar, u.status || 'active']
+          'INSERT INTO users (id, name, email, role, avatar, status, saved_address) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (email) DO UPDATE SET saved_address = COALESCE(users.saved_address, EXCLUDED.saved_address)',
+          [u.id, u.name, u.email, u.role, u.avatar, u.status || 'active', u.saved_address ? JSON.stringify(u.saved_address) : null]
         );
       }
       
@@ -798,7 +828,11 @@ async function getDb(): Promise<InitialData> {
       }
     }
     
-    const users = usersRes.rows;
+    const users = usersRes.rows.map((u: any) => ({
+      ...u,
+      saved_address: parseJsonSafe(u.saved_address, null),
+      savedAddress: parseJsonSafe(u.saved_address, null)
+    }));
     const categories = categoriesRes.rows;
     const vendors = vendorsRes.rows.map(v => ({
       id: v.id,
@@ -1180,6 +1214,152 @@ app.post('/api/auth/google', async (req, res) => {
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json({ success: true, user: req.user });
 });
+
+// --- User Saved Delivery Address API Routes ---
+
+// GET: Fetch user's saved delivery address from database
+app.get('/api/user/address', authMiddleware, async (req, res) => {
+  try {
+    const targetUserId = (req.query.userId as string) || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.id : null);
+    const targetEmail = (req.query.email as string) || (req.user && req.user.email ? req.user.email : null);
+
+    if (isDbConfigured) {
+      try {
+        const client = await pool.connect();
+        let query = 'SELECT id, name, email, phone, saved_address FROM users WHERE id = $1';
+        let params: any[] = [targetUserId];
+
+        if (!targetUserId && targetEmail) {
+          query = 'SELECT id, name, email, phone, saved_address FROM users WHERE LOWER(email) = LOWER($1)';
+          params = [targetEmail];
+        } else if (!targetUserId && !targetEmail) {
+          query = 'SELECT id, name, email, phone, saved_address FROM users WHERE role = $1 ORDER BY created_at ASC LIMIT 1';
+          params = ['customer'];
+        }
+
+        const result = await client.query(query, params);
+        client.release();
+
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          const savedAddr = parseJsonSafe(row.saved_address, null);
+          return res.json({
+            success: true,
+            address: savedAddr,
+            user: { id: row.id, name: row.name, email: row.email, phone: row.phone }
+          });
+        }
+      } catch (dbErr) {
+        console.warn('Postgres fetch address error, checking fallback:', dbErr);
+      }
+    }
+
+    // Fallback: Query from local JSON / database.json
+    const db = await getDb();
+    const user = db.users.find((u: any) => 
+      (targetUserId && u.id === targetUserId) || 
+      (targetEmail && u.email && u.email.toLowerCase() === targetEmail.toLowerCase())
+    ) || db.users.find((u: any) => u.role === 'customer') || db.users[0];
+
+    const savedAddr = user?.saved_address || user?.savedAddress || null;
+    return res.json({
+      success: true,
+      address: savedAddr,
+      user: user ? { id: user.id, name: user.name, email: user.email, phone: user.phone } : null
+    });
+  } catch (error: any) {
+    console.error('Error fetching user address:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST / PUT: Save or update user's delivery address in database
+const handleSaveUserAddress = async (req: express.Request, res: express.Response) => {
+  try {
+    const { 
+      fullName, 
+      phoneNumber, 
+      district, 
+      thana, 
+      addressDetails, 
+      altPhone, 
+      addressType = 'Home',
+      userId: bodyUserId,
+      email: bodyEmail
+    } = req.body;
+
+    const targetUserId = bodyUserId || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.id : null);
+    const targetEmail = bodyEmail || (req.user && req.user.email ? req.user.email : null);
+
+    const addressObject: SavedDeliveryAddress = {
+      fullName: fullName || '',
+      phoneNumber: phoneNumber || '',
+      district: district || 'Dhaka',
+      thana: thana || 'সদর',
+      addressDetails: addressDetails || '',
+      altPhone: altPhone || '',
+      addressType: addressType || 'Home',
+      country: 'বাংলাদেশ',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isDbConfigured) {
+      try {
+        const client = await pool.connect();
+        if (targetUserId) {
+          await client.query(
+            'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4',
+            [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetUserId]
+          );
+        } else if (targetEmail) {
+          await client.query(
+            'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE LOWER(email) = LOWER($4)',
+            [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetEmail]
+          );
+        } else {
+          await client.query(
+            'UPDATE users SET saved_address = $1 WHERE role = $2',
+            [JSON.stringify(addressObject), 'customer']
+          );
+        }
+        client.release();
+      } catch (dbErr) {
+        console.warn('Postgres save address error, updating json cache:', dbErr);
+      }
+    }
+
+    // Update in local file cache
+    try {
+      const db = await getDb();
+      const user = db.users.find((u: any) => 
+        (targetUserId && u.id === targetUserId) || 
+        (targetEmail && u.email && u.email.toLowerCase() === targetEmail.toLowerCase())
+      ) || db.users.find((u: any) => u.role === 'customer');
+
+      if (user) {
+        user.saved_address = addressObject;
+        user.savedAddress = addressObject;
+        if (fullName) user.name = fullName;
+        if (phoneNumber) user.phone = phoneNumber;
+        saveDb(db);
+      }
+    } catch (localErr) {
+      console.warn('Failed to update local db cache with address:', localErr);
+    }
+
+    res.json({
+      success: true,
+      message: 'ডেলিভারি ঠিকানা সফলভাবে সেভ করা হয়েছে (Address saved successfully)',
+      address: addressObject
+    });
+  } catch (error: any) {
+    console.error('Error saving user address:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+app.post('/api/user/address', authMiddleware, handleSaveUserAddress);
+app.put('/api/user/address', authMiddleware, handleSaveUserAddress);
 
 // 3. Security Diagnostic / RBAC Test endpoint
 app.post('/api/auth/test-rbac', (req, res) => {
@@ -2421,17 +2601,17 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
 
     const orderId = 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const realPhone = customerPhone || phone || '';
+    const realPhone = customerPhone || phone || req.body.phoneNumber || '';
     const createdOrder = {
       id: orderId,
       customerId: targetUserId,
       user_id: targetUserId,
-      customerName: customerName || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.name : 'Customer'),
+      customerName: customerName || req.body.fullName || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.name : 'Customer'),
       customerEmail: customerEmail || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.email : ''),
       customerPhone: realPhone,
       phone: realPhone,
-      shippingAddress: shippingAddress || '',
-      address: shippingAddress || '',
+      shippingAddress: shippingAddress || req.body.address || '',
+      address: shippingAddress || req.body.address || '',
       items,
       subtotal: Number(req.body.subtotal || totalAmount),
       deliveryFee: Number(req.body.deliveryFee || 80),
@@ -2440,6 +2620,48 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
+
+    // Ensure that when an order is placed, the address is saved to the user's profile in the database so future checkouts are pre-filled
+    const userSavedAddress: SavedDeliveryAddress = {
+      fullName: req.body.fullName || createdOrder.customerName || '',
+      phoneNumber: req.body.phoneNumber || realPhone || '',
+      district: req.body.district || (createdOrder.shippingAddress?.includes('জেলা:') ? createdOrder.shippingAddress.split('জেলা:')[1]?.split(',')[0]?.trim() : 'Dhaka'),
+      thana: req.body.thana || (createdOrder.shippingAddress?.includes('থানা:') ? createdOrder.shippingAddress.split('থানা:')[1]?.split(',')[0]?.trim() : 'সদর'),
+      addressDetails: req.body.addressDetails || (createdOrder.shippingAddress?.includes(',') ? createdOrder.shippingAddress.split(',')[0]?.trim() : createdOrder.shippingAddress) || '',
+      altPhone: req.body.altPhone || '',
+      addressType: req.body.addressType || 'Home',
+      country: 'বাংলাদেশ',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isDbConfigured) {
+      try {
+        await pool.query(
+          'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4 OR LOWER(email) = LOWER($5)',
+          [JSON.stringify(userSavedAddress), userSavedAddress.fullName || '', userSavedAddress.phoneNumber || '', targetUserId, createdOrder.customerEmail]
+        );
+      } catch (userUpErr) {
+        console.warn('Failed to update user address profile on order placement:', userUpErr);
+      }
+    }
+
+    try {
+      const dbCache = await getDb();
+      const userToUpdate = dbCache.users.find((u: any) => 
+        (targetUserId && u.id === targetUserId) || 
+        (createdOrder.customerEmail && u.email && u.email.toLowerCase() === createdOrder.customerEmail.toLowerCase())
+      ) || dbCache.users.find((u: any) => u.role === 'customer');
+
+      if (userToUpdate) {
+        userToUpdate.saved_address = userSavedAddress;
+        userToUpdate.savedAddress = userSavedAddress;
+        if (userSavedAddress.fullName) userToUpdate.name = userSavedAddress.fullName;
+        if (userSavedAddress.phoneNumber) userToUpdate.phone = userSavedAddress.phoneNumber;
+        saveDb(dbCache);
+      }
+    } catch (cacheErr) {
+      console.warn('Error updating local user profile cache on order:', cacheErr);
+    }
 
     if (isDbConfigured) {
       // Call the place_order function we defined in initDatabase

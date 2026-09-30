@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ShieldCheck, 
@@ -131,6 +131,125 @@ export default function CheckoutModal({
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [addressLoadedFromDb, setAddressLoadedFromDb] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+
+  // Fetch saved delivery address on component load (useEffect) and automatically pre-fill form
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSavedAddress = async () => {
+      try {
+        const activeToken = localStorage.getItem('bazaarpulse_token') || '';
+        const userParams = new URLSearchParams();
+        if (authUser?.id) userParams.append('userId', authUser.id);
+        if (authUser?.email) userParams.append('email', authUser.email);
+
+        const url = `/api/user/address${userParams.toString() ? '?' + userParams.toString() : ''}`;
+        const res = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.success && data.address) {
+            const addr = data.address;
+            setShippingInfo(prev => ({
+              ...prev,
+              name: addr.fullName || prev.name,
+              phone: addr.phoneNumber || prev.phone,
+              altPhone: addr.altPhone || prev.altPhone,
+              district: addr.district || prev.district,
+              thana: addr.thana || prev.thana,
+              fullAddressDetails: addr.addressDetails || prev.fullAddressDetails,
+              addressType: (addr.addressType as any) || prev.addressType
+            }));
+            setAddressLoadedFromDb(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch address from API, attempting local fallback:', err);
+      }
+
+      // Local storage fallback for instant response
+      try {
+        const localSaved = localStorage.getItem('bazaarpulse_saved_address');
+        if (localSaved && isMounted) {
+          const parsed = JSON.parse(localSaved);
+          if (parsed && (parsed.fullName || parsed.addressDetails)) {
+            setShippingInfo(prev => ({
+              ...prev,
+              name: parsed.fullName || prev.name,
+              phone: parsed.phoneNumber || prev.phone,
+              altPhone: parsed.altPhone || prev.altPhone,
+              district: parsed.district || prev.district,
+              thana: parsed.thana || prev.thana,
+              fullAddressDetails: parsed.addressDetails || prev.fullAddressDetails,
+              addressType: (parsed.addressType as any) || prev.addressType
+            }));
+            setAddressLoadedFromDb(true);
+          }
+        }
+      } catch (e) {}
+    };
+
+    fetchSavedAddress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUser?.id, authUser?.email]);
+
+  const handleManualSaveAddress = async () => {
+    if (!shippingInfo.name.trim() || !shippingInfo.phone.trim()) {
+      notify('⚠️ নাম এবং ফোন নম্বর লিখুন');
+      return;
+    }
+    if (!shippingInfo.fullAddressDetails.trim()) {
+      notify('⚠️ বিস্তারিত ঠিকানা উল্লেখ করুন');
+      return;
+    }
+    setSavingAddress(true);
+    try {
+      const activeToken = localStorage.getItem('bazaarpulse_token') || '';
+      const payload = {
+        fullName: shippingInfo.name.trim(),
+        phoneNumber: shippingInfo.phone.trim(),
+        district: shippingInfo.district,
+        thana: shippingInfo.thana,
+        addressDetails: shippingInfo.fullAddressDetails.trim(),
+        altPhone: shippingInfo.altPhone.trim(),
+        addressType: shippingInfo.addressType,
+        userId: authUser?.id,
+        email: authUser?.email
+      };
+
+      const res = await fetch('/api/user/address', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('bazaarpulse_saved_address', JSON.stringify(payload));
+        setAddressLoadedFromDb(true);
+        notify('✅ ডেলিভারি ঠিকানা ডেটাবেজে সফলভাবে সংরক্ষিত হয়েছে!');
+      } else {
+        notify('❌ ঠিকানা সংরক্ষণ করা যায়নি: ' + (data.error || ''));
+      }
+    } catch (err: any) {
+      notify('❌ সার্ভার ত্রুটি: ' + err.message);
+    } finally {
+      setSavingAddress(false);
+    }
+  };
 
   // Selected cart items or all cart items if non-selected
   const activeItems = cart.filter(i => i.selected !== false);
@@ -211,6 +330,35 @@ export default function CheckoutModal({
 
     setSubmitting(true);
     try {
+      // Save address to user profile in backend database and local storage so future checkouts are pre-filled
+      try {
+        const activeToken = localStorage.getItem('bazaarpulse_token') || '';
+        const addressPayload = {
+          fullName: shippingInfo.name.trim(),
+          phoneNumber: shippingInfo.phone.trim(),
+          district: shippingInfo.district,
+          thana: shippingInfo.thana,
+          addressDetails: shippingInfo.fullAddressDetails.trim(),
+          altPhone: shippingInfo.altPhone.trim(),
+          addressType: shippingInfo.addressType,
+          userId: authUser?.id,
+          email: authUser?.email
+        };
+
+        fetch('/api/user/address', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+          },
+          body: JSON.stringify(addressPayload)
+        }).catch(err => console.warn('Background address save failed:', err));
+
+        localStorage.setItem('bazaarpulse_saved_address', JSON.stringify(addressPayload));
+      } catch (e) {
+        console.warn('Error saving address locally:', e);
+      }
+
       const fullAddressString = `${shippingInfo.fullAddressDetails}, থানা: ${shippingInfo.thana}, জেলা: ${shippingInfo.district}, ${shippingInfo.country} (টাইপ: ${shippingInfo.addressType})`;
 
       const orderPayload = {
@@ -235,8 +383,11 @@ export default function CheckoutModal({
         phone: shippingInfo.phone,
         altPhone: shippingInfo.altPhone,
         address: fullAddressString,
+        fullName: shippingInfo.name,
+        phoneNumber: shippingInfo.phone,
         district: shippingInfo.district,
         thana: shippingInfo.thana,
+        addressDetails: shippingInfo.fullAddressDetails,
         addressType: shippingInfo.addressType,
         paymentMethod: shippingInfo.paymentMethod,
         paymentStatus: shippingInfo.paymentMethod === 'cod' ? 'unpaid' : 'paid',
@@ -551,12 +702,31 @@ export default function CheckoutModal({
 
           {/* REFERENCE EXACT DESIGN: Add Address Box */}
           <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                Add Address (ডেলিভারির ঠিকানা)
-              </h2>
-              <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
+            <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                  Add Address (ডেলিভারির ঠিকানা)
+                </h2>
+                <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {addressLoadedFromDb && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>সেভ করা ঠিকানা প্রি-ফিল্ড</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleManualSaveAddress}
+                  disabled={savingAddress}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {savingAddress ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করুন'}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">

@@ -144,3 +144,19 @@ SELECT column_name, data_type, is_nullable
 FROM information_schema.columns 
 WHERE table_name = 'products' AND table_schema = 'public'
 ORDER BY ordinal_position;
+
+-- 7. Ensure 'users' table has 'saved_address' (JSONB) and 'phone' columns for Delivery Address Pre-Fill
+CREATE TABLE IF NOT EXISTS public.users (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(50),
+  role VARCHAR(50) DEFAULT 'customer',
+  avatar TEXT,
+  saved_address JSONB DEFAULT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
+

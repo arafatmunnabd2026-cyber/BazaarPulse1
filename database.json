@@ -2,17 +2,49 @@
   "users": [
     {
       "id": "u1",
-      "name": "Admin User",
+      "name": "Rahim Ahmed",
       "email": "arafatmunna14620022@gmail.com",
       "role": "admin",
-      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150"
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "saved_address": {
+        "fullName": "Rahim Ahmed",
+        "phoneNumber": "8801756482001",
+        "district": "Dhaka",
+        "thana": "আগারগাঁও",
+        "addressDetails": "House 12, Road 4, Sector 2, Agargaon",
+        "altPhone": "",
+        "addressType": "Home",
+        "country": "বাংলাদেশ",
+        "updatedAt": "2026-09-30T09:25:43.050Z"
+      },
+      "savedAddress": {
+        "fullName": "Rahim Ahmed",
+        "phoneNumber": "8801756482001",
+        "district": "Dhaka",
+        "thana": "আগারগাঁও",
+        "addressDetails": "House 12, Road 4, Sector 2, Agargaon",
+        "altPhone": "",
+        "addressType": "Home",
+        "country": "বাংলাদেশ",
+        "updatedAt": "2026-09-30T09:25:43.050Z"
+      },
+      "phone": "8801756482001"
     },
     {
       "id": "u4",
       "name": "Rahim Ahmed",
       "email": "customer@gmail.com",
       "role": "customer",
-      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      "saved_address": {
+        "fullName": "Rahim Ahmed",
+        "phoneNumber": "8801756482001",
+        "district": "Dhaka",
+        "thana": "আগারগাঁও",
+        "addressDetails": "House 12, Road 4, Sector 2, Agargaon",
+        "altPhone": "8801812345678",
+        "addressType": "Home"
+      }
     }
   ],
   "vendors": [],
@@ -113,7 +145,128 @@
       "colors": []
     }
   ],
-  "orders": [],
+  "orders": [
+    {
+      "id": "ORD-FDHPQDKQ",
+      "customerId": "115684844908101626019",
+      "user_id": "115684844908101626019",
+      "customerName": "Tabassum Mahabub",
+      "customerEmail": "mahabubtabassum346@gmail.com",
+      "customerPhone": "01820096098",
+      "phone": "01820096098",
+      "shippingAddress": "আমার বাড়ি বরিশাল, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "আমার বাড়ি বরিশাল, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 369,
+      "subtotal": 219,
+      "deliveryFee": 80,
+      "createdAt": "2026-09-29T19:37:09.955769+00:00",
+      "items": [
+        {
+          "productId": "p-1790486363194",
+          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
+          "price": 219,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
+        }
+      ]
+    },
+    {
+      "id": "ORD-Z1MFHERM",
+      "customerId": "109795258591068280249",
+      "user_id": "109795258591068280249",
+      "customerName": "Arafat munna",
+      "customerEmail": "arafatmunna.bd2026@gmail.com",
+      "customerPhone": "8801756482001",
+      "phone": "8801756482001",
+      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "bkash",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 369,
+      "subtotal": 219,
+      "deliveryFee": 80,
+      "createdAt": "2026-09-29T19:19:13.520881+00:00",
+      "items": [
+        {
+          "productId": "p-1790486363194",
+          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
+          "price": 219,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
+        }
+      ]
+    },
+    {
+      "id": "ORD-G70V9ONA",
+      "customerId": "109795258591068280249",
+      "user_id": "109795258591068280249",
+      "customerName": "Arafat munna",
+      "customerEmail": "arafatmunna.bd2026@gmail.com",
+      "customerPhone": "8801756482001",
+      "phone": "8801756482001",
+      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 2500,
+      "subtotal": 2350,
+      "deliveryFee": 80,
+      "createdAt": "2026-09-29T19:05:00.448823+00:00",
+      "items": [
+        {
+          "productId": "p-1790600161282",
+          "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
+          "price": 2350,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790600161282"
+        }
+      ]
+    },
+    {
+      "id": "ORD-7JQ4WG2S",
+      "customerId": "109795258591068280249",
+      "user_id": "109795258591068280249",
+      "customerName": "Arafat munna",
+      "customerEmail": "arafatmunna.bd2026@gmail.com",
+      "customerPhone": "8801756482001",
+      "phone": "8801756482001",
+      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 369,
+      "subtotal": 219,
+      "deliveryFee": 80,
+      "createdAt": "2026-09-29T18:56:49.742564+00:00",
+      "items": [
+        {
+          "productId": "p-1790486363194",
+          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
+          "price": 219,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
+        }
+      ]
+    }
+  ],
   "withdrawals": [],
   "adminSettings": {
     "globalCommissionRate": 10,
