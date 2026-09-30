@@ -605,10 +605,11 @@ export default function CheckoutModal({
                     {shippingInfo.paymentMethod === 'bkash' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
+                  {/* bKash Logo */}
                   <img 
-                    src="https://securepay.sslcommerz.com/gw/images/standard/bkash.png" 
+                    src="https://freelogopng.com/images/all_img/1656235199bkash-logo-png.png" 
                     alt="bKash" 
-                    className="h-7 sm:h-8 object-contain"
+                    className="h-7 w-auto object-contain"
                   />
                 </div>
 
@@ -628,9 +629,9 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://securepay.sslcommerz.com/gw/images/standard/nagad.png" 
+                    src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" 
                     alt="Nagad" 
-                    className="h-7 sm:h-8 object-contain"
+                    className="h-7 w-auto object-contain"
                   />
                 </div>
 
@@ -650,9 +651,9 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://securepay.sslcommerz.com/gw/images/standard/rocket.png" 
+                    src="https://freelogopng.com/images/all_img/1679248873Rocket-Logo.png" 
                     alt="Rocket" 
-                    className="h-7 sm:h-8 object-contain"
+                    className="h-7 w-auto object-contain"
                   />
                 </div>
 
@@ -692,23 +693,13 @@ export default function CheckoutModal({
                   {shippingInfo.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                 </div>
 
-                {/* Bank Operator Logos from Image */}
+                {/* Bank Operator Logos */}
                 <div className="flex items-center flex-wrap gap-2">
-                  <div className="bg-[#1a1f71] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <img src="https://securepay.sslcommerz.com/gw/images/standard/visa.png" alt="Visa" className="h-4 sm:h-5 object-contain" />
-                  </div>
-                  <div className="bg-[#171b2a] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <img src="https://securepay.sslcommerz.com/gw/images/standard/master.png" alt="Mastercard" className="h-5 sm:h-6 object-contain" />
-                  </div>
-                  <div className="bg-[#016fcf] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <img src="https://securepay.sslcommerz.com/gw/images/standard/amex.png" alt="Amex" className="h-5 sm:h-6 object-contain" />
-                  </div>
-                  <div className="bg-[#005c3b] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_Z8Vv6v7j49Y9_0Xj0U2jJ1t0_5vX7k0vRg&s" alt="UnionPay" className="h-4 sm:h-5 object-contain bg-white px-0.5" />
-                  </div>
-                  <div className="bg-[#e30613] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <span className="text-white font-black italic text-[10px] sm:text-xs">QCash</span>
-                  </div>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg" alt="Visa" className="h-5 sm:h-6 w-auto" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-5 sm:h-6 w-auto" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" alt="Amex" className="h-5 sm:h-6 w-auto" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg" alt="UnionPay" className="h-5 sm:h-6 w-auto" />
+                  <img src="https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png" alt="QCash" className="h-5 sm:h-6 w-auto" />
                 </div>
               </div>
 
