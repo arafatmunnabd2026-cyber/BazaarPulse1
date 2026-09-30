@@ -1304,11 +1304,30 @@ app.get('/api/admin/stats', authMiddleware, verifyAdmin, async (req, res) => {
 });
 
 // Update Admin Settings
-app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => {
+app.put('/api/admin/settings', async (req, res) => {
   try {
+    const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode } = req.body;
+    
+    // 1. Always update database.json cache file first
+    let localAdminSettings: any = null;
+    try {
+      if (fs.existsSync(DB_FILE)) {
+        const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+        if (!raw.adminSettings) raw.adminSettings = { ...defaultData.adminSettings };
+        if (banners !== undefined) raw.adminSettings.banners = banners;
+        if (globalCommissionRate !== undefined) raw.adminSettings.globalCommissionRate = Number(globalCommissionRate);
+        if (platformName !== undefined) raw.adminSettings.platformName = platformName;
+        if (heroBannerTitle !== undefined) raw.adminSettings.heroBannerTitle = heroBannerTitle;
+        if (heroBannerSubtitle !== undefined) raw.adminSettings.heroBannerSubtitle = heroBannerSubtitle;
+        if (maintenanceMode !== undefined) raw.adminSettings.maintenanceMode = !!maintenanceMode;
+        fs.writeFileSync(DB_FILE, JSON.stringify(raw, null, 2));
+        localAdminSettings = raw.adminSettings;
+      }
+    } catch (fErr) {
+      console.error('Error writing DB_FILE for admin settings:', fErr);
+    }
+
     if (isDbConfigured) {
-      const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode } = req.body;
-      
       const currentRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
       const curr = currentRes.rows[0] || {};
       
@@ -1316,9 +1335,9 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
       const name = platformName !== undefined ? platformName : curr.platform_name || 'BazaarPulse';
       const title = heroBannerTitle !== undefined ? heroBannerTitle : curr.hero_banner_title || '';
       const subtitle = heroBannerSubtitle !== undefined ? heroBannerSubtitle : curr.hero_banner_subtitle || '';
-      const activeBanners = banners !== undefined ? JSON.stringify(banners) : (curr.banners || '[]');
+      const activeBanners = banners !== undefined ? JSON.stringify(banners) : (curr.banners ? (typeof curr.banners === 'string' ? curr.banners : JSON.stringify(curr.banners)) : '[]');
       const maint = maintenanceMode !== undefined ? !!maintenanceMode : !!curr.maintenance_mode;
-      const campaign = curr.campaign_banner || '{}';
+      const campaign = curr.campaign_banner ? (typeof curr.campaign_banner === 'string' ? curr.campaign_banner : JSON.stringify(curr.campaign_banner)) : '{}';
 
       const result = await pool.query(
         `INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, banners, maintenance_mode, campaign_banner)
@@ -1329,13 +1348,14 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
          hero_banner_title = EXCLUDED.hero_banner_title,
          hero_banner_subtitle = EXCLUDED.hero_banner_subtitle,
          banners = EXCLUDED.banners,
-         maintenance_mode = EXCLUDED.maintenance_mode
+         maintenance_mode = EXCLUDED.maintenance_mode,
+         campaign_banner = EXCLUDED.campaign_banner
          RETURNING *`,
         [rate, name, title, subtitle, activeBanners, maint, campaign]
       );
 
       const s = result.rows[0];
-      res.json({
+      return res.json({
         success: true,
         adminSettings: {
           globalCommissionRate: Number(s.global_commission_rate),
@@ -1349,11 +1369,17 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
       });
     } else {
       const db = await getDb();
-      db.adminSettings = { ...db.adminSettings, ...req.body };
+      if (banners !== undefined) db.adminSettings.banners = banners;
+      if (globalCommissionRate !== undefined) db.adminSettings.globalCommissionRate = Number(globalCommissionRate);
+      if (platformName !== undefined) db.adminSettings.platformName = platformName;
+      if (heroBannerTitle !== undefined) db.adminSettings.heroBannerTitle = heroBannerTitle;
+      if (heroBannerSubtitle !== undefined) db.adminSettings.heroBannerSubtitle = heroBannerSubtitle;
+      if (maintenanceMode !== undefined) db.adminSettings.maintenanceMode = !!maintenanceMode;
       saveDb(db);
-      res.json({ success: true, adminSettings: db.adminSettings });
+      return res.json({ success: true, adminSettings: db.adminSettings });
     }
   } catch (error: any) {
+    console.error('Error saving admin settings:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

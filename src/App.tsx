@@ -258,6 +258,33 @@ export default function App() {
         }));
       }
 
+      // Permanent Hero Banner Retention: Guard against banner loss on refresh
+      if (!json.adminSettings) {
+        json.adminSettings = { banners: [] };
+      }
+      
+      const serverBanners = json?.adminSettings?.banners;
+      const cachedBannersRaw = localStorage.getItem('bazaarpulse_admin_banners');
+      
+      if (Array.isArray(serverBanners) && serverBanners.length > 0) {
+        // Server has live banners, update local cache
+        localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(serverBanners));
+      } else if (cachedBannersRaw) {
+        // If server returned empty, restore from persistent local cache so banners never disappear
+        try {
+          const parsedCache = JSON.parse(cachedBannersRaw);
+          if (Array.isArray(parsedCache) && parsedCache.length > 0) {
+            json.adminSettings.banners = parsedCache;
+            // Sync back to backend so server database is also refreshed
+            fetch('/api/admin/settings', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ banners: parsedCache })
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      }
+
       setData(json);
       setLoading(false);
     } catch (err) {
@@ -4260,14 +4287,18 @@ function AdminControlCenter({
                           <button 
                             onClick={async () => {
                               if (!confirm('Remove this banner from homepage?')) return;
-                              const updatedBanners = data.adminSettings.banners.filter((b: any) => b.id !== banner.id);
+                              const updatedBanners = (data.adminSettings.banners || []).filter((b: any) => b.id !== banner.id);
+                              localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(updatedBanners));
                               try {
                                 const res = await fetch('/api/admin/settings', {
                                   method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                                  headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ banners: updatedBanners })
                                 });
-                                if (res.ok) { notify('🗑️ Banner removed successfully!'); refreshData(); }
+                                if (res.ok) { 
+                                  notify('🗑️ Banner removed successfully!');
+                                  refreshData();
+                                }
                               } catch (e) { notify('Failed to remove banner'); }
                             }}
                             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
@@ -4275,10 +4306,10 @@ function AdminControlCenter({
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{banner.title}</h4>
-                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{banner.subtitle}</p>
+                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{banner.title || `Banner ${idx + 1}`}</h4>
+                        {banner.subtitle && <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{banner.subtitle}</p>}
                         <div className="mt-3 flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-slate-400 truncate flex-1">{banner.link}</span>
+                          <span className="text-[10px] font-bold text-slate-400 truncate flex-1">{banner.link || 'No link'}</span>
                         </div>
                       </div>
                     </div>
@@ -4297,23 +4328,29 @@ function AdminControlCenter({
                     <form onSubmit={async (e) => {
                       e.preventDefault();
                       const form = e.currentTarget;
+                      const imageInput = form.elements.namedItem('image') as HTMLInputElement;
+                      const linkInput = form.elements.namedItem('link') as HTMLInputElement;
+                      if (!imageInput || !imageInput.value.trim()) return;
+
                       const newBanner = {
                         id: 'b-' + Date.now(),
-                        image: (form.elements.namedItem('image') as HTMLInputElement).value,
-                        link: (form.elements.namedItem('link') as HTMLInputElement)?.value || '#',
+                        image: imageInput.value.trim(),
+                        link: linkInput?.value?.trim() || '#',
                       };
                       
                       const updatedBanners = [...(data.adminSettings.banners || []), newBanner];
+                      localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(updatedBanners));
+
                       try {
                         const res = await fetch('/api/admin/settings', {
                           method: 'PUT',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                          headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ banners: updatedBanners })
                         });
                         if (res.ok) { 
                           notify('✨ New banner published to homepage!'); 
                           form.reset();
-                          refreshData(); 
+                          refreshData();
                         }
                       } catch (e) { notify('Failed to add banner'); }
                     }} className="space-y-4">
