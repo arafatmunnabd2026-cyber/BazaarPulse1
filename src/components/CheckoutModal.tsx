@@ -104,9 +104,9 @@ const BD_DISTRICTS_DATA: Record<string, string[]> = {
 
 // Configuration for Payment Method Logos (Centralized for easy updates)
 const PAYMENT_LOGOS = {
-  bkash: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png",
-  nagad: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png",
-  rocket: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png",
+  bkash: "/bkash.png",
+  nagad: "/nagad.png",
+  rocket: "/rocket.png",
   visa: "https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg",
   mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
   amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
@@ -619,7 +619,7 @@ export default function CheckoutModal({
                   </div>
 
                   {/* bKash Logo */}
-                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png" alt="bKash" className="w-6 h-6 object-contain" />
+                  <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="w-12 h-8 object-contain" />
                 </div>
 
                 {/* Nagad */}
@@ -638,7 +638,7 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Nagad Logo */}
-                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png" alt="Nagad" className="w-6 h-6 object-contain" />
+                  <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="w-12 h-8 object-contain" />
                 </div>
 
                 {/* Rocket */}
@@ -657,7 +657,7 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Rocket Logo */}
-                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png" alt="Rocket" className="w-6 h-6 object-contain" />
+                  <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="w-12 h-8 object-contain" />
                 </div>
 
               </div>
