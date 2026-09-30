@@ -25,6 +25,8 @@ import AdminDashboard from '../AdminDashboard';
 import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
+import { NotificationDropdown } from './components/NotificationDropdown';
+import { addOrderSuccessNotification, addOrderStatusNotification } from './lib/notificationStore';
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -413,6 +415,29 @@ export default function App() {
     }
   }, [authUser, currentPath]);
 
+  // Sync /login or /auth route with AuthModal
+  useEffect(() => {
+    if (currentPath === '/login' || currentPath === '/auth' || currentPath === '/register') {
+      setIsAuthModalOpen(true);
+    } else if (isAuthModalOpen && (currentPath !== '/login' && currentPath !== '/auth' && currentPath !== '/register')) {
+      if (!currentPath.startsWith('/admin') && !currentPath.startsWith('/vendor')) {
+        setIsAuthModalOpen(false);
+      }
+    }
+  }, [currentPath]);
+
+  const handleOpenLogin = () => {
+    setIsAuthModalOpen(true);
+    navigate('/login');
+  };
+
+  const handleCloseLogin = () => {
+    setIsAuthModalOpen(false);
+    if (currentPath === '/login' || currentPath === '/auth' || currentPath === '/register') {
+      navigate('/');
+    }
+  };
+
   const notify = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 4000);
@@ -462,34 +487,20 @@ export default function App() {
     window.scrollTo(0, 0);
   };
 
-  // Listen to browser URL changes (back/forward and hash changes)
+  // Listen to legacy hash changes (e.g. #admin, #vendor)
   useEffect(() => {
-    const handleUrlChange = () => {
+    const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const pathname = window.location.pathname;
-      
-      let targetPath = '/';
-      
-      // Prioritize pathname for clean URLs, fallback to hash for legacy links
-      if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login') {
-        targetPath = pathname;
-      } else if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
-        targetPath = `/${hash}`;
-      }
-      
-      if (targetPath !== currentPath) {
-        navigateTo(targetPath);
+      if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login') {
+        navigateTo(`/${hash}`);
       }
     };
 
-    window.addEventListener('popstate', handleUrlChange);
-    window.addEventListener('hashchange', handleUrlChange);
-    
+    window.addEventListener('hashchange', handleHashChange);
     return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('hashchange', handleHashChange);
     };
-  }, [authUser, currentPath]);
+  }, [authUser]);
 
   const handleLoginUser = async (user: any, token: string) => {
     setAuthUser(user);
@@ -623,13 +634,13 @@ export default function App() {
       </AnimatePresence>
 
       {/* Protected Routes & Dynamic View Rendering */}
-      {currentPath === '/' && (
+      {(!currentPath.startsWith('/admin') && !currentPath.startsWith('/vendor')) && (
         <CustomerView 
           data={data} 
           refreshData={loadData} 
           notify={notify}
           authUser={authUser}
-          onOpenLogin={() => setIsAuthModalOpen(true)}
+          onOpenLogin={handleOpenLogin}
           onLogout={handleLogout}
           navigateTo={navigateTo}
         />
@@ -704,7 +715,7 @@ export default function App() {
       {isAuthModalOpen && (
         <AuthModal
           authUser={authUser}
-          onClose={() => setIsAuthModalOpen(false)}
+          onClose={handleCloseLogin}
           onLoginUser={handleLoginUser}
           onSimulateRouteAttack={(attemptedPath: string) => {
             setIsAuthModalOpen(false);
@@ -1195,12 +1206,14 @@ function CustomerView({
   };
   
   // My Orders & Tracking Modal States
-  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(() => 
+    location.pathname === '/orders' || location.pathname === '/my-orders' || location.pathname === '/track-order'
+  );
   const [trackOrderIdInput, setTrackOrderIdInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
 
   // Wishlist State with LocalStorage Persistence
-  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(() => location.pathname === '/wishlist');
   const [wishlist, setWishlist] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('bazaarpulse_wishlist');
@@ -1417,7 +1430,16 @@ function CustomerView({
     }
   }, [authUser]);
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const getBaseStorefrontPath = () => {
+    if (selectedCategory && selectedCategory !== 'all') {
+      const catObj = data?.categories?.find((c: any) => c.id === selectedCategory);
+      const slug = getCategorySlug(catObj) || selectedCategory;
+      return `/${slug}`;
+    }
+    return '/';
+  };
+
+  const [isCartOpen, setIsCartOpen] = useState(() => location.pathname === '/cart');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(() => location.pathname === '/checkout');
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
   const [shippingInfo, setShippingInfo] = useState({ 
@@ -1466,19 +1488,12 @@ function CustomerView({
   const handleCloseProduct = () => {
     setSelectedProduct(null);
     if (location.pathname.startsWith('/product/')) {
-      if (selectedCategory && selectedCategory !== 'all') {
-        const catObj = data?.categories?.find((c: any) => c.id === selectedCategory);
-        const slug = getCategorySlug(catObj) || selectedCategory;
-        navigate(`/${slug}`);
-      } else {
-        navigate('/');
-      }
+      navigate(getBaseStorefrontPath());
     }
   };
 
   // 2. Sync Checkout Modal with /checkout route
   const isCheckoutRoute = location.pathname === '/checkout';
-
   useEffect(() => {
     if (isCheckoutRoute) {
       setIsCheckoutOpen(true);
@@ -1487,31 +1502,140 @@ function CustomerView({
     }
   }, [isCheckoutRoute]);
 
+  // Direct Buy Now state (bypasses persistent shopping cart so Buy Now never adds to cart)
+  const [directCheckoutItem, setDirectCheckoutItem] = useState<{
+    product: any;
+    quantity: number;
+    size?: string;
+    color?: string;
+    isSelected: boolean;
+  } | null>(null);
+
   const handleOpenCheckout = () => {
     setIsCheckoutOpen(true);
     navigate('/checkout');
   };
 
+  const handleDirectBuyNow = (p: any, q: number = 1, s?: string, c?: string) => {
+    if (!authUser) {
+      notify('⚠️ Please log in to proceed to checkout!');
+      onOpenLogin();
+      return;
+    }
+    setDirectCheckoutItem({
+      product: p,
+      quantity: q || 1,
+      size: s,
+      color: c,
+      isSelected: true
+    });
+    handleCloseProduct();
+    handleOpenCheckout();
+  };
+
   const handleCloseCheckout = () => {
     setIsCheckoutOpen(false);
+    setDirectCheckoutItem(null);
     if (location.pathname === '/checkout') {
-      if (selectedCategory && selectedCategory !== 'all') {
-        const catObj = data?.categories?.find((c: any) => c.id === selectedCategory);
-        const slug = getCategorySlug(catObj) || selectedCategory;
-        navigate(`/${slug}`);
-      } else {
-        navigate('/');
-      }
+      navigate(getBaseStorefrontPath());
     }
   };
 
-  // 3. Sync category state with URL path on data load and route changes
+  // 3. Sync Cart Drawer with /cart route
+  const isCartRoute = location.pathname === '/cart';
   useEffect(() => {
-    if (!location.pathname.startsWith('/product/') && location.pathname !== '/checkout') {
+    if (isCartRoute) {
+      setIsCartOpen(true);
+    } else if (isCartOpen && !isCartRoute) {
+      setIsCartOpen(false);
+    }
+  }, [isCartRoute]);
+
+  const handleOpenCart = () => {
+    setIsCartOpen(true);
+    navigate('/cart');
+  };
+
+  const handleCloseCart = () => {
+    setIsCartOpen(false);
+    if (location.pathname === '/cart') {
+      navigate(getBaseStorefrontPath());
+    }
+  };
+
+  // 4. Sync Wishlist Modal with /wishlist route
+  const isWishlistRoute = location.pathname === '/wishlist';
+  useEffect(() => {
+    if (isWishlistRoute) {
+      setIsWishlistOpen(true);
+    } else if (isWishlistOpen && !isWishlistRoute) {
+      setIsWishlistOpen(false);
+    }
+  }, [isWishlistRoute]);
+
+  const handleOpenWishlist = () => {
+    setIsWishlistOpen(true);
+    navigate('/wishlist');
+  };
+
+  const handleCloseWishlist = () => {
+    setIsWishlistOpen(false);
+    if (location.pathname === '/wishlist') {
+      navigate(getBaseStorefrontPath());
+    }
+  };
+
+  // 5. Sync My Orders Modal with /orders or /my-orders route
+  const isOrdersRoute = location.pathname === '/orders' || location.pathname === '/my-orders' || location.pathname === '/track-order';
+  useEffect(() => {
+    if (isOrdersRoute) {
+      setIsMyOrdersOpen(true);
+    } else if (isMyOrdersOpen && !isOrdersRoute) {
+      setIsMyOrdersOpen(false);
+    }
+  }, [isOrdersRoute]);
+
+  const handleOpenMyOrders = () => {
+    setIsMyOrdersOpen(true);
+    navigate('/orders');
+  };
+
+  const handleCloseMyOrders = () => {
+    setIsMyOrdersOpen(false);
+    setTrackedOrder(null);
+    setTrackOrderIdInput('');
+    if (isOrdersRoute) {
+      navigate(getBaseStorefrontPath());
+    }
+  };
+
+  const handleCloseOrderConfirmation = () => {
+    setOrderConfirmation(null);
+    navigate(getBaseStorefrontPath());
+  };
+
+  // 6. Sync category state with URL path on data load and route changes
+  useEffect(() => {
+    const specialPaths = ['/checkout', '/cart', '/wishlist', '/orders', '/my-orders', '/track-order', '/login', '/auth', '/register', '/order-success', '/order-confirmation'];
+    if (!location.pathname.startsWith('/product/') && !specialPaths.includes(location.pathname)) {
       const currentCat = findCategoryFromPath(location.pathname, data?.categories || []);
       setSelectedCategory(currentCat);
     }
   }, [location.pathname, data?.categories]);
+
+  // Listen to live order status updates for real-time customer feedback
+  useEffect(() => {
+    const handleStatusUpdate = (e: any) => {
+      refreshData();
+      if (e.detail?.orderId && e.detail?.status) {
+        notify(`🔔 অর্ডার #${e.detail.orderId} এর স্ট্যাটাস আপডেট: ${e.detail.status}`);
+      }
+    };
+    window.addEventListener('bazaarpulse-order-status-updated', handleStatusUpdate);
+    return () => {
+      window.removeEventListener('bazaarpulse-order-status-updated', handleStatusUpdate);
+    };
+  }, []);
 
   // AI Assistant Chat state
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -1632,8 +1756,18 @@ function CustomerView({
         setOrderConfirmation(newOrder);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
-        setCart([]);
-        localStorage.removeItem('bazaarpulse_cart');
+
+        if (directCheckoutItem) {
+          // Direct Buy Now checkout: only clear direct item, keep regular shopping cart intact
+          setDirectCheckoutItem(null);
+        } else {
+          // Regular cart checkout: clear cart
+          setCart([]);
+          localStorage.removeItem('bazaarpulse_cart');
+        }
+
+        // Add user notification for order success
+        addOrderSuccessNotification(newOrder, authUser?.id);
 
         // Save order to localStorage for instant client persistence
         try {
@@ -1713,12 +1847,14 @@ function CustomerView({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Shopping Cart Button */}
             <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-gray-700 hover:text-[#f85606] transition-colors flex items-center gap-1"
+              onClick={handleOpenCart}
+              className="relative p-2 text-gray-700 hover:text-[#f85606] transition-colors flex items-center gap-1 cursor-pointer"
+              title="Shopping Cart"
             >
-              <ShoppingCart className="w-7 h-7" />
+              <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
                   {cart.reduce((sum, i) => sum + i.quantity, 0)}
@@ -1726,9 +1862,23 @@ function CustomerView({
               )}
             </button>
 
+            {/* Notification Dropdown with 12h Auto-Cleanup */}
+            <NotificationDropdown
+              userId={authUser?.id}
+              onOpenOrders={(orderId) => {
+                if (orderId) {
+                  setTrackOrderIdInput(orderId);
+                  const found = (data?.orders || []).find((o: any) => o.id?.toLowerCase().trim() === orderId.toLowerCase().trim());
+                  if (found) setTrackedOrder(found);
+                }
+                handleOpenMyOrders();
+              }}
+              notify={notify}
+            />
+
             <button
               onClick={() => setIsAiOpen(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">AI Advisor</span>
@@ -1802,7 +1952,7 @@ function CustomerView({
                             <button
                               onClick={() => {
                                 setIsProfileDropdownOpen(false);
-                                setIsWishlistOpen(true);
+                                handleOpenWishlist();
                               }}
                               className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group"
                             >
@@ -1820,7 +1970,7 @@ function CustomerView({
                             <button
                               onClick={() => {
                                 setIsProfileDropdownOpen(false);
-                                setIsMyOrdersOpen(true);
+                                handleOpenMyOrders();
                               }}
                               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer"
                             >
@@ -2066,8 +2216,22 @@ function CustomerView({
                       ) : null}
 
                       <button
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="w-full mt-2 bg-gray-900 hover:bg-[#f85606] text-white font-medium py-2 rounded-lg text-xs transition-all shadow flex items-center justify-center gap-1.5"
+                        type="button"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          e.preventDefault(); 
+                          if (product.stock !== undefined && product.stock !== null && product.stock <= 0) {
+                            notify('⚠️ দুঃখিত, এই পণ্যটি স্টক আউট!');
+                            return;
+                          }
+                          addToCart(product); 
+                        }}
+                        disabled={product.stock !== undefined && product.stock !== null && product.stock <= 0}
+                        className={`w-full mt-2 font-medium py-2 rounded-lg text-xs transition-all shadow flex items-center justify-center gap-1.5 cursor-pointer ${
+                          product.stock !== undefined && product.stock !== null && product.stock <= 0
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-900 hover:bg-[#f85606] text-white active:scale-95'
+                        }`}
                       >
                         <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
                       </button>
@@ -2094,7 +2258,7 @@ function CustomerView({
               <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
                 <ShoppingCart className="w-5 h-5 text-orange-600" /> Shopping Cart ({cart.reduce((s, i) => s + i.quantity, 0)})
               </h3>
-              <button onClick={() => setIsCartOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full">
+              <button onClick={handleCloseCart} className="p-2 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2269,7 +2433,7 @@ function CustomerView({
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={handleCloseCheckout}
-        cart={cart}
+        cart={directCheckoutItem ? [directCheckoutItem] : cart}
         authUser={authUser}
         onSubmitOrder={handleOrderSubmitPayload}
         notify={notify}
@@ -2359,8 +2523,9 @@ function CustomerView({
         handleAddToCart={(p: any, q: number, s: string, c: string) => {
           addToCart(p, q, s, c);
           handleCloseProduct();
-          setIsCartOpen(true);
+          handleOpenCart();
         }}
+        onBuyNow={handleDirectBuyNow}
         addToCart={addToCart}
         notify={notify}
         onToggleWishlist={toggleWishlist}
@@ -2370,7 +2535,7 @@ function CustomerView({
       {/* Customer Wishlist Modal */}
       <WishlistModal 
         isOpen={isWishlistOpen}
-        onClose={() => setIsWishlistOpen(false)}
+        onClose={handleCloseWishlist}
         wishlist={wishlist}
         onRemoveFromWishlist={removeFromWishlist}
         onAddToCart={(p, q) => {
@@ -2471,15 +2636,15 @@ function CustomerView({
               <div className="flex-1 overflow-y-auto p-4 space-y-1">
                 <div className="px-3 py-2 text-[10px] font-black text-black uppercase tracking-widest">Main Menu</div>
                 <button 
-                  onClick={() => { navigateTo('/'); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
+                  onClick={() => { handleCategoryChange('all'); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
                 >
                   <Search className="w-4 h-4 text-slate-400" />
                   <span>Home & Explore</span>
                 </button>
                 <button 
-                  onClick={() => { setIsCartOpen(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
+                  onClick={() => { handleOpenCart(); setIsMenuOpen(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="w-4 h-4 text-slate-400" />
@@ -2491,8 +2656,8 @@ function CustomerView({
                 </button>
 
                 <button 
-                  onClick={() => { setIsWishlistOpen(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-pink-50 hover:text-pink-600 rounded-xl text-sm font-bold transition-all"
+                  onClick={() => { handleOpenWishlist(); setIsMenuOpen(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-pink-50 hover:text-pink-600 rounded-xl text-sm font-bold transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
@@ -2504,8 +2669,8 @@ function CustomerView({
                 </button>
 
                 <button 
-                  onClick={() => { setIsMyOrdersOpen(true); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
+                  onClick={() => { handleOpenMyOrders(); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
                 >
                   <Package className="w-4 h-4 text-slate-400" />
                   <span>Track & View Orders</span>
@@ -2516,8 +2681,8 @@ function CustomerView({
                   {data.categories.map((cat: any) => (
                     <button
                       key={cat.id}
-                      onClick={() => { setSelectedCategory(cat.id); setIsMenuOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+                      onClick={() => { handleCategoryChange(cat.id); setIsMenuOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                         selectedCategory === cat.id ? 'bg-orange-50 text-orange-600' : 'text-black hover:bg-slate-50'
                       }`}
                     >
@@ -2545,8 +2710,11 @@ function CustomerView({
       {/* Order Confirmation Success Modal */}
       <OrderConfirmationModal
         order={orderConfirmation}
-        onClose={() => setOrderConfirmation(null)}
-        onTrackOrder={() => setIsMyOrdersOpen(true)}
+        onClose={handleCloseOrderConfirmation}
+        onTrackOrder={() => {
+          handleCloseOrderConfirmation();
+          handleOpenMyOrders();
+        }}
         notify={notify}
       />
 
@@ -2570,12 +2738,8 @@ function CustomerView({
                 </div>
               </div>
               <button 
-                onClick={() => {
-                  setIsMyOrdersOpen(false);
-                  setTrackedOrder(null);
-                  setTrackOrderIdInput('');
-                }} 
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+                onClick={handleCloseMyOrders} 
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2779,10 +2943,10 @@ function CustomerView({
                   <p className="text-slate-500 font-bold">💡 Tip: Log in to save your orders to your account</p>
                   <button 
                     onClick={() => {
-                      setIsMyOrdersOpen(false);
+                      handleCloseMyOrders();
                       onOpenLogin();
                     }}
-                    className="text-orange-600 font-black mt-1 hover:underline"
+                    className="text-orange-600 font-black mt-1 hover:underline cursor-pointer"
                   >
                     Click here to Sign In / Register
                   </button>
@@ -2793,12 +2957,8 @@ function CustomerView({
             {/* Modal Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
               <button
-                onClick={() => {
-                  setIsMyOrdersOpen(false);
-                  setTrackedOrder(null);
-                  setTrackOrderIdInput('');
-                }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow"
+                onClick={handleCloseMyOrders}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow cursor-pointer"
               >
                 Close Tracking
               </button>

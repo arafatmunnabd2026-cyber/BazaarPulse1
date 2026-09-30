@@ -4,6 +4,7 @@ import {
   ShoppingBag, LogOut, Plus, Star, Package, X, Sparkles, TrendingUp, DollarSign,
   Settings, Upload, Image, Store, Check, Camera
 } from 'lucide-react';
+import { addOrderStatusNotification } from '../lib/notificationStore';
 
 export default function VendorDashboard({ 
   data, 
@@ -309,6 +310,8 @@ export default function VendorDashboard({
         notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
         return;
       }
+      addOrderStatusNotification(orderId, status);
+      window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status } }));
       notify('Order status updated');
       refreshData();
     } catch (err) {

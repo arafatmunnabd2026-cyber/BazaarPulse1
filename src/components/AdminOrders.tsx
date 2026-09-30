@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { addOrderStatusNotification } from '../lib/notificationStore';
 
 interface OrderItem {
   productId: string;
@@ -105,6 +106,8 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
       });
       const json = await res.json();
       if (json.success) {
+        addOrderStatusNotification(orderId, newStatus);
+        window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status: newStatus } }));
         notify(`📦 Order ${orderId} updated to ${newStatus}`);
         fetchOrders();
       } else {

@@ -32,6 +32,7 @@ export const ProductQuickView = ({
   setSelectedProduct, 
   setIsCheckoutOpen, 
   handleAddToCart,
+  onBuyNow,
   addToCart,
   selectedCategory,
   setSelectedCategory,
@@ -39,6 +40,7 @@ export const ProductQuickView = ({
   onToggleWishlist,
   isWishlisted: propIsWishlisted
 }: any) => {
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -74,8 +76,6 @@ export const ProductQuickView = ({
   const isOutOfStock = stockNum <= 0;
   const isLowStock = stockNum > 0 && stockNum <= 5;
 
-  const navigate = useNavigate();
-
   const handleIncrement = () => {
     setQuantity(prev => (prev < maxStock ? prev + 1 : prev));
   };
@@ -98,10 +98,13 @@ export const ProductQuickView = ({
   };
 
   const handleBuyNow = () => {
-    addToCart(selectedProduct, quantity, selectedSize, selectedColor);
-    setSelectedProduct(null);
-    setIsCheckoutOpen(true);
-    navigate('/checkout');
+    if (onBuyNow) {
+      onBuyNow(selectedProduct, quantity, selectedSize, selectedColor);
+    } else {
+      setSelectedProduct(null);
+      setIsCheckoutOpen(true);
+      navigate('/checkout');
+    }
   };
 
   const handleAddToCartClick = () => {
