@@ -606,10 +606,15 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://freelogopng.com/images/all_img/1656235199bkash-logo-transparent.png" 
+                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/BKash_Logo.svg/512px-BKash_Logo.svg.png" 
                     alt="bKash" 
-                    className="h-7 object-contain"
+                    className="h-6 sm:h-7 object-contain"
+                    onError={(e: any) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
                   />
+                  <span className="hidden text-xs font-bold text-[#e2136e]">bKash</span>
                 </div>
 
                 {/* Nagad */}
@@ -628,10 +633,15 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://freelogopng.com/images/all_img/1679917204nagad-logo-png.png" 
+                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Nagad_Logo.svg/512px-Nagad_Logo.svg.png" 
                     alt="Nagad" 
-                    className="h-8 object-contain"
+                    className="h-6 sm:h-8 object-contain"
+                    onError={(e: any) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
                   />
+                  <span className="hidden text-xs font-bold text-[#f85606]">Nagad</span>
                 </div>
 
                 {/* Rocket */}
@@ -650,10 +660,15 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://freelogopng.com/images/all_img/1679918451rocket-logo-png.png" 
+                    src="https://upload.wikimedia.org/wikipedia/en/thumb/8/8b/Rocket_Dutch_Bangla_Bank.svg/512px-Rocket_Dutch_Bangla_Bank.svg.png" 
                     alt="Rocket" 
-                    className="h-8 object-contain"
+                    className="h-6 sm:h-8 object-contain"
+                    onError={(e: any) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
                   />
+                  <span className="hidden text-xs font-bold text-[#8c3494]">Rocket</span>
                 </div>
 
               </div>
@@ -694,13 +709,39 @@ export default function CheckoutModal({
 
                 {/* Bank Operator Logos from Image */}
                 <div className="flex items-center flex-wrap gap-2">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-4 sm:h-5 object-contain bg-[#1a1f71] px-2 py-1 rounded" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 sm:h-8 object-contain bg-[#171b2a] px-2 py-1 rounded" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" alt="Amex" className="h-5 sm:h-6 object-contain bg-[#016fcf] px-2 py-1 rounded" />
-                  <div className="bg-[#005c3b] px-2 py-1 rounded flex items-center h-6 sm:h-8">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/UnionPay_logo.svg/1200px-UnionPay_logo.svg.png" alt="UnionPay" className="h-3 sm:h-4 object-contain bg-white px-0.5" />
+                  <div className="bg-[#1a1f71] px-2 py-1 rounded flex items-center h-6 sm:h-7">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/512px-Visa_Inc._logo.svg.png" 
+                      alt="Visa" 
+                      className="h-3 sm:h-4 object-contain" 
+                      onError={(e: any) => { e.target.outerHTML = '<span class="text-white font-bold text-[10px]">VISA</span>'; }}
+                    />
                   </div>
-                  <div className="bg-[#e30613] px-2 py-1 rounded flex items-center h-6 sm:h-8">
+                  <div className="bg-[#171b2a] px-2 py-1 rounded flex items-center h-6 sm:h-7">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/512px-Mastercard-logo.svg.png" 
+                      alt="Mastercard" 
+                      className="h-4 sm:h-5 object-contain" 
+                      onError={(e: any) => { e.target.outerHTML = '<span class="text-white font-bold text-[10px]">MC</span>'; }}
+                    />
+                  </div>
+                  <div className="bg-[#016fcf] px-2 py-1 rounded flex items-center h-6 sm:h-7">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/512px-American_Express_logo_%282018%29.svg.png" 
+                      alt="Amex" 
+                      className="h-3 sm:h-4 object-contain" 
+                      onError={(e: any) => { e.target.outerHTML = '<span class="text-white font-bold text-[10px]">AMEX</span>'; }}
+                    />
+                  </div>
+                  <div className="bg-[#005c3b] px-2 py-1 rounded flex items-center h-6 sm:h-7">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/UnionPay_logo.svg/512px-UnionPay_logo.svg.png" 
+                      alt="UnionPay" 
+                      className="h-3 sm:h-4 object-contain bg-white px-0.5" 
+                      onError={(e: any) => { e.target.outerHTML = '<span class="text-white font-bold text-[10px]">UnionPay</span>'; }}
+                    />
+                  </div>
+                  <div className="bg-[#e30613] px-2 py-1 rounded flex items-center h-6 sm:h-7">
                     <span className="text-white font-black italic text-[10px] sm:text-xs">QCash</span>
                   </div>
                 </div>
