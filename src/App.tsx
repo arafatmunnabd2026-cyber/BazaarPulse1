@@ -57,6 +57,46 @@ function normalizeCategoryId(catId?: string, catName?: string): string {
   return catId || 'c1';
 }
 
+export function getCategorySlug(cat: any): string {
+  if (!cat) return '';
+  if (cat.id === 'all') return '';
+  if (cat.slug) return cat.slug;
+  if (cat.name) {
+    return cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+  return String(cat.id || '');
+}
+
+export function findCategoryFromPath(pathname: string, categories: any[]): string {
+  if (!pathname || pathname === '/' || pathname === '/#' || pathname === '') return 'all';
+  const cleanPath = pathname.replace(/^\/(category\/)?/, '').replace(/\/$/, '').toLowerCase();
+  if (!cleanPath || cleanPath === 'all' || cleanPath === 'admin' || cleanPath === 'vendor' || cleanPath === 'admin/login' || cleanPath === 'admin-dashboard') {
+    return 'all';
+  }
+  
+  if (Array.isArray(categories) && categories.length > 0) {
+    // 1. Direct match with id
+    const byId = categories.find(c => String(c.id).toLowerCase() === cleanPath);
+    if (byId) return byId.id;
+
+    // 2. Direct match with slug
+    const bySlug = categories.find(c => (c.slug || '').toLowerCase() === cleanPath);
+    if (bySlug) return bySlug.id;
+
+    // 3. Match with slugified name
+    const byNameSlug = categories.find(c => getCategorySlug(c) === cleanPath);
+    if (byNameSlug) return byNameSlug.id;
+  }
+
+  // 4. Match normalized name or standard slugs
+  const byNormalized = normalizeCategoryId(cleanPath, cleanPath);
+  if (byNormalized && (!categories || categories.length === 0 || categories.some(c => c.id === byNormalized))) {
+    return byNormalized;
+  }
+
+  return 'all';
+}
+
 function parseJsonSafe(val: any, fallback: any = []): any {
   if (val === null || val === undefined) return fallback;
   if (Array.isArray(val)) return val;
@@ -1149,8 +1189,51 @@ function CustomerView({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => findCategoryFromPath(window.location.pathname, data?.categories || []));
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sync category state with URL path on data load
+  useEffect(() => {
+    const initialCat = findCategoryFromPath(window.location.pathname, data?.categories || []);
+    setSelectedCategory(initialCat);
+  }, [data?.categories]);
+
+  // Handle browser Back / Forward (popstate) navigation for categories and pages
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/admin' || path === '/vendor' || path === '/admin/login' || path === '/admin-dashboard') {
+        navigateTo(path);
+        return;
+      }
+      const catId = findCategoryFromPath(path, data?.categories || []);
+      setSelectedCategory(catId);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [data?.categories, navigateTo]);
+
+  // Dynamic Category Route Changer
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    let newPath = '/';
+    if (catId && catId !== 'all') {
+      const catObj = data?.categories?.find((c: any) => c.id === catId);
+      const slug = getCategorySlug(catObj) || catId;
+      newPath = `/${slug}`;
+    }
+    
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ categoryId: catId }, '', newPath);
+    }
+    
+    // Scroll smoothly to products section
+    const section = document.getElementById('products-section');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   
   // My Orders & Tracking Modal States
   const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
@@ -1774,30 +1857,42 @@ function CustomerView({
       
       {/* Categories Bar */}
       <div className="bg-white border-b border-gray-100 py-3 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 overflow-x-auto pb-1">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 overflow-x-auto pb-1 scrollbar-thin">
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              handleCategoryChange('all');
+            }}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer select-none ${
               selectedCategory === 'all' 
-                ? 'bg-[#f85606] text-white border-[#f85606]' 
-                : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606]'
+                ? 'bg-[#f85606] text-white border-[#f85606] shadow-xs scale-105' 
+                : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606] hover:text-[#f85606]'
             }`}
           >
             All
-          </button>
-          {data.categories.map((cat: any) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-semibold transition-all ${
-                selectedCategory === cat.id 
-                  ? 'bg-[#f85606] text-white border-[#f85606]' 
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606]'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          </a>
+          {data.categories.map((cat: any) => {
+            const slug = getCategorySlug(cat) || cat.id;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <a
+                key={cat.id}
+                href={`/${slug}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCategoryChange(cat.id);
+                }}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer select-none ${
+                  isSelected 
+                    ? 'bg-[#f85606] text-white border-[#f85606] shadow-xs scale-105' 
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606] hover:text-[#f85606]'
+                }`}
+              >
+                {cat.name}
+              </a>
+            );
+          })}
         </div>
       </div>
 

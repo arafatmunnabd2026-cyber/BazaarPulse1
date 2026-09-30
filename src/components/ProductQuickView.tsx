@@ -94,6 +94,18 @@ export const ProductQuickView = ({
   const handleCategoryClick = (catId: string) => {
     setSelectedCategory(catId);
     setSelectedProduct(null);
+
+    let newPath = '/';
+    if (catId && catId !== 'all') {
+      const catObj = displayCategories.find((c: any) => c.id === catId);
+      const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : catId);
+      newPath = `/${slug}`;
+    }
+    
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({ categoryId: catId }, '', newPath);
+    }
+
     // Scroll to products section
     const productsSection = document.getElementById('products-section');
     if (productsSection) {
