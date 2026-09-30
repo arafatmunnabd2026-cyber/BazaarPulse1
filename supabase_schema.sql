@@ -145,7 +145,7 @@ FROM information_schema.columns
 WHERE table_name = 'products' AND table_schema = 'public'
 ORDER BY ordinal_position;
 
--- 7. Ensure 'users' table has 'saved_address' (JSONB) and 'phone' columns for Delivery Address Pre-Fill
+-- 7. Ensure 'users' table exists with 'saved_address' (JSONB) and full permissions
 CREATE TABLE IF NOT EXISTS public.users (
   id VARCHAR(255) PRIMARY KEY,
   name VARCHAR(255),
@@ -153,10 +153,27 @@ CREATE TABLE IF NOT EXISTS public.users (
   phone VARCHAR(50),
   role VARCHAR(50) DEFAULT 'customer',
   avatar TEXT,
+  password TEXT,
+  status VARCHAR(50) DEFAULT 'active',
   saved_address JSONB DEFAULT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- Ensure columns exist if table was already present
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'customer';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+
+-- Enable Row Level Security (RLS) & Policies
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access on users" ON public.users;
+DROP POLICY IF EXISTS "Allow public insert on users" ON public.users;
+DROP POLICY IF EXISTS "Allow public update on users" ON public.users;
+
+CREATE POLICY "Allow public read access on users" ON public.users FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public insert on users" ON public.users FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public update on users" ON public.users FOR UPDATE TO public USING (true);
+
 
