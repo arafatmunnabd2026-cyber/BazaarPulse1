@@ -837,75 +837,41 @@ function HeroSlider({ banners }: { banners: any[] }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 mt-4">
-      <div className="relative rounded-2xl overflow-hidden h-[220px] md:h-[280px] shadow-lg bg-slate-900 group">
+      <div className="relative rounded-2xl overflow-hidden h-[260px] sm:h-[340px] md:h-[400px] lg:h-[440px] shadow-md bg-slate-100 group border border-slate-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            {/* Background Image with Overlay */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] group-hover:scale-110" 
-              style={{ backgroundImage: `url(${banners[current].image})` }}
+            {/* Clickable Pure Image Banner - 100% Clear with No Dark Overlay */}
+            <a 
+              href={banners[current].link || '#'} 
+              className="w-full h-full block cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/60 to-transparent" />
-            </div>
-
-            {/* Content */}
-            <div className="relative h-full flex flex-col justify-center px-8 md:px-16 max-w-2xl text-white">
-              <motion.span 
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-[#f85606] text-white text-[9px] md:text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider w-fit"
-              >
-                {banners[current].badge || 'Exclusive Offer'}
-              </motion.span>
-              <motion.h1 
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-2xl md:text-3xl font-black mt-4 leading-tight tracking-tighter"
-              >
-                {banners[current].title}
-              </motion.h1>
-              <motion.p 
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-slate-200 mt-3 text-xs md:text-sm max-w-lg line-clamp-2 font-medium"
-              >
-                {banners[current].subtitle}
-              </motion.p>
-              <motion.div 
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-6"
-              >
-                <a 
-                  href={banners[current].link || '#'} 
-                  className="bg-[#f85606] hover:bg-[#e04d05] text-white font-bold px-8 py-2.5 rounded-xl shadow-xl transition-all inline-flex items-center gap-2 text-[11px] md:text-xs hover:scale-105 active:scale-95"
-                >
-                  Shop Now <ArrowRight className="w-4 h-4" />
-                </a>
-              </motion.div>
-            </div>
+              <img 
+                src={banners[current].image} 
+                alt="Promotion Banner" 
+                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]" 
+                onError={(e: any) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80';
+                }}
+              />
+            </a>
           </motion.div>
         </AnimatePresence>
 
         {/* Navigation Dots */}
         {banners.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
             {banners.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-1 transition-all rounded-full ${current === i ? 'w-6 bg-[#f85606]' : 'w-1.5 bg-white/40 hover:bg-white/60'}`}
+                className={`h-2 transition-all rounded-full ${current === i ? 'w-6 bg-[#f85606]' : 'w-2 bg-white/70 hover:bg-white'}`}
                 aria-label={`Go to slide ${i + 1}`}
               />
             ))}
@@ -916,14 +882,22 @@ function HeroSlider({ banners }: { banners: any[] }) {
         {banners.length > 1 && (
           <>
             <button 
-              onClick={() => setCurrent((prev) => (prev - 1 + banners.length) % banners.length)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
+              }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
+              aria-label="Previous Slide"
             >
               <ChevronRight className="w-5 h-5 rotate-180" />
             </button>
             <button 
-              onClick={() => setCurrent((prev) => (prev + 1) % banners.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrent((prev) => (prev + 1) % banners.length);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
+              aria-label="Next Slide"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -4325,11 +4299,8 @@ function AdminControlCenter({
                       const form = e.currentTarget;
                       const newBanner = {
                         id: 'b-' + Date.now(),
-                        badge: (form.elements.namedItem('badge') as HTMLInputElement).value,
-                        title: (form.elements.namedItem('title') as HTMLInputElement).value,
-                        subtitle: (form.elements.namedItem('subtitle') as HTMLInputElement).value,
                         image: (form.elements.namedItem('image') as HTMLInputElement).value,
-                        link: (form.elements.namedItem('link') as HTMLInputElement).value,
+                        link: (form.elements.namedItem('link') as HTMLInputElement)?.value || '#',
                       };
                       
                       const updatedBanners = [...(data.adminSettings.banners || []), newBanner];
@@ -4346,27 +4317,13 @@ function AdminControlCenter({
                         }
                       } catch (e) { notify('Failed to add banner'); }
                     }} className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Badge Text</label>
-                          <input name="badge" placeholder="e.g. LIMITED TIME" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Button Link</label>
-                          <input name="link" placeholder="e.g. #flash-sale" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
-                        </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Banner Image URL</label>
+                        <input name="image" placeholder="https://images.unsplash.com/... or image link" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono" required />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Main Heading</label>
-                        <input name="title" placeholder="e.g. Eid Mega Flash Sale 2026" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Description / Subtitle</label>
-                        <textarea name="subtitle" placeholder="Enter short banner description..." className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" required rows={2}></textarea>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Background Image URL</label>
-                        <input name="image" placeholder="https://images.unsplash.com/..." className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono" required />
+                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-1 ml-1">Button / Redirect Link (Optional)</label>
+                        <input name="link" placeholder="e.g. /category/fashion or #products" className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold shadow-sm focus:ring-2 focus:ring-orange-500 outline-none" />
                       </div>
                       <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-xl text-xs uppercase shadow-xl transition-all hover:scale-[1.01] active:scale-95">
                         Publish Banner to Storefront
