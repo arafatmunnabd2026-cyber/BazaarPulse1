@@ -111,7 +111,7 @@ const PAYMENT_LOGOS = {
   mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
   amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
   unionpay: "https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg",
-  qcash: "https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png", // Fallback to ITCL official if possible
+  qcash: "https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png", 
   cod_icon: "https://cdn-icons-png.flaticon.com/512/1554/1554401.png"
 };
 
@@ -619,7 +619,10 @@ export default function CheckoutModal({
                   </div>
 
                   {/* bKash Logo */}
-                  <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="w-12 h-8 object-contain" />
+                  <div className="flex items-center gap-2">
+                    <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="w-8 h-8 object-contain" />
+                    <span className="text-sm font-bold text-black">bKash</span>
+                  </div>
                 </div>
 
                 {/* Nagad */}
@@ -638,7 +641,10 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Nagad Logo */}
-                  <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="w-12 h-8 object-contain" />
+                  <div className="flex items-center gap-2">
+                    <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="w-8 h-8 object-contain" />
+                    <span className="text-sm font-bold text-black">Nagad</span>
+                  </div>
                 </div>
 
                 {/* Rocket */}
@@ -657,7 +663,10 @@ export default function CheckoutModal({
                   </div>
 
                   {/* Rocket Logo */}
-                  <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="w-12 h-8 object-contain" />
+                  <div className="flex items-center gap-2">
+                    <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="w-8 h-8 object-contain" />
+                    <span className="text-sm font-bold text-black">Rocket</span>
+                  </div>
                 </div>
 
               </div>
