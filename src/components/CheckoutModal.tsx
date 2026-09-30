@@ -603,73 +603,61 @@ export default function CheckoutModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 
-                {/* bKash Radio/Button Option */}
-                <div 
+                {/* bKash */}
+                <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
-                  className={`flex items-center space-x-2 border p-3 rounded-lg cursor-pointer transition-all ${
-                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'bkash'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    id="bkash" 
-                    checked={shippingInfo.paymentMethod === 'bkash'}
-                    onChange={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
-                    className="cursor-pointer"
-                  />
-                  <label htmlFor="bkash" className="flex items-center space-x-2 cursor-pointer font-medium">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#E2136E">
-                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.516 16.516h-2.128l-2.022-4.045-2.022 4.045H7.216l3.033-5.632L7.543 6.002h2.128l1.834 3.668 1.834-3.668h2.128l-2.706 4.882 3.005 5.632z"/>
-                    </svg>
-                    <span>bKash</span>
-                  </label>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* bKash Logo */}
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png" alt="bKash" className="w-6 h-6 object-contain" />
                 </div>
 
-                {/* Nagad Radio/Button Option */}
-                <div 
+                {/* Nagad */}
+                <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
-                  className={`flex items-center space-x-2 border p-3 rounded-lg cursor-pointer transition-all ${
-                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'nagad'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    id="nagad" 
-                    checked={shippingInfo.paymentMethod === 'nagad'}
-                    onChange={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
-                    className="cursor-pointer"
-                  />
-                  <label htmlFor="nagad" className="flex items-center space-x-2 cursor-pointer font-medium">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#F47920">
-                      <path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12zm-1.5-17.5h3v11h-3v-11z"/>
-                    </svg>
-                    <span>Nagad</span>
-                  </label>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* Nagad Logo */}
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png" alt="Nagad" className="w-6 h-6 object-contain" />
                 </div>
 
-                {/* Rocket Radio/Button Option */}
-                <div 
+                {/* Rocket */}
+                <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
-                  className={`flex items-center space-x-2 border p-3 rounded-lg cursor-pointer transition-all ${
-                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'rocket'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    id="rocket" 
-                    checked={shippingInfo.paymentMethod === 'rocket'}
-                    onChange={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
-                    className="cursor-pointer"
-                  />
-                  <label htmlFor="rocket" className="flex items-center space-x-2 cursor-pointer font-medium">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#8C3398">
-                      <path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm1 14h-2v-2h2zm0-4h-2V7h2z"/>
-                    </svg>
-                    <span>Rocket</span>
-                  </label>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* Rocket Logo */}
+                  <img src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png" alt="Rocket" className="w-6 h-6 object-contain" />
                 </div>
 
               </div>
