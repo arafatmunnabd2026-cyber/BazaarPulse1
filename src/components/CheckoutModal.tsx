@@ -620,10 +620,9 @@ export default function CheckoutModal({
 
                   {/* bKash Logo */}
                   <img 
-                    src={PAYMENT_LOGOS.bkash} 
+                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png" 
                     alt="bKash" 
                     className="h-7 w-auto object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=bKash'; }}
                   />
                 </div>
 
@@ -643,10 +642,9 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src={PAYMENT_LOGOS.nagad} 
+                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png" 
                     alt="Nagad" 
                     className="h-7 w-auto object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=Nagad'; }}
                   />
                 </div>
 
@@ -666,10 +664,9 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src={PAYMENT_LOGOS.rocket} 
+                    src="https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png" 
                     alt="Rocket" 
                     className="h-7 w-auto object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=Rocket'; }}
                   />
                 </div>
 
