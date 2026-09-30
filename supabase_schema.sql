@@ -176,4 +176,32 @@ CREATE POLICY "Allow public read access on users" ON public.users FOR SELECT TO 
 CREATE POLICY "Allow public insert on users" ON public.users FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Allow public update on users" ON public.users FOR UPDATE TO public USING (true);
 
+-- 8. Add 'saved_address' and 'phone' to 'user_logins' table (as shown in Supabase Table Editor)
+CREATE TABLE IF NOT EXISTS public.user_logins (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  avatar TEXT,
+  role VARCHAR(50) DEFAULT 'customer',
+  phone VARCHAR(50),
+  saved_address JSONB DEFAULT NULL,
+  last_login TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.user_logins ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE public.user_logins ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
+
+-- Enable Row Level Security (RLS) & Policies for user_logins
+ALTER TABLE public.user_logins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access on user_logins" ON public.user_logins;
+DROP POLICY IF EXISTS "Allow public insert on user_logins" ON public.user_logins;
+DROP POLICY IF EXISTS "Allow public update on user_logins" ON public.user_logins;
+
+CREATE POLICY "Allow public read access on user_logins" ON public.user_logins FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public insert on user_logins" ON public.user_logins FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Allow public update on user_logins" ON public.user_logins FOR UPDATE TO public USING (true);
+
+
 

@@ -1363,6 +1363,31 @@ const handleSaveUserAddress = async (req: express.Request, res: express.Response
       }
     }
 
+    // Sync to Supabase user_logins table in background
+    if (supabase) {
+      try {
+        if (targetEmail) {
+          await supabase
+            .from('user_logins')
+            .update({
+              saved_address: addressObject,
+              phone: addressObject.phoneNumber
+            })
+            .eq('email', targetEmail);
+        } else if (targetUserId) {
+          await supabase
+            .from('user_logins')
+            .update({
+              saved_address: addressObject,
+              phone: addressObject.phoneNumber
+            })
+            .eq('id', targetUserId);
+        }
+      } catch (supaErr) {
+        console.warn('Supabase user_logins save address warning:', supaErr);
+      }
+    }
+
     // Update in local file cache
     try {
       const db = await getDb();
@@ -2696,6 +2721,31 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       }
     } catch (cacheErr) {
       console.warn('Error updating local user profile cache on order:', cacheErr);
+    }
+
+    // Sync to Supabase user_logins table in background
+    if (supabase) {
+      try {
+        if (createdOrder.customerEmail) {
+          await supabase
+            .from('user_logins')
+            .update({
+              saved_address: userSavedAddress,
+              phone: userSavedAddress.phoneNumber
+            })
+            .eq('email', createdOrder.customerEmail);
+        } else if (targetUserId) {
+          await supabase
+            .from('user_logins')
+            .update({
+              saved_address: userSavedAddress,
+              phone: userSavedAddress.phoneNumber
+            })
+            .eq('id', targetUserId);
+        }
+      } catch (supaErr) {
+        console.warn('Supabase user_logins order update warning:', supaErr);
+      }
     }
 
     if (isDbConfigured) {

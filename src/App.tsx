@@ -515,6 +515,28 @@ export default function App() {
     const activeSupabase = getActiveSupabase();
     if (activeSupabase) {
       try {
+        let existingSavedAddress = user.saved_address || user.savedAddress || null;
+
+        // Fetch existing saved_address from user_logins if current user object doesn't have it yet
+        try {
+          const { data: existingData } = await activeSupabase
+            .from('user_logins')
+            .select('saved_address, phone')
+            .eq('email', user.email)
+            .maybeSingle();
+
+          if (existingData?.saved_address) {
+            existingSavedAddress = existingData.saved_address;
+            user.saved_address = existingData.saved_address;
+            user.savedAddress = existingData.saved_address;
+            if (existingData.phone && !user.phone) user.phone = existingData.phone;
+            setAuthUser({ ...user });
+            localStorage.setItem('bazaarpulse_user', JSON.stringify(user));
+          }
+        } catch (fetchErr) {
+          console.warn('Could not read existing saved_address from user_logins:', fetchErr);
+        }
+
         const { error } = await activeSupabase
           .from('user_logins')
           .upsert({
@@ -523,18 +545,18 @@ export default function App() {
             email: user.email,
             avatar: user.avatar,
             role: user.role,
+            phone: user.phone || user.saved_address?.phoneNumber || '',
+            saved_address: existingSavedAddress,
             last_login: new Date().toISOString()
-          });
+          }, { onConflict: 'email' });
 
         if (error) {
           console.error('Supabase Sync Error:', error);
-          notify(`⚠️ Supabase Error: ${error.message}. Please make sure to run the SQL schema to create the 'user_logins' table in Supabase.`);
         } else {
-          console.log('Successfully saved user login info to Supabase database!');
+          console.log('Successfully saved user login info and saved_address to Supabase user_logins table!');
         }
       } catch (err: any) {
         console.error('Supabase execution error:', err);
-        notify(`❌ Supabase Sync failed: ${err.message || err}`);
       }
     } else {
       notify('⚠️ Supabase client is not initialized. Please check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env file.');
