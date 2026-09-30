@@ -102,6 +102,19 @@ const BD_DISTRICTS_DATA: Record<string, string[]> = {
   "Rajbari": ["রাজবাড়ী সদর", "পাংশা", "গোয়ালন্দ", "বালিয়াকান্দি"]
 };
 
+// Configuration for Payment Method Logos (Centralized for easy updates)
+const PAYMENT_LOGOS = {
+  bkash: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/bkash.png",
+  nagad: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/nagad.png",
+  rocket: "https://raw.githubusercontent.com/Shuvo-Sarker/bd-payment-gateways-icons/master/icons/rocket.png",
+  visa: "https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg",
+  mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
+  amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
+  unionpay: "https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg",
+  qcash: "https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png", // Fallback to ITCL official if possible
+  cod_icon: "https://cdn-icons-png.flaticon.com/512/1554/1554401.png"
+};
+
 export default function CheckoutModal({
   isOpen = true,
   onClose,
@@ -607,9 +620,10 @@ export default function CheckoutModal({
 
                   {/* bKash Logo */}
                   <img 
-                    src="https://freelogopng.com/images/all_img/1656235199bkash-logo-png.png" 
+                    src={PAYMENT_LOGOS.bkash} 
                     alt="bKash" 
                     className="h-7 w-auto object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=bKash'; }}
                   />
                 </div>
 
@@ -629,9 +643,10 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://freelogopng.com/images/all_img/1679248787Nagad-Logo.png" 
+                    src={PAYMENT_LOGOS.nagad} 
                     alt="Nagad" 
                     className="h-7 w-auto object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=Nagad'; }}
                   />
                 </div>
 
@@ -651,9 +666,10 @@ export default function CheckoutModal({
                   </div>
 
                   <img 
-                    src="https://freelogopng.com/images/all_img/1679248873Rocket-Logo.png" 
+                    src={PAYMENT_LOGOS.rocket} 
                     alt="Rocket" 
                     className="h-7 w-auto object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x40?text=Rocket'; }}
                   />
                 </div>
 
@@ -695,11 +711,16 @@ export default function CheckoutModal({
 
                 {/* Bank Operator Logos */}
                 <div className="flex items-center flex-wrap gap-2">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg" alt="Visa" className="h-5 sm:h-6 w-auto" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-5 sm:h-6 w-auto" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" alt="Amex" className="h-5 sm:h-6 w-auto" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/UnionPay_logo.svg" alt="UnionPay" className="h-5 sm:h-6 w-auto" />
-                  <img src="https://itcl.com.bd/wp-content/uploads/2019/07/Q-Cash.png" alt="QCash" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.visa} alt="Visa" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.mastercard} alt="Mastercard" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.amex} alt="Amex" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.unionpay} alt="UnionPay" className="h-5 sm:h-6 w-auto" />
+                  <img 
+                    src={PAYMENT_LOGOS.qcash} 
+                    alt="QCash" 
+                    className="h-5 sm:h-6 w-auto" 
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/60x24?text=QCash'; }}
+                  />
                 </div>
               </div>
 
