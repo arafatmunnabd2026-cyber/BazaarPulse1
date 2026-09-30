@@ -621,7 +621,6 @@ export default function CheckoutModal({
                   {/* bKash Logo */}
                   <div className="flex items-center gap-3">
                     <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="h-16 w-auto object-contain min-w-[80px]" />
-                    <span className="text-sm font-bold text-black">bKash</span>
                   </div>
                 </div>
 
@@ -643,7 +642,6 @@ export default function CheckoutModal({
                   {/* Nagad Logo */}
                   <div className="flex items-center gap-3">
                     <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="h-16 w-auto object-contain min-w-[80px]" />
-                    <span className="text-sm font-bold text-black">Nagad</span>
                   </div>
                 </div>
 
@@ -665,7 +663,6 @@ export default function CheckoutModal({
                   {/* Rocket Logo */}
                   <div className="flex items-center gap-3">
                     <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="h-16 w-auto object-contain min-w-[80px]" />
-                    <span className="text-sm font-bold text-black">Rocket</span>
                   </div>
                 </div>
 
