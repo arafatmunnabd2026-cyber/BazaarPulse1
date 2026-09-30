@@ -1770,6 +1770,35 @@ function CustomerView({
           </div>
         </div>
       </header>
+      
+      {/* Categories Bar */}
+      <div className="bg-white border-b border-gray-100 py-3 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 overflow-x-auto pb-1">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+              selectedCategory === 'all' 
+                ? 'bg-[#f85606] text-white border-[#f85606]' 
+                : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606]'
+            }`}
+          >
+            All
+          </button>
+          {data.categories.map((cat: any) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+                selectedCategory === cat.id 
+                  ? 'bg-[#f85606] text-white border-[#f85606]' 
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#f85606]'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* 3. Hero Banner Slider Section */}
       <HeroSlider banners={data.adminSettings.banners} />
@@ -2220,6 +2249,7 @@ function CustomerView({
       <ProductQuickView 
         selectedProduct={selectedProduct}
         setSelectedProduct={setSelectedProduct}
+        setIsCheckoutOpen={setIsCheckoutOpen}
         allProducts={data?.products || []}
         allOrders={data?.orders || []}
         activeImageIdx={activeImageIdx}
