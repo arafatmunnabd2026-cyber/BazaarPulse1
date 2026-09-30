@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, 
   ArrowLeft, 
@@ -808,35 +808,35 @@ export default function CheckoutModal({
                     />
                   </div>
 
-              {/* Input 2 & 3: Mobile Numbers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Mobile Number / মোবাইল নম্বর <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="88017XXXXXXXX"
-                    value={shippingInfo.phone}
-                    onChange={e => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  />
-                </div>
+                  {/* Input 2 & 3: Mobile Numbers */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Mobile Number / মোবাইল নম্বর <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="88017XXXXXXXX"
+                        value={shippingInfo.phone}
+                        onChange={e => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Alt. Mobile Number (বিকল্প নম্বর - ঐচ্ছিক)
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="Alt. Mobile Number"
-                    value={shippingInfo.altPhone}
-                    onChange={e => setShippingInfo({ ...shippingInfo, altPhone: e.target.value })}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  />
-                </div>
-              </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Alt. Mobile Number (বিকল্প নম্বর - ঐচ্ছিক)
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="Alt. Mobile Number"
+                        value={shippingInfo.altPhone}
+                        onChange={e => setShippingInfo({ ...shippingInfo, altPhone: e.target.value })}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
 
               {/* Input 4: Country Dropdown */}
               <div>
