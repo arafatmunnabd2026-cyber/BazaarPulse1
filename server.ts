@@ -188,6 +188,23 @@ async function initDatabase() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
+
+      -- Ensure user_logins table also exists for Supabase & user login tracking
+      CREATE TABLE IF NOT EXISTS user_logins (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        role VARCHAR(50) DEFAULT 'customer',
+        phone VARCHAR(50),
+        avatar TEXT,
+        password TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        saved_address JSONB DEFAULT NULL,
+        last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE user_logins ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+      ALTER TABLE user_logins ADD COLUMN IF NOT EXISTS saved_address JSONB DEFAULT NULL;
       
       CREATE TABLE IF NOT EXISTS categories (
         id VARCHAR(255) PRIMARY KEY,
@@ -1272,10 +1289,19 @@ app.get('/api/user/address', authMiddleware, async (req, res) => {
           params = ['customer'];
         }
 
-        const result = await client.query(query, params);
+        let result = await client.query(query, params).catch(() => ({ rows: [] }));
+        
+        // If not found in users table, check user_logins table
+        if (!result.rows || result.rows.length === 0) {
+          const loginQuery = query.replace('FROM users', 'FROM user_logins');
+          const loginRes = await client.query(loginQuery, params).catch(() => ({ rows: [] }));
+          if (loginRes.rows && loginRes.rows.length > 0) {
+            result = loginRes;
+          }
+        }
         client.release();
 
-        if (result.rows.length > 0) {
+        if (result.rows && result.rows.length > 0) {
           const row = result.rows[0];
           const savedAddr = parseJsonSafe(row.saved_address, null);
           return res.json({
@@ -1345,17 +1371,29 @@ const handleSaveUserAddress = async (req: express.Request, res: express.Response
           await client.query(
             'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4',
             [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetUserId]
-          );
+          ).catch(() => {});
+          await client.query(
+            'UPDATE user_logins SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4',
+            [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetUserId]
+          ).catch(() => {});
         } else if (targetEmail) {
           await client.query(
             'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE LOWER(email) = LOWER($4)',
             [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetEmail]
-          );
+          ).catch(() => {});
+          await client.query(
+            'UPDATE user_logins SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE LOWER(email) = LOWER($4)',
+            [JSON.stringify(addressObject), fullName || '', phoneNumber || '', targetEmail]
+          ).catch(() => {});
         } else {
           await client.query(
             'UPDATE users SET saved_address = $1 WHERE role = $2',
             [JSON.stringify(addressObject), 'customer']
-          );
+          ).catch(() => {});
+          await client.query(
+            'UPDATE user_logins SET saved_address = $1 WHERE role = $2',
+            [JSON.stringify(addressObject), 'customer']
+          ).catch(() => {});
         }
         client.release();
       } catch (dbErr) {
@@ -2699,7 +2737,11 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         await pool.query(
           'UPDATE users SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4 OR LOWER(email) = LOWER($5)',
           [JSON.stringify(userSavedAddress), userSavedAddress.fullName || '', userSavedAddress.phoneNumber || '', targetUserId, createdOrder.customerEmail]
-        );
+        ).catch(() => {});
+        await pool.query(
+          'UPDATE user_logins SET saved_address = $1, name = COALESCE(NULLIF($2, \'\'), name), phone = COALESCE(NULLIF($3, \'\'), phone) WHERE id = $4 OR LOWER(email) = LOWER($5)',
+          [JSON.stringify(userSavedAddress), userSavedAddress.fullName || '', userSavedAddress.phoneNumber || '', targetUserId, createdOrder.customerEmail]
+        ).catch(() => {});
       } catch (userUpErr) {
         console.warn('Failed to update user address profile on order placement:', userUpErr);
       }
