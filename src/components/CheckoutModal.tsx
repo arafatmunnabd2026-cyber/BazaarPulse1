@@ -118,8 +118,14 @@ export default function CheckoutModal({
     thana: 'আগারগাঁও',
     fullAddressDetails: '',
     addressType: 'Home' as 'Home' | 'Office',
-    paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket',
-    savePaymentMethod: true
+    paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket'
+  });
+
+  // Independent boolean state for each payment method's 'Save Payment Method' checkbox
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState({
+    cod: true,
+    wallet: true,
+    card: true
   });
 
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -374,8 +380,8 @@ export default function CheckoutModal({
                 <input
                   type="checkbox"
                   id="save-payment-cod"
-                  checked={shippingInfo.savePaymentMethod}
-                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  checked={savedPaymentMethods.cod}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, cod: e.target.checked }))}
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
                 />
                 <label htmlFor="save-payment-cod" className="cursor-pointer font-medium text-black">
@@ -469,8 +475,8 @@ export default function CheckoutModal({
                 <input
                   type="checkbox"
                   id="save-payment-wallet"
-                  checked={shippingInfo.savePaymentMethod}
-                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  checked={savedPaymentMethods.wallet}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, wallet: e.target.checked }))}
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
                 />
                 <label htmlFor="save-payment-wallet" className="cursor-pointer font-medium text-black">Save Payment Method</label>
@@ -533,12 +539,12 @@ export default function CheckoutModal({
               <div className="pt-2 flex items-center gap-2 text-xs text-black">
                 <input
                   type="checkbox"
-                  id="save-payment"
-                  checked={shippingInfo.savePaymentMethod}
-                  onChange={e => setShippingInfo({ ...shippingInfo, savePaymentMethod: e.target.checked })}
+                  id="save-payment-card"
+                  checked={savedPaymentMethods.card}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, card: e.target.checked }))}
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
                 />
-                <label htmlFor="save-payment" className="cursor-pointer font-medium text-black">Save Payment Method</label>
+                <label htmlFor="save-payment-card" className="cursor-pointer font-medium text-black">Save Payment Method</label>
               </div>
             </div>
           </div>
