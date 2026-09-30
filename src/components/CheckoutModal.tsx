@@ -112,12 +112,12 @@ export default function CheckoutModal({
   const userAddr = authUser?.saved_address || authUser?.savedAddress;
 
   const [shippingInfo, setShippingInfo] = useState({
-    name: userAddr?.fullName || authUser?.name || 'Arafat Munna',
-    phone: userAddr?.phoneNumber || authUser?.phone || '8801756482001',
+    name: userAddr?.fullName || '',
+    phone: userAddr?.phoneNumber || '',
     altPhone: userAddr?.altPhone || '',
     country: userAddr?.country || 'বাংলাদেশ',
-    district: userAddr?.district || 'Dhaka',
-    thana: userAddr?.thana || 'আগারগাঁও',
+    district: userAddr?.district || '',
+    thana: userAddr?.thana || '',
     fullAddressDetails: userAddr?.addressDetails || '',
     addressType: (userAddr?.addressType as 'Home' | 'Office') || 'Home',
     paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket'
@@ -161,11 +161,11 @@ export default function CheckoutModal({
             const addr = data.address;
             setShippingInfo(prev => ({
               ...prev,
-              name: addr.fullName || prev.name,
-              phone: addr.phoneNumber || prev.phone,
-              altPhone: addr.altPhone || prev.altPhone,
-              district: addr.district || prev.district,
-              thana: addr.thana || prev.thana,
+              name: addr.fullName || '',
+              phone: addr.phoneNumber || '',
+              altPhone: addr.altPhone || '',
+              district: addr.district || '',
+              thana: addr.thana || '',
               fullAddressDetails: addr.addressDetails || prev.fullAddressDetails,
               addressType: (addr.addressType as any) || prev.addressType
             }));
@@ -185,11 +185,11 @@ export default function CheckoutModal({
           if (parsed && (parsed.fullName || parsed.addressDetails)) {
             setShippingInfo(prev => ({
               ...prev,
-              name: parsed.fullName || prev.name,
-              phone: parsed.phoneNumber || prev.phone,
-              altPhone: parsed.altPhone || prev.altPhone,
-              district: parsed.district || prev.district,
-              thana: parsed.thana || prev.thana,
+              name: parsed.fullName || '',
+              phone: parsed.phoneNumber || '',
+              altPhone: parsed.altPhone || '',
+              district: parsed.district || '',
+              thana: parsed.thana || '',
               fullAddressDetails: parsed.addressDetails || prev.fullAddressDetails,
               addressType: (parsed.addressType as any) || prev.addressType
             }));

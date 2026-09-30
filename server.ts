@@ -1019,8 +1019,8 @@ app.post('/api/auth/token', async (req, res) => {
     } else if (role === 'customer') {
       payload = {
         id: 'u-' + Date.now(),
-        name: name || 'Customer User',
-        email: email || 'customer@gmail.com',
+        name: name || '',
+        email: email || '',
         role: 'customer',
         status: 'active',
         saved_address: null
@@ -1106,7 +1106,7 @@ app.post('/api/auth/login', async (req, res) => {
           } else if (cleanEmail === 'customer@gmail.com' || role === 'customer') {
             const ins = await pool.query(
               'INSERT INTO users (id, name, email, role, status, saved_address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-              ['u-' + Date.now(), name || 'Customer User', cleanEmail || 'customer@gmail.com', 'customer', 'active', null]
+              ['u-' + Date.now(), name || '', cleanEmail || '', 'customer', 'active', null]
             );
             targetUser = ins.rows[0];
           }

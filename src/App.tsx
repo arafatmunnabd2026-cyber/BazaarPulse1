@@ -532,6 +532,9 @@ export default function App() {
             if (existingData.phone && !user.phone) user.phone = existingData.phone;
             setAuthUser({ ...user });
             localStorage.setItem('bazaarpulse_user', JSON.stringify(user));
+            localStorage.setItem('bazaarpulse_saved_address', JSON.stringify(existingSavedAddress));
+          } else {
+            localStorage.removeItem('bazaarpulse_saved_address');
           }
         } catch (fetchErr) {
           console.warn('Could not read existing saved_address from user_logins:', fetchErr);
@@ -577,6 +580,7 @@ export default function App() {
     setAuthToken('');
     localStorage.removeItem('bazaarpulse_user');
     localStorage.removeItem('bazaarpulse_token');
+    localStorage.removeItem('bazaarpulse_saved_address');
     navigateTo('/');
     notify('👋 Logged out successfully. You are now browsing as a guest.');
   };
