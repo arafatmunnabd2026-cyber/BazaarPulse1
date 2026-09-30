@@ -1833,48 +1833,6 @@ function CustomerView({
         </div>
       </div>
 
-      {/* Categories Grid */}
-      <div className="max-w-7xl mx-auto px-4 mt-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-[#f85606]" /> Categories
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`p-4 rounded-xl border text-center transition-all bg-white shadow-sm ${
-              selectedCategory === 'all' 
-                ? 'border-[#f85606] ring-1 ring-[#f85606]' 
-                : 'border-gray-200 hover:border-[#f85606]'
-            }`}
-          >
-            <div className="font-semibold text-gray-900 text-sm">All Products</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {(data?.products || []).filter((p: any) => p.status === 'active' || !p.status || p.status === 'Active').length} items
-            </div>
-          </button>
-          {data.categories.map((cat: any) => {
-            const activeCount = (data?.products || []).filter((p: any) => 
-              (normalizeCategoryId(p.categoryId, p.categoryName) === cat.id || p.categoryId === cat.id) && 
-              (p.status === 'active' || !p.status || p.status === 'Active')
-            ).length;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`p-4 rounded-xl border text-center transition-all bg-white shadow-sm ${
-                  selectedCategory === cat.id 
-                    ? 'border-[#f85606] ring-1 ring-[#f85606]' 
-                    : 'border-gray-200 hover:border-[#f85606]'
-                }`}
-              >
-                <div className="font-semibold text-gray-900 text-sm truncate">{cat.name}</div>
-                <div className="text-xs text-gray-500 mt-1">{activeCount} items</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Products Grid */}
       <div id="products-section" className="max-w-7xl mx-auto px-4 mt-10">
         <div className="flex items-center justify-between mb-6">
@@ -2250,6 +2208,9 @@ function CustomerView({
         selectedProduct={selectedProduct}
         setSelectedProduct={setSelectedProduct}
         setIsCheckoutOpen={setIsCheckoutOpen}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        categories={data?.categories || []}
         allProducts={data?.products || []}
         allOrders={data?.orders || []}
         activeImageIdx={activeImageIdx}
