@@ -121,7 +121,7 @@ export default function CheckoutModal({
     thana: userAddr?.thana || '',
     fullAddressDetails: userAddr?.addressDetails || '',
     addressType: (userAddr?.addressType as 'Home' | 'Office') || 'Home',
-    paymentMethod: 'card' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket'
+    paymentMethod: 'cod' as 'card' | 'cod' | 'bkash' | 'nagad' | 'rocket'
   });
 
   // Independent boolean state for each payment method's 'Save Payment Method' checkbox
@@ -593,70 +593,67 @@ export default function CheckoutModal({
                 {/* bKash */}
                 <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
                     shippingInfo.paymentMethod === 'bkash'
-                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600' : 'border-slate-300'
                   }`}>
-                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <div className="bg-[#e2136e] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                      bKash
-                    </div>
-                    <span className="text-xs font-medium text-black">বিকাশ</span>
-                  </div>
+                  <img 
+                    src="https://freelogopng.com/images/all_img/1656235199bkash-logo-transparent.png" 
+                    alt="bKash" 
+                    className="h-7 object-contain"
+                  />
                 </div>
 
                 {/* Nagad */}
                 <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
                     shippingInfo.paymentMethod === 'nagad'
-                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600' : 'border-slate-300'
                   }`}>
-                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                      নগদ
-                    </div>
-                    <span className="text-xs font-medium text-black">Nagad</span>
-                  </div>
+                  <img 
+                    src="https://freelogopng.com/images/all_img/1679917204nagad-logo-png.png" 
+                    alt="Nagad" 
+                    className="h-8 object-contain"
+                  />
                 </div>
 
                 {/* Rocket */}
                 <div
                   onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 bg-white ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
                     shippingInfo.paymentMethod === 'rocket'
-                      ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600' : 'border-slate-300'
                   }`}>
-                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <div className="bg-[#8c3494] text-white px-2 py-0.5 rounded font-bold text-xs tracking-tight shadow-xs">
-                      রকেট
-                    </div>
-                    <span className="text-xs font-medium text-black">Rocket</span>
-                  </div>
+                  <img 
+                    src="https://freelogopng.com/images/all_img/1679918451rocket-logo-png.png" 
+                    alt="Rocket" 
+                    className="h-8 object-contain"
+                  />
                 </div>
 
               </div>
@@ -683,45 +680,28 @@ export default function CheckoutModal({
 
               <div 
                 onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'card' })}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between flex-wrap gap-3 bg-white ${
+                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
                   shippingInfo.paymentMethod === 'card'
-                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'card' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                  }`}>
-                    {shippingInfo.paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-white" />}
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                  shippingInfo.paymentMethod === 'card' ? 'border-blue-600' : 'border-slate-300'
+                }`}>
+                  {shippingInfo.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                </div>
+
+                {/* Bank Operator Logos from Image */}
+                <div className="flex items-center flex-wrap gap-2">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-4 sm:h-5 object-contain bg-[#1a1f71] px-2 py-1 rounded" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 sm:h-8 object-contain bg-[#171b2a] px-2 py-1 rounded" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" alt="Amex" className="h-5 sm:h-6 object-contain bg-[#016fcf] px-2 py-1 rounded" />
+                  <div className="bg-[#005c3b] px-2 py-1 rounded flex items-center h-6 sm:h-8">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/UnionPay_logo.svg/1200px-UnionPay_logo.svg.png" alt="UnionPay" className="h-3 sm:h-4 object-contain bg-white px-0.5" />
                   </div>
-
-                  {/* Bank Operator Logos */}
-                  <div className="flex items-center flex-wrap gap-1.5">
-                    <div className="bg-[#1a1f71] text-white px-2 py-1 rounded font-bold text-xs italic tracking-tighter shadow-xs border border-blue-900">
-                      VISA
-                    </div>
-                    
-                    <div className="bg-slate-900 text-white px-2 py-1 rounded font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-800">
-                      <span className="flex shrink-0">
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block -mr-1" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block opacity-90" />
-                      </span>
-                      <span className="text-[10px]">mastercard</span>
-                    </div>
-
-                    <div className="bg-[#006fcf] text-white px-2 py-1 rounded font-bold text-[10px] tracking-tighter uppercase shadow-xs">
-                      AMEX
-                    </div>
-
-                    <div className="bg-emerald-800 text-white px-1.5 py-1 rounded font-bold text-[10px] flex items-center gap-0.5 shadow-xs">
-                      <span className="bg-red-500 px-0.5 text-[8px]">Union</span>
-                      <span className="bg-blue-600 px-0.5 text-[8px]">Pay</span>
-                    </div>
-
-                    <div className="bg-red-600 text-white px-2 py-1 rounded font-bold text-[10px] italic shadow-xs">
-                      QCash
-                    </div>
+                  <div className="bg-[#e30613] px-2 py-1 rounded flex items-center h-6 sm:h-8">
+                    <span className="text-white font-black italic text-[10px] sm:text-xs">QCash</span>
                   </div>
                 </div>
               </div>
@@ -802,7 +782,6 @@ export default function CheckoutModal({
                     <input
                       type="text"
                       required
-                      placeholder="Full Name / নাম লিখুন"
                       value={shippingInfo.name}
                       onChange={e => setShippingInfo({ ...shippingInfo, name: e.target.value })}
                       className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -818,7 +797,6 @@ export default function CheckoutModal({
                       <input
                         type="tel"
                         required
-                        placeholder="88017XXXXXXXX"
                         value={shippingInfo.phone}
                         onChange={e => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
                         className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -831,7 +809,6 @@ export default function CheckoutModal({
                       </label>
                       <input
                         type="tel"
-                        placeholder="Alt. Mobile Number"
                         value={shippingInfo.altPhone}
                         onChange={e => setShippingInfo({ ...shippingInfo, altPhone: e.target.value })}
                         className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -880,7 +857,6 @@ export default function CheckoutModal({
                       type="text"
                       list="thana-list-options"
                       required
-                      placeholder="থানার নাম লিখুন বা সিলেক্ট করুন..."
                       value={shippingInfo.thana}
                       onChange={e => setShippingInfo({ ...shippingInfo, thana: e.target.value })}
                       className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -921,7 +897,6 @@ export default function CheckoutModal({
                 <textarea
                   rows={2}
                   required
-                  placeholder="বাসা/ফ্ল্যাট নম্বর, রোড নম্বর, পাড়া-মহল্লার নাম বা পরিচিত কোনো ল্যান্ডমার্ক উল্লেখ করুন"
                   value={shippingInfo.fullAddressDetails}
                   onChange={e => setShippingInfo({ ...shippingInfo, fullAddressDetails: e.target.value })}
                   className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
