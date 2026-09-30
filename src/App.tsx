@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { 
   ShoppingBag, Store, ShieldCheck, Search, ShoppingCart, Heart, User, 
@@ -161,6 +162,9 @@ const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, 
 };
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Global Auth State (Defaults to null so new users start as Guest)
   const [authUser, setAuthUser] = useState<any>(() => {
     try {
@@ -175,20 +179,8 @@ export default function App() {
     return localStorage.getItem('bazaarpulse_token') || '';
   });
 
-  // Current Route Navigation: '/' (Storefront), '/vendor' (Vendor Dashboard), '/admin' (Admin Control), '/admin-dashboard' (Standalone Admin)
-  const [currentPath, setCurrentPath] = useState<string>(() => {
-    // Check both hash and pathname to support direct hits/refreshes on Render
-    const hash = window.location.hash.replace('#', '');
-    const pathname = window.location.pathname;
-
-    if (hash === 'admin' || hash === 'vendor' || hash === 'admin/login' || hash === 'admin-dashboard') {
-      return `/${hash}`;
-    }
-    if (pathname === '/admin' || pathname === '/vendor' || pathname === '/admin/login' || pathname === '/admin-dashboard') {
-      return pathname;
-    }
-    return '/';
-  });
+  // Current Route Navigation from React Router
+  const currentPath = location.pathname;
 
   // Access Denied (403) Security Alert State
   const [accessDeniedAlert, setAccessDeniedAlert] = useState<{
@@ -432,8 +424,6 @@ export default function App() {
    * and blocks regular customers with a 403 Forbidden alert & redirection.
    */
   const navigateTo = (targetPath: string) => {
-    // 1. Guard check for /admin removed (direct access allowed)
-
     // 2. Guard check for /vendor/*
     if (targetPath === '/vendor' || targetPath.startsWith('/vendor')) {
       if (!authUser) {
@@ -444,8 +434,7 @@ export default function App() {
           timestamp: new Date().toLocaleTimeString()
         });
         notify('⛔ 401 Unauthorized: Vendor login required.');
-        setCurrentPath('/');
-        window.location.hash = '';
+        navigate('/');
         setIsAuthModalOpen(true);
         return;
       }
@@ -458,8 +447,7 @@ export default function App() {
           timestamp: new Date().toLocaleTimeString()
         });
         notify('⛔ 403 Forbidden: Access Denied. Customers cannot access Vendor Dashboard.');
-        setCurrentPath('/');
-        window.location.hash = '';
+        navigate('/');
         return;
       }
 
@@ -470,14 +458,7 @@ export default function App() {
 
     // Access granted
     setAccessDeniedAlert(null);
-    setCurrentPath(targetPath);
-    
-    // Use History API for clean URLs (no hash) to support Render refreshes
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({ path: targetPath }, '', targetPath);
-    }
-    
-    // Scroll to top on navigation
+    navigate(targetPath);
     window.scrollTo(0, 0);
   };
 
@@ -1187,32 +1168,13 @@ function CustomerView({
   onLogout: () => void;
   navigateTo: (path: string) => void;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>(() => findCategoryFromPath(window.location.pathname, data?.categories || []));
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Sync category state with URL path on data load
-  useEffect(() => {
-    const initialCat = findCategoryFromPath(window.location.pathname, data?.categories || []);
-    setSelectedCategory(initialCat);
-  }, [data?.categories]);
-
-  // Handle browser Back / Forward (popstate) navigation for categories and pages
-  useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      if (path === '/admin' || path === '/vendor' || path === '/admin/login' || path === '/admin-dashboard') {
-        navigateTo(path);
-        return;
-      }
-      const catId = findCategoryFromPath(path, data?.categories || []);
-      setSelectedCategory(catId);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [data?.categories, navigateTo]);
 
   // Dynamic Category Route Changer
   const handleCategoryChange = (catId: string) => {
@@ -1223,10 +1185,7 @@ function CustomerView({
       const slug = getCategorySlug(catObj) || catId;
       newPath = `/${slug}`;
     }
-    
-    if (window.location.pathname !== newPath) {
-      window.history.pushState({ categoryId: catId }, '', newPath);
-    }
+    navigate(newPath);
     
     // Scroll smoothly to products section
     const section = document.getElementById('products-section');
@@ -1459,7 +1418,7 @@ function CustomerView({
   }, [authUser]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(() => location.pathname === '/checkout');
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
   const [shippingInfo, setShippingInfo] = useState({ 
     name: authUser?.name || '', 
@@ -1476,6 +1435,83 @@ function CustomerView({
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  // 1. Sync Product Quick View modal with /product/:id route
+  const productPathMatch = location.pathname.match(/^\/product\/([^/]+)/);
+  const currentProductIdFromUrl = productPathMatch ? decodeURIComponent(productPathMatch[1]) : null;
+
+  useEffect(() => {
+    if (currentProductIdFromUrl && Array.isArray(data?.products)) {
+      const found = data.products.find((p: any) => 
+        String(p.id) === currentProductIdFromUrl || 
+        (p.slug && p.slug === currentProductIdFromUrl)
+      );
+      if (found) {
+        setSelectedProduct(found);
+        setProductQty(1);
+        setActiveImageIdx(0);
+      }
+    } else if (!currentProductIdFromUrl && selectedProduct) {
+      setSelectedProduct(null);
+    }
+  }, [currentProductIdFromUrl, data?.products]);
+
+  const handleOpenProduct = (product: any) => {
+    setSelectedProduct(product);
+    setProductQty(1);
+    setActiveImageIdx(0);
+    navigate(`/product/${product.id}`);
+  };
+
+  const handleCloseProduct = () => {
+    setSelectedProduct(null);
+    if (location.pathname.startsWith('/product/')) {
+      if (selectedCategory && selectedCategory !== 'all') {
+        const catObj = data?.categories?.find((c: any) => c.id === selectedCategory);
+        const slug = getCategorySlug(catObj) || selectedCategory;
+        navigate(`/${slug}`);
+      } else {
+        navigate('/');
+      }
+    }
+  };
+
+  // 2. Sync Checkout Modal with /checkout route
+  const isCheckoutRoute = location.pathname === '/checkout';
+
+  useEffect(() => {
+    if (isCheckoutRoute) {
+      setIsCheckoutOpen(true);
+    } else if (isCheckoutOpen && !isCheckoutRoute) {
+      setIsCheckoutOpen(false);
+    }
+  }, [isCheckoutRoute]);
+
+  const handleOpenCheckout = () => {
+    setIsCheckoutOpen(true);
+    navigate('/checkout');
+  };
+
+  const handleCloseCheckout = () => {
+    setIsCheckoutOpen(false);
+    if (location.pathname === '/checkout') {
+      if (selectedCategory && selectedCategory !== 'all') {
+        const catObj = data?.categories?.find((c: any) => c.id === selectedCategory);
+        const slug = getCategorySlug(catObj) || selectedCategory;
+        navigate(`/${slug}`);
+      } else {
+        navigate('/');
+      }
+    }
+  };
+
+  // 3. Sync category state with URL path on data load and route changes
+  useEffect(() => {
+    if (!location.pathname.startsWith('/product/') && location.pathname !== '/checkout') {
+      const currentCat = findCategoryFromPath(location.pathname, data?.categories || []);
+      setSelectedCategory(currentCat);
+    }
+  }, [location.pathname, data?.categories]);
 
   // AI Assistant Chat state
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -1954,7 +1990,7 @@ function CustomerView({
               return (
                 <div 
                   key={product.id} 
-                  onClick={() => { setSelectedProduct(product); setProductQty(1); setActiveImageIdx(0); }}
+                  onClick={() => handleOpenProduct(product)}
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group cursor-pointer"
                 >
                   <div className="relative aspect-square overflow-hidden bg-gray-50">
@@ -2216,10 +2252,10 @@ function CustomerView({
                       notify('⚠️ Please select at least one item to proceed to checkout');
                       return;
                     }
-                    setIsCheckoutOpen(true);
+                    handleOpenCheckout();
                   }}
                   disabled={selectedCount === 0}
-                  className="w-full mt-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-3.5 rounded-xl shadow-lg transition-all text-xs uppercase tracking-wider"
+                  className="w-full mt-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black py-3.5 rounded-xl shadow-lg transition-all text-xs uppercase tracking-wider cursor-pointer"
                 >
                   Proceed to Checkout ({selectedCount} Items)
                 </button>
@@ -2232,7 +2268,7 @@ function CustomerView({
       {/* New Reference Checkout Modal */}
       <CheckoutModal
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={handleCloseCheckout}
         cart={cart}
         authUser={authUser}
         onSubmitOrder={handleOrderSubmitPayload}
@@ -2302,8 +2338,11 @@ function CustomerView({
       {/* Daraz Product Details Page (PDP) Modal */}
       <ProductQuickView 
         selectedProduct={selectedProduct}
-        setSelectedProduct={setSelectedProduct}
-        setIsCheckoutOpen={setIsCheckoutOpen}
+        setSelectedProduct={(p: any) => {
+          if (!p) handleCloseProduct();
+          else handleOpenProduct(p);
+        }}
+        setIsCheckoutOpen={handleOpenCheckout}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         categories={data?.categories || []}
@@ -2319,7 +2358,7 @@ function CustomerView({
         setProductQty={setProductQty}
         handleAddToCart={(p: any, q: number, s: string, c: string) => {
           addToCart(p, q, s, c);
-          setSelectedProduct(null);
+          handleCloseProduct();
           setIsCartOpen(true);
         }}
         addToCart={addToCart}
@@ -2339,9 +2378,7 @@ function CustomerView({
           notify(`🛍️ "${p.title.substring(0, 20)}..." কার্টে যোগ হয়েছে!`);
         }}
         onViewProduct={(p) => {
-          setSelectedProduct(p);
-          setProductQty(1);
-          setActiveImageIdx(0);
+          handleOpenProduct(p);
         }}
         onClearWishlist={clearWishlist}
         onMoveAllToCart={moveAllWishlistToCart}

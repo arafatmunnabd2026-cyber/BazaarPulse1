@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -73,6 +74,8 @@ export const ProductQuickView = ({
   const isOutOfStock = stockNum <= 0;
   const isLowStock = stockNum > 0 && stockNum <= 5;
 
+  const navigate = useNavigate();
+
   const handleIncrement = () => {
     setQuantity(prev => (prev < maxStock ? prev + 1 : prev));
   };
@@ -81,10 +84,24 @@ export const ProductQuickView = ({
     setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
 
+  const handleCloseModal = () => {
+    setSelectedProduct(null);
+    if (window.location.pathname.startsWith('/product/')) {
+      if (selectedCategory && selectedCategory !== 'all') {
+        const catObj = displayCategories.find((c: any) => c.id === selectedCategory);
+        const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : selectedCategory);
+        navigate(`/${slug}`);
+      } else {
+        navigate('/');
+      }
+    }
+  };
+
   const handleBuyNow = () => {
     addToCart(selectedProduct, quantity, selectedSize, selectedColor);
-    setSelectedProduct(null); // Close modal
-    setIsCheckoutOpen(true);  // Open checkout
+    setSelectedProduct(null);
+    setIsCheckoutOpen(true);
+    navigate('/checkout');
   };
 
   const handleAddToCartClick = () => {
@@ -92,8 +109,8 @@ export const ProductQuickView = ({
   };
 
   const handleCategoryClick = (catId: string) => {
-    setSelectedCategory(catId);
     setSelectedProduct(null);
+    setSelectedCategory(catId);
 
     let newPath = '/';
     if (catId && catId !== 'all') {
@@ -101,10 +118,7 @@ export const ProductQuickView = ({
       const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : catId);
       newPath = `/${slug}`;
     }
-    
-    if (window.location.pathname !== newPath) {
-      window.history.pushState({ categoryId: catId }, '', newPath);
-    }
+    navigate(newPath);
 
     // Scroll to products section
     const productsSection = document.getElementById('products-section');
@@ -138,7 +152,7 @@ export const ProductQuickView = ({
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2"><ShoppingBag className="w-7 h-7 text-[#f85606]" /><span className="font-black text-2xl text-[#f85606] tracking-tighter">BazaarPulse</span></div>
             <div className="flex-1 max-w-2xl"><div className="relative flex"><input type="text" placeholder="Search in BazaarPulse..." className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900" /><button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-colors"><Search className="w-5 h-5" /></button></div></div>
-            <div className="flex items-center gap-4"><ShoppingCart className="w-7 h-7 text-gray-700 cursor-pointer" /><button className="bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> AI Advisor</button><button onClick={() => setSelectedProduct(null)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-6 h-6 text-gray-500" /></button></div>
+            <div className="flex items-center gap-4"><ShoppingCart className="w-7 h-7 text-gray-700 cursor-pointer" /><button className="bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> AI Advisor</button><button onClick={handleCloseModal} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"><X className="w-6 h-6 text-gray-500" /></button></div>
           </div>
           <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto border-t border-gray-100">
             {displayCategories.map(cat => (
