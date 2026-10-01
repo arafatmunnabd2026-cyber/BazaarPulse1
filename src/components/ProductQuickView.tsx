@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy } from 'lucide-react';
+import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper to normalize variation data whether it's an array, JSON string, or comma-separated string
@@ -102,6 +102,7 @@ export const ProductQuickView = ({
   const [selectedColor, setSelectedColor] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(!!propIsWishlisted);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const pdpCategoryScrollRef = React.useRef<HTMLDivElement>(null);
 
   const availableColors = useMemo(() => normalizeList(selectedProduct?.colors), [selectedProduct?.colors]);
   const availableSizes = useMemo(() => normalizeList(selectedProduct?.sizes), [selectedProduct?.sizes]);
@@ -289,15 +290,42 @@ export const ProductQuickView = ({
           </div>
 
           {/* Categories Bar inside PDP */}
-          <div className="bg-white border-t border-gray-100 py-3 shadow-xs">
-            <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 overflow-x-auto py-2.5 pb-3.5 scrollbar-thin">
+          <div className="bg-white border-t border-gray-100 py-1.5 shadow-xs relative group/pbar">
+            {/* Left Chevron Button - hidden by default, visible on hover */}
+            <button
+              onClick={() => {
+                pdpCategoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+              title="Scroll Left"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            {/* Right Chevron Button - hidden by default, visible on hover */}
+            <button
+              onClick={() => {
+                pdpCategoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+              title="Scroll Right"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            <div 
+              ref={pdpCategoryScrollRef}
+              className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth"
+            >
               <a
                 href="/"
                 onClick={(e) => {
                   e.preventDefault();
                   handleCategoryClick('all');
                 }}
-                className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
                   selectedCategory === 'all' 
                     ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
                     : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
@@ -316,7 +344,7 @@ export const ProductQuickView = ({
                       e.preventDefault();
                       handleCategoryClick(cat.id);
                     }}
-                    className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                    className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
                       isSelected 
                         ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
                         : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'

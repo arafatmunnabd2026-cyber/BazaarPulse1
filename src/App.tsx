@@ -10,7 +10,7 @@ import {
   ShoppingBag, Store, ShieldCheck, Search, ShoppingCart, Heart, User, 
   TrendingUp, DollarSign, Package, Users, CheckCircle, Clock, XCircle, 
   Sparkles, Bot, Send, ArrowRight, Star, Plus, Edit, Trash2, Check, AlertCircle,
-  Menu, X, Filter, RefreshCw, ChevronRight, Settings, Layers, CreditCard,
+  Menu, X, Filter, RefreshCw, ChevronRight, ChevronLeft, Settings, Layers, CreditCard,
   Truck, MapPin, Key, Lock, Shield, Terminal, Copy, CheckCheck,
   ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff,
   Upload, Image, Eye, Cpu, Shirt, Home, Trophy
@@ -187,6 +187,8 @@ const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, 
     reader.readAsDataURL(file);
   });
 };
+
+const storefrontCategoryScrollRef = { current: null as any };
 
 export default function App() {
   const navigate = useNavigate();
@@ -2158,47 +2160,74 @@ function CustomerView({
       ) : (
         <>
           {/* Categories Bar */}
-          <div className="bg-white border-b border-gray-100 py-3 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 overflow-x-auto py-2.5 pb-3.5 scrollbar-thin">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              handleCategoryChange('all');
-            }}
-            className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-              selectedCategory === 'all' 
-                ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
-                : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>All</span>
-          </a>
-          {data.categories.map((cat: any) => {
-            const slug = getCategorySlug(cat) || cat.id;
-            const isSelected = selectedCategory === cat.id;
-            return (
+          <div className="bg-white border-b border-gray-100 py-1.5 shadow-xs relative group/pbar">
+            {/* Left Chevron Button - hidden by default, visible on hover */}
+            <button
+              onClick={() => {
+                storefrontCategoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+              title="Scroll Left"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            {/* Right Chevron Button - hidden by default, visible on hover */}
+            <button
+              onClick={() => {
+                storefrontCategoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+              title="Scroll Right"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            <div 
+              ref={storefrontCategoryScrollRef}
+              className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth"
+            >
               <a
-                key={cat.id}
-                href={`/${slug}`}
+                href="/"
                 onClick={(e) => {
                   e.preventDefault();
-                  handleCategoryChange(cat.id);
+                  handleCategoryChange('all');
                 }}
-                className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                  isSelected 
+                className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                  selectedCategory === 'all' 
                     ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
                     : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
                 }`}
               >
-                <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
-                <span>{cat.name}</span>
+                <Layers className="w-4 h-4" />
+                <span>All</span>
               </a>
-            );
-          })}
-        </div>
-      </div>
+              {data.categories.map((cat: any) => {
+                const slug = getCategorySlug(cat) || cat.id;
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <a
+                    key={cat.id}
+                    href={`/${slug}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleCategoryChange(cat.id);
+                    }}
+                    className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                      isSelected 
+                        ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
+                        : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
+                    }`}
+                  >
+                    <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
+                    <span>{cat.name}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
 
       {/* 3. Hero Banner Slider Section */}
       <HeroSlider banners={data.adminSettings.banners} />
@@ -2210,13 +2239,13 @@ function CustomerView({
             backgroundColor: data.adminSettings.campaignBanner?.bgColor || '#f85606',
             color: data.adminSettings.campaignBanner?.textColor || '#ffffff'
           }}
-          className="rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all"
+          className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
         >
-          <div className="flex items-center gap-3">
-            <span className="bg-white text-[#f85606] font-black px-3 py-1 rounded-lg text-sm uppercase">
+          <div className="flex items-center gap-2.5">
+            <span className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0">
               {data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
             </span>
-            <span className="font-bold text-sm md:text-base">
+            <span className="font-bold text-xs sm:text-sm">
               {data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'} — <span className="font-normal opacity-90">{data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}</span>
             </span>
           </div>
@@ -2226,7 +2255,7 @@ function CustomerView({
               backgroundColor: data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff',
               color: data.adminSettings.campaignBanner?.buttonTextColor || '#111827'
             }}
-            className="font-bold px-4 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-1 hover:opacity-90"
+            className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
           >
             {data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'} <ArrowRight className="w-3.5 h-3.5" />
           </a>
