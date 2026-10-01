@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Package, Clock, Truck, CheckCircle, Search, RefreshCw, XCircle, Eye, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, Search, RefreshCw, XCircle, Eye, AlertCircle, ShieldCheck, Trash2, CheckSquare, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface OrderItem {
@@ -45,6 +45,70 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   const [loading, setLoading] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
   const [cancellingOrderId, setSubmittingCancelId] = useState<string | null>(null);
+
+  // Selection & Deletion State
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [deletedOrderIds, setDeletedOrderIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`bazaarpulse_deleted_orders_${userId}`) || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleSelectOrder = (orderId: string) => {
+    setSelectedOrderIds(prev =>
+      prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAll = (visibleOrders: Order[]) => {
+    if (selectedOrderIds.length === visibleOrders.length && visibleOrders.length > 0) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(visibleOrders.map(o => o.id));
+    }
+  };
+
+  const handleDeleteOrders = async (targetIds: string[]) => {
+    if (targetIds.length === 0) return;
+    if (!window.confirm(`আপনি কি নিশ্চিত যে সিলেক্ট করা ${targetIds.length}টি অর্ডার ইতিহাস থেকে ডিলেট করতে চান?`)) {
+      return;
+    }
+
+    try {
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+      await fetch('/api/my-orders/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {})
+        },
+        body: JSON.stringify({ orderIds: targetIds })
+      });
+    } catch (e) {
+      console.warn('Backend delete sync note:', e);
+    }
+
+    const updatedDeleted = Array.from(new Set([...deletedOrderIds, ...targetIds]));
+    setDeletedOrderIds(updatedDeleted);
+
+    try {
+      localStorage.setItem(`bazaarpulse_deleted_orders_${userId}`, JSON.stringify(updatedDeleted));
+      const localMyOrders = JSON.parse(localStorage.getItem('bazaarpulse_my_orders') || '[]');
+      if (Array.isArray(localMyOrders)) {
+        const remaining = localMyOrders.filter((o: any) => !targetIds.includes(o.id));
+        localStorage.setItem('bazaarpulse_my_orders', JSON.stringify(remaining));
+      }
+    } catch (e) {}
+
+    setOrders(prev => prev.filter(o => !targetIds.includes(o.id)));
+    setSelectedOrderIds(prev => prev.filter(id => !targetIds.includes(id)));
+
+    if (notify) {
+      notify(`🗑️ ${targetIds.length}টি অর্ডার ইতিহাস থেকে সফলভাবে ডিলেট করা হয়েছে!`);
+    }
+  };
 
   const fetchMyOrders = async () => {
     try {
@@ -225,10 +289,12 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
     return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
   };
 
+  const visibleOrders = orders.filter(o => !deletedOrderIds.includes(o.id));
+
   if (loading) return (
-    <div className="p-8 text-center text-black font-medium flex items-center justify-center gap-2">
+    <div className="p-8 text-center text-black text-sm font-medium flex items-center justify-center gap-2">
       <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
-      <span>অর্ডার ডাটা লোড হচ্ছে...</span>
+      <span className="text-sm font-medium text-black">অর্ডার ডাটা লোড হচ্ছে...</span>
     </div>
   );
 
@@ -238,44 +304,90 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-bold text-black">My Orders & Live Tracking</h2>
-          <p className="text-xs font-medium text-black">আপনার সকল আগের কেনাকাটার ইতিহাস ও রিয়েল টাইম ট্র্যাকিং</p>
+          <p className="text-sm font-medium text-black mt-1">আপনার সকল আগের কেনাকাটার ইতিহাস ও রিয়েল টাইম ট্র্যাকিং</p>
         </div>
-        <span className="bg-blue-50 border border-blue-200 text-black px-3.5 py-1 rounded-full text-xs font-medium">
-          মোট অর্ডার: <strong className="font-bold text-black">{orders.length}টি</strong>
+        <span className="bg-blue-50 border border-blue-200 text-black px-3.5 py-1.5 rounded-full text-sm font-medium">
+          মোট অর্ডার: <strong className="font-bold text-black">{visibleOrders.length}টি</strong>
         </span>
       </div>
 
+      {/* Batch Selection & Delete Toolbar */}
+      {visibleOrders.length > 0 && (
+        <div className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-black">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSelectAll(visibleOrders)}
+              className="flex items-center gap-2 text-sm font-medium text-black bg-white border border-slate-300 hover:bg-slate-50 px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors shadow-2xs"
+            >
+              {selectedOrderIds.length === visibleOrders.length && visibleOrders.length > 0 ? (
+                <CheckSquare className="w-4 h-4 text-rose-600" />
+              ) : (
+                <Square className="w-4 h-4 text-black" />
+              )}
+              <span className="text-sm font-medium text-black">
+                {selectedOrderIds.length === visibleOrders.length ? 'সবগুলো আন-সিলেক্ট করুন' : 'সবগুলো সিলেক্ট করুন'}
+              </span>
+            </button>
+            {selectedOrderIds.length > 0 && (
+              <span className="text-sm font-medium text-black bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
+                সিলেক্ট করা হয়েছে: <strong className="font-bold text-black">{selectedOrderIds.length}টি</strong>
+              </span>
+            )}
+          </div>
+
+          {selectedOrderIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => handleDeleteOrders(selectedOrderIds)}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-colors shadow-xs"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+              <span className="text-sm font-medium text-white">সিলেক্ট করা ({selectedOrderIds.length}) অর্ডার ডিলেট করুন</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Orders List */}
       <div className="space-y-4">
-        {orders.length === 0 ? (
+        {visibleOrders.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
               <Package className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-base font-bold text-black">আপনি এখনও কোনো অর্ডার করেননি</h3>
-            <p className="text-xs font-medium text-black max-w-xs mx-auto">বাজারপালস থেকে কেনাকাটা শুরু করুন এবং এখানে আপনার অর্ডারের রিয়েল টাইমে ট্র্যাকিং দেখুন!</p>
+            <h3 className="text-base font-bold text-black">আপনার কোনো সক্রিয় অর্ডার ইতিহাস নেই</h3>
+            <p className="text-sm font-medium text-black max-w-xs mx-auto">বাজারপালস থেকে কেনাকাটা শুরু করুন এবং এখানে আপনার অর্ডারের রিয়েল টাইমে ট্র্যাকিং দেখুন!</p>
           </div>
         ) : (
-          orders.map(order => {
+          visibleOrders.map(order => {
             const canCancel = order.status === 'pending' || order.status === 'processing';
             const isShippedOrDelivered = order.status === 'shipped' || order.status === 'delivered';
 
             return (
               <div key={order.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden text-black transition-all hover:border-slate-300">
-                {/* Order Top Bar */}
+                {/* Order Top Bar with Checkbox */}
                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-black uppercase">অর্ডার নম্বর:</span>
-                      <span className="text-sm font-bold text-black font-mono">{order.id}</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrderIds.includes(order.id)}
+                      onChange={() => toggleSelectOrder(order.id)}
+                      className="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer shrink-0"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-black uppercase">অর্ডার নম্বর:</span>
+                        <span className="text-sm font-bold text-black font-mono">{order.id}</span>
+                      </div>
+                      <p className="text-sm font-medium text-black">
+                        তারিখ: {new Date(order.createdAt).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
                     </div>
-                    <p className="text-xs font-medium text-black">
-                      তারিখ: {new Date(order.createdAt).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
                   </div>
 
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className={`px-3 py-1 rounded-lg text-xs font-medium uppercase tracking-wider ${
+                    <span className={`px-3 py-1 rounded-lg text-sm font-medium uppercase tracking-wider ${
                       order.status === 'pending' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                       order.status === 'processing' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
                       order.status === 'shipped' ? 'bg-purple-100 text-purple-900 border border-purple-300' :
@@ -286,7 +398,7 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                     </span>
 
                     <div className="text-right">
-                      <span className="text-xs font-medium text-black block">মোট মূল্য</span>
+                      <span className="text-sm font-medium text-black block">মোট মূল্য</span>
                       <span className="text-sm font-bold text-black">৳{order.totalAmount}</span>
                     </div>
                   </div>
@@ -303,8 +415,8 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                           className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-white"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-black truncate">{item.title}</p>
-                          <p className="text-[11px] font-medium text-black">
+                          <p className="text-sm font-medium text-black truncate">{item.title}</p>
+                          <p className="text-sm font-medium text-black">
                             ৳{item.price} × {item.quantity} {item.size && `(${item.size})`}
                           </p>
                         </div>
@@ -316,15 +428,15 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                 {/* Action Buttons Row */}
                 <div className="px-4 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white">
                   
-                  {/* Left: Dedicated Order Details Button & Track Button */}
-                  <div className="flex flex-wrap gap-2">
+                  {/* Left: Dedicated Order Details Button, Track Button, and Individual Delete Button */}
+                  <div className="flex flex-wrap gap-2 items-center">
                     <button
                       type="button"
                       onClick={() => setSelectedOrderDetails(order)}
-                      className="flex items-center gap-1.5 border border-blue-500 text-blue-700 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                      className="flex items-center gap-1.5 border border-blue-500 text-blue-700 hover:bg-blue-50 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-colors"
                     >
                       <Eye className="w-4 h-4" />
-                      <span>অর্ডার ডিটেইলস দেখুন</span>
+                      <span className="text-sm font-medium text-black">অর্ডার ডিটেইলস দেখুন</span>
                     </button>
 
                     {onSelectTrackOrder && (
@@ -338,12 +450,22 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                           }
                           if (notify) notify(`📍 অর্ডার নম্বর #${order.id} ট্র্যাক করা হচ্ছে!`);
                         }}
-                        className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-xs"
+                        className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-all shadow-xs"
                       >
                         <Truck className="w-4 h-4 animate-bounce" />
-                        <span>লাইভ ট্র্যাক করুন</span>
+                        <span className="text-sm font-medium text-white">লাইভ ট্র্যাক করুন</span>
                       </button>
                     )}
+
+                    {/* Single Order Delete Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrders([order.id])}
+                      className="flex items-center gap-1.5 border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-rose-600" />
+                      <span className="text-sm font-medium text-black">ডিলেট করুন</span>
+                    </button>
                   </div>
 
                   {/* Right: Conditional Cancel Button (only before shipping) */}
@@ -352,21 +474,21 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                       type="button"
                       onClick={() => handleCancelOrder(order.id)}
                       disabled={cancellingOrderId === order.id}
-                      className="flex items-center gap-1.5 border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-colors disabled:opacity-50"
                     >
                       <XCircle className="w-4 h-4" />
-                      <span>{cancellingOrderId === order.id ? 'বাতিল হচ্ছে...' : 'অর্ডার বাতিল করুন'}</span>
+                      <span className="text-sm font-medium text-black">{cancellingOrderId === order.id ? 'বাতিল হচ্ছে...' : 'অর্ডার বাতিল করুন'}</span>
                     </button>
                   )}
 
                   {isShippedOrDelivered && (
-                    <span className="text-[11px] font-medium text-black bg-slate-100 px-3 py-1 rounded-lg">
+                    <span className="text-sm font-medium text-black bg-slate-100 px-3 py-1 rounded-lg">
                       🚚 শিপিং সম্পন্ন (ক্যানসেল করা সম্ভব নয়)
                     </span>
                   )}
 
                   {order.status === 'cancelled' && (
-                    <span className="text-[11px] font-medium text-rose-700 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200">
+                    <span className="text-sm font-medium text-rose-700 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200">
                       🚫 এই অর্ডারটি বাতিল করা হয়েছে
                     </span>
                   )}

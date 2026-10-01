@@ -2961,6 +2961,42 @@ app.get('/api/my-orders', authMiddleware, async (req, res) => {
   }
 });
 
+// Delete Selected User Orders API Endpoint
+app.post('/api/my-orders/delete', authMiddleware, async (req, res) => {
+  try {
+    const { orderIds } = req.body;
+    const userId = req.user?.id;
+    const userEmail = req.user?.email?.toLowerCase() || '';
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'No order IDs provided for deletion' });
+    }
+
+    if (isDbConfigured) {
+      await pool.query(
+        `DELETE FROM orders 
+         WHERE id = ANY($1) 
+           AND (user_id = $2 OR customer_id = $2 OR LOWER(customer_email) = $3)`,
+        [orderIds, userId, userEmail]
+      );
+    } else {
+      const db = await getDb();
+      db.orders = (db.orders || []).filter((o: any) => {
+        const oUserId = String(o.customerId || o.user_id || '');
+        const oEmail = (o.customerEmail || '').toLowerCase();
+        const matchesUser = (userId && oUserId === String(userId)) || (userEmail && oEmail === userEmail);
+        return !(orderIds.includes(o.id) && matchesUser);
+      });
+      saveDb(db);
+    }
+
+    res.json({ success: true, message: 'অর্ডার ইতিহাস সফলভাবে ডিলেট করা হয়েছে' });
+  } catch (error: any) {
+    console.error('Error deleting user orders:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 2. Public Single Order Tracking Endpoint
 app.get('/api/orders/track/:orderId', async (req, res) => {
   try {
