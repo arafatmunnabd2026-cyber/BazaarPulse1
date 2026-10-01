@@ -232,7 +232,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-1.5 mb-1">
-                          <h4 className="text-xs leading-snug line-clamp-2 font-medium text-black">
+                          <h4 className="text-sm leading-snug line-clamp-2 font-medium text-black">
                             {notif.title}
                           </h4>
                           <button
@@ -245,11 +245,11 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                           </button>
                         </div>
 
-                        <p className="text-[11.5px] font-medium text-black leading-relaxed line-clamp-3">
+                        <p className="text-sm font-medium text-black leading-relaxed line-clamp-3">
                           {notif.message}
                         </p>
 
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 text-[10px]">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 text-xs">
                           <div className="flex items-center gap-1.5">
                             {statusInfo && (
                               <span className={`px-1.5 py-0.5 rounded-md font-medium text-black border ${statusInfo.color}`}>
@@ -263,7 +263,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
                           {notif.orderId && (
                             <span className="text-black font-medium flex items-center gap-0.5 group-hover:underline">
-                              অর্ডার ট্র্যাক করুন <ExternalLink className="w-2.5 h-2.5" />
+                              অর্ডার ট্র্যাক করুন <ExternalLink className="w-3 h-3" />
                             </span>
                           )}
                         </div>

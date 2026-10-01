@@ -26,7 +26,7 @@ import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification } from './lib/notificationStore';
+import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -593,6 +593,7 @@ export default function App() {
   const handleLogout = () => {
     setAuthUser(null);
     setAuthToken('');
+    clearLoginWelcomeNotifications();
     localStorage.removeItem('bazaarpulse_user');
     localStorage.removeItem('bazaarpulse_token');
     localStorage.removeItem('bazaarpulse_saved_address');

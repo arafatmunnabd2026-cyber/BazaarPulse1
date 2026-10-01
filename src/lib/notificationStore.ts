@@ -233,3 +233,18 @@ export const addLoginWelcomeNotification = (userId?: string): OrderNotification 
   saveNotifications(updated);
   return newNotif;
 };
+
+/**
+ * Clear Login Welcome Notifications on Logout
+ */
+export const clearLoginWelcomeNotifications = (): void => {
+  try {
+    const current = getStoredNotifications();
+    const filtered = current.filter(n => !n.message.includes('BazaarPulse-এ আপনাকে স্বাগতম'));
+    if (filtered.length !== current.length) {
+      saveNotifications(filtered);
+    }
+  } catch (e) {
+    console.error('Error clearing login notifications:', e);
+  }
+};
