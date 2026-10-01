@@ -210,7 +210,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     >
                       {/* Icon */}
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
-                        notif.type === 'order_success' 
+                        notif.type === 'system' || notif.message.includes('স্বাগতম')
+                          ? 'bg-orange-100 text-[#f85606]'
+                          : notif.type === 'order_success' 
                           ? 'bg-emerald-100 text-emerald-700' 
                           : notif.status === 'delivered'
                           ? 'bg-emerald-100 text-emerald-700'
@@ -218,7 +220,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                           ? 'bg-rose-100 text-rose-700'
                           : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {notif.type === 'order_success' ? (
+                        {notif.type === 'system' || notif.message.includes('স্বাগতম') ? (
+                          <Sparkles className="w-4 h-4" />
+                        ) : notif.type === 'order_success' ? (
                           <Package className="w-4 h-4" />
                         ) : notif.status === 'delivered' ? (
                           <CheckCircle2 className="w-4 h-4" />
@@ -232,7 +236,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-1.5 mb-1">
-                          <h4 className="text-sm leading-snug line-clamp-2 font-medium text-black">
+                          <h4 className={`text-sm leading-snug line-clamp-2 ${notif.title === 'Welcome' || notif.type === 'system' ? 'font-black tracking-tight text-slate-950' : 'font-bold text-black'}`}>
                             {notif.title}
                           </h4>
                           <button

@@ -63,6 +63,14 @@ export const getStoredNotifications = (userId?: string): OrderNotification[] => 
     
     // Auto-prune items older than 12 hours
     const active = pruneExpiredNotifications(parsed);
+    
+    // Auto-update legacy title 'স্বাগতম (Welcome)' to 'Welcome'
+    active.forEach(n => {
+      if (n.title === 'স্বাগতম (Welcome)' || n.title === 'স্বাগতম') {
+        n.title = 'Welcome';
+      }
+    });
+
     if (active.length !== parsed.length) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(active));
     }
@@ -223,7 +231,7 @@ export const addLoginWelcomeNotification = (userId?: string): OrderNotification 
     id: 'notif-login-' + Date.now(),
     userId: userId || undefined,
     type: 'system',
-    title: 'স্বাগতম (Welcome)',
+    title: 'Welcome',
     message: 'BazaarPulse-এ আপনাকে স্বাগতম! আপনার অ্যাকাউন্ট সফলভাবে লগইন হয়েছে চলুন, আপনার পরবর্তী পছন্দের জিনিসটি খুঁজে বের করি',
     timestamp: Date.now(),
     read: false
