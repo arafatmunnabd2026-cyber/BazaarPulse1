@@ -76,9 +76,9 @@ export const getStoredNotifications = (userId?: string): OrderNotification[] => 
     }
 
     if (userId) {
-      return active.filter(n => !n.userId || n.userId === userId || n.userId === 'all');
+      return active.filter(n => n.userId === userId || n.userId === 'all');
     }
-    return active;
+    return active.filter(n => !n.userId || n.userId === 'all');
   } catch (e) {
     console.error('Error loading notifications:', e);
     return [];
@@ -126,14 +126,19 @@ export const addOrderSuccessNotification = (order: any, userId?: string): OrderN
 /**
  * Add an Order Status Update Notification (triggered by Admin)
  */
-export const addOrderStatusNotification = (orderId: string, newStatus: string, userId?: string): OrderNotification => {
-  const current = getStoredNotifications();
+export const addOrderStatusNotification = (orderId: string, newStatus: string, userId?: string): OrderNotification | null => {
+  if (!userId || userId === 'all') {
+    console.warn(`[Notification Security] Refusing to broadcast order status update for #${orderId} without explicit target userId.`);
+    return null;
+  }
+
+  const current = getStoredNotifications(userId);
   const statusInfo = getStatusDetails(newStatus);
   
   const newNotif: OrderNotification = {
     id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
     orderId: String(orderId),
-    userId: userId || undefined,
+    userId: String(userId),
     type: 'status_update',
     title: `📦 অর্ডার স্ট্যাটাস আপডেট: #${orderId}`,
     message: `আপনার অর্ডার #${orderId} এর বর্তমান অবস্থা পরিবর্তন হয়ে "${statusInfo.label}" হয়েছে।`,

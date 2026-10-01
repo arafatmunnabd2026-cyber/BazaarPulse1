@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   Bell, 
   CheckCheck, 
@@ -52,6 +53,56 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     const interval = setInterval(() => {
       setNotifications(getStoredNotifications(userId));
     }, 60000);
+
+    // Supabase Realtime Channel Subscription for User-Isolated Live Notifications
+    if (supabase && userId) {
+      const channel = supabase
+        .channel(`user-notifications-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications'
+          },
+          (payload: any) => {
+            const newNotif = payload.new as any;
+            if (!newNotif) return;
+            const targetUserId = String(newNotif.user_id || newNotif.userId || '');
+
+            // Strict User Isolation Check
+            if (targetUserId === String(userId) || targetUserId === 'all') {
+              setNotifications(prev => {
+                if (prev.some(n => n.id === newNotif.id)) return prev;
+                return [
+                  {
+                    id: newNotif.id,
+                    orderId: newNotif.order_id || newNotif.orderId,
+                    userId: targetUserId,
+                    type: newNotif.type || 'status_update',
+                    title: newNotif.title,
+                    message: newNotif.message,
+                    status: newNotif.status,
+                    timestamp: new Date(newNotif.created_at || newNotif.timestamp || Date.now()).getTime(),
+                    read: Boolean(newNotif.is_read || newNotif.read)
+                  },
+                  ...prev
+                ];
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
+        clearInterval(interval);
+        if (supabase) {
+          supabase.removeChannel(channel);
+        }
+      };
+    }
 
     return () => {
       window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
@@ -116,7 +167,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        className="relative p-2 text-gray-700 hover:text-[#f85606] transition-colors flex items-center justify-center rounded-xl hover:bg-orange-50/50 cursor-pointer"
+        className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
         aria-label="Notifications"
         title="নোটিফিকেশন (Notifications)"
       >

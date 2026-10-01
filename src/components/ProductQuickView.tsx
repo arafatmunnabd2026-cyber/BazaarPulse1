@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check } from 'lucide-react';
+import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper to normalize variation data whether it's an array, JSON string, or comma-separated string
@@ -26,6 +26,62 @@ const normalizeList = (val: any): string[] => {
   }
   return [];
 };
+
+const CATEGORY_SLUG_TO_ID: Record<string, string> = {
+  'electronics': 'c1',
+  'gadgets': 'c1',
+  'fashion': 'c2',
+  'fashion-apparel': 'c2',
+  'fashion & apparel': 'c2',
+  'home-living': 'c3',
+  'home': 'c3',
+  'home & living': 'c3',
+  'beauty': 'c4',
+  'beauty-health': 'c4',
+  'beauty & health': 'c4',
+  'health': 'c7',
+  'groceries': 'c5',
+  'sports': 'c6',
+  'sports-outdoors': 'c6',
+  'sports & outdoors': 'c6'
+};
+
+function normalizeCategoryId(catId?: string, catName?: string): string {
+  if (catId && /^c[1-7]$/.test(catId)) return catId;
+  const cleanId = (catId || '').toLowerCase().trim();
+  if (CATEGORY_SLUG_TO_ID[cleanId]) return CATEGORY_SLUG_TO_ID[cleanId];
+  const cleanName = (catName || '').toLowerCase().trim();
+  if (cleanName.includes('elect') || cleanName.includes('gadg')) return 'c1';
+  if (cleanName.includes('fash') || cleanName.includes('appar')) return 'c2';
+  if (cleanName.includes('home') || cleanName.includes('liv')) return 'c3';
+  if (cleanName.includes('beaut')) return 'c4';
+  if (cleanName.includes('health')) return 'c7';
+  if (cleanName.includes('groc')) return 'c5';
+  if (cleanName.includes('sport') || cleanName.includes('outdoor')) return 'c6';
+  return catId || 'c1';
+}
+
+function CategoryIcon({ categoryId, className = "w-4 h-4" }: { categoryId: string; className?: string }) {
+  const id = normalizeCategoryId(categoryId);
+  switch (id) {
+    case 'c1':
+      return <Cpu className={className} />;
+    case 'c2':
+      return <Shirt className={className} />;
+    case 'c3':
+      return <HomeIcon className={className} />;
+    case 'c4':
+      return <Sparkles className={className} />;
+    case 'c7':
+      return <Heart className={className} />;
+    case 'c5':
+      return <ShoppingBag className={className} />;
+    case 'c6':
+      return <Trophy className={className} />;
+    default:
+      return <Layers className={className} />;
+  }
+}
 
 export const ProductQuickView = ({ 
   selectedProduct, 
@@ -150,25 +206,130 @@ export const ProductQuickView = ({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] bg-white overflow-y-auto"
       >
-        {/* Sticky Header Stack */}
-        <div className="sticky top-0 z-[101] bg-white shadow-sm border-b border-gray-100">
+        {/* Identical Sticky Header and Categories Navigation Bar */}
+        <header className="bg-white shadow-xs hover:shadow-md transition-shadow duration-500 sticky top-0 z-[101] border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2"><ShoppingBag className="w-7 h-7 text-[#f85606]" /><span className="font-black text-2xl text-[#f85606] tracking-tighter">BazaarPulse</span></div>
-            <div className="flex-1 max-w-2xl"><div className="relative flex"><input type="text" placeholder="Search in BazaarPulse..." className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900" /><button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-colors"><Search className="w-5 h-5" /></button></div></div>
-            <div className="flex items-center gap-4"><ShoppingCart className="w-7 h-7 text-gray-700 cursor-pointer" /><button className="bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> AI Advisor</button><button onClick={handleCloseModal} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"><X className="w-6 h-6 text-gray-500" /></button></div>
-          </div>
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto border-t border-gray-100">
-            {displayCategories.map(cat => (
+            <div className="flex items-center gap-3">
               <button 
-                key={cat.id} 
-                onClick={() => handleCategoryClick(cat.id)}
-                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${selectedCategory === cat.id ? 'bg-[#f85606] text-white border-[#f85606]' : 'border-gray-200 text-gray-700 hover:border-[#f85606]'}`}
+                onClick={handleCloseModal}
+                className="p-2 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+                title="Back to Storefront"
               >
-                {cat.name}
+                <Menu className="w-6 h-6" />
               </button>
-            ))}
+              <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={handleCloseModal}>
+                <ShoppingBag className="w-7 h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+                <span className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</span>
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-2xl flex items-center">
+              <div className="w-full relative flex">
+                <input
+                  type="text"
+                  placeholder="Search in BazaarPulse..."
+                  disabled
+                  className="w-full bg-gray-50 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm text-gray-400 cursor-not-allowed select-none"
+                />
+                <button disabled className="bg-[#f85606]/80 text-white px-6 rounded-r-lg flex items-center justify-center cursor-not-allowed">
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Shopping Cart Button */}
+              <button
+                onClick={handleCloseModal}
+                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
+                title="Shopping Cart"
+              >
+                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+
+              {/* Notification Button */}
+              <button
+                onClick={handleCloseModal}
+                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={handleCloseModal}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">AI Advisor</span>
+              </button>
+
+              <button
+                onClick={handleCloseModal}
+                className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                  <User className="w-5 h-5 text-slate-400" />
+                </div>
+                <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left">
+                  <span className="text-sm font-semibold text-slate-600">Login / Sign Up</span>
+                </div>
+              </button>
+
+              {/* PDP Dismissal Button */}
+              <button 
+                onClick={handleCloseModal} 
+                className="p-2 bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-500 rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+                aria-label="Close details"
+                title="Close"
+              >
+                <X className="w-5.5 h-5.5" />
+              </button>
+            </div>
           </div>
-        </div>
+
+          {/* Categories Bar inside PDP */}
+          <div className="bg-white border-t border-gray-100 py-3 shadow-xs">
+            <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 overflow-x-auto py-2.5 pb-3.5 scrollbar-thin">
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCategoryClick('all');
+                }}
+                className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                  selectedCategory === 'all' 
+                    ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
+                    : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>All</span>
+              </a>
+              {displayCategories.filter((c: any) => c.id !== 'all').map((cat: any) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <a
+                    key={cat.id}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleCategoryClick(cat.id);
+                    }}
+                    className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+                      isSelected 
+                        ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
+                        : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
+                    }`}
+                  >
+                    <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
+                    <span>{cat.name}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </header>
 
         {/* Modal Content */}
         <div className="max-w-7xl mx-auto p-4 sm:p-8">
@@ -318,13 +479,13 @@ export const ProductQuickView = ({
               <div className="flex items-center gap-3 pt-2">
                 <button 
                   onClick={handleBuyNow} 
-                  className="flex-1 bg-[#f8981d] hover:bg-[#e68a1a] text-white font-bold py-3.5 rounded-lg shadow-sm transition-all active:scale-[0.98]"
+                  className="flex-1 bg-[#f8981d] hover:bg-[#e68a1a] text-white font-bold py-3.5 rounded-lg shadow-sm transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 cursor-pointer"
                 >
                   Buy Now
                 </button>
                 <button 
                   onClick={handleAddToCartClick} 
-                  className="flex-1 bg-[#007bff] hover:bg-[#0069d9] text-white font-bold py-3.5 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                  className="flex-1 bg-[#007bff] hover:bg-[#0069d9] text-white font-bold py-3.5 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 cursor-pointer"
                 >
                   <ShoppingCart className="w-5 h-5" /> Add to Cart
                 </button>
@@ -339,11 +500,11 @@ export const ProductQuickView = ({
                       onToggleWishlist(selectedProduct);
                     }
                   }} 
-                  className="inline-flex items-center gap-2 py-1.5 px-0.5 text-slate-700 hover:text-[#f85606] transition-colors group cursor-pointer select-none"
+                  className="inline-flex items-center gap-2.5 py-2.5 px-4 text-slate-700 hover:text-red-600 transition-all duration-300 ease-out border border-transparent hover:border-red-100 hover:bg-red-50/40 rounded-xl hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 group cursor-pointer select-none"
                   aria-label="Wishlist toggle"
                 >
-                  <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
-                  <span className={`text-sm font-semibold transition-colors ${isWishlisted ? 'text-red-600 font-bold' : 'text-slate-800 hover:underline'}`}>
+                  <Heart className={`w-5 h-5 transition-transform duration-300 ease-out group-hover:scale-115 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                  <span className={`text-sm font-semibold transition-colors ${isWishlisted ? 'text-red-600 font-bold' : 'text-slate-800'}`}>
                     {isWishlisted ? 'পছন্দের তালিকায় যুক্ত রয়েছে' : 'পছন্দের তালিকায় রাখুন'}
                   </span>
                 </button>

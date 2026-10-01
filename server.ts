@@ -76,11 +76,13 @@ export interface SavedDeliveryAddress {
 
 interface InitialData {
   users: any[];
+  user_logins?: any[];
   vendors: any[];
   products: any[];
   categories: any[];
   orders: any[];
   withdrawals: any[];
+  notifications?: any[];
   adminSettings: {
     globalCommissionRate: number; // percentage e.g. 10%
     platformName: string;
@@ -115,10 +117,11 @@ const defaultData: InitialData = {
   ],
   vendors: [],
   categories: [
-    { id: 'c1', name: 'Electronics', slug: 'electronics', icon: 'Laptop' },
+    { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
     { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
     { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
-    { id: 'c4', name: 'Beauty & Health', slug: 'beauty', icon: 'Sparkles' },
+    { id: 'c4', name: 'Beauty', slug: 'beauty', icon: 'Sparkles' },
+    { id: 'c7', name: 'Health', slug: 'health', icon: 'Heart' },
     { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
     { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
   ],
@@ -488,26 +491,29 @@ function parseJsonSafe(val: any, fallback: any = []): any {
 
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
   'electronics': 'c1',
+  'gadgets': 'c1',
   'fashion': 'c2',
   'fashion-apparel': 'c2',
   'home-living': 'c3',
   'home': 'c3',
   'beauty': 'c4',
   'beauty-health': 'c4',
+  'health': 'c7',
   'groceries': 'c5',
   'sports': 'c6',
   'sports-outdoors': 'c6'
 };
 
 function normalizeCategoryId(catId?: string, catName?: string): string {
-  if (catId && /^c[1-6]$/.test(catId)) return catId;
+  if (catId && /^c[1-7]$/.test(catId)) return catId;
   const cleanId = (catId || '').toLowerCase().trim();
   if (CATEGORY_SLUG_TO_ID[cleanId]) return CATEGORY_SLUG_TO_ID[cleanId];
   const cleanName = (catName || '').toLowerCase().trim();
-  if (cleanName.includes('elect')) return 'c1';
+  if (cleanName.includes('elect') || cleanName.includes('gadg')) return 'c1';
   if (cleanName.includes('fash') || cleanName.includes('appar')) return 'c2';
   if (cleanName.includes('home') || cleanName.includes('liv')) return 'c3';
-  if (cleanName.includes('beaut') || cleanName.includes('health')) return 'c4';
+  if (cleanName.includes('beaut')) return 'c4';
+  if (cleanName.includes('health')) return 'c7';
   if (cleanName.includes('groc')) return 'c5';
   if (cleanName.includes('sport') || cleanName.includes('outdoor')) return 'c6';
   return catId || 'c1';
@@ -1023,7 +1029,7 @@ app.post('/api/auth/token', async (req, res) => {
       const isPending = vendorId === 'v3' || status === 'pending';
       payload = {
         id: vendorId === 'v3' ? 'u3' : 'u2',
-        name: vendorId === 'v3' ? 'Gadget Galaxy' : 'TechHaven Electronics',
+        name: vendorId === 'v3' ? 'Gadget Galaxy' : 'TechHaven Gadgets',
         email: vendorId === 'v3' ? 'vendor3@gadgetgalaxy.com' : 'vendor1@techhaven.com',
         role: 'vendor',
         status: isPending ? 'pending' : (status || 'approved'),
@@ -1107,7 +1113,7 @@ app.post('/api/auth/login', async (req, res) => {
           if (cleanEmail === 'vendor1@techhaven.com' || role === 'vendor') {
             const ins = await pool.query(
               'INSERT INTO users (id, name, email, role, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-              ['u2', 'TechHaven Electronics', 'vendor1@techhaven.com', 'vendor', 'approved']
+              ['u2', 'TechHaven Gadgets', 'vendor1@techhaven.com', 'vendor', 'approved']
             );
             targetUser = ins.rows[0];
           } else if (cleanEmail === 'vendor3@gadgetgalaxy.com') {
@@ -1700,9 +1706,67 @@ app.post('/api/auth/test-rbac', (req, res) => {
 app.get('/api/platform/data', async (req, res) => {
   try {
     const db = await getDb();
-    res.json(db);
+    const { orders, users, user_logins, ...publicData } = db || {};
+    res.json({
+      ...publicData,
+      products: publicData.products || [],
+      categories: publicData.categories || [],
+      vendors: (publicData.vendors || []).map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        shopName: v.shopName || v.name,
+        logo: v.logo,
+        rating: v.rating,
+        status: v.status
+      })),
+      orders: [], // Sanitized: Public endpoint never leaks global orders. User orders are fetched via /api/my-orders, admin via /api/admin/orders.
+      adminSettings: publicData.adminSettings || { globalCommissionRate: 10, platformName: 'BazaarPulse' }
+    });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error fetching platform data:', error);
+    res.json({
+      success: true,
+      products: [],
+      categories: [],
+      vendors: [],
+      orders: [],
+      adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse' }
+    });
+  }
+});
+
+// Admin Get All Orders Endpoint
+app.get('/api/admin/orders', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const dbRes = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+      const orders = dbRes.rows.map(o => ({
+        id: o.id,
+        customerId: o.customer_id || o.user_id,
+        user_id: o.user_id || o.customer_id,
+        customerName: o.customer_name || o.customerName || '',
+        customerEmail: o.customer_email || o.customerEmail || '',
+        customerPhone: o.customer_phone || o.phone || '',
+        phone: o.phone || o.customer_phone || '',
+        shippingAddress: o.shipping_address || o.address || '',
+        address: o.address || o.shipping_address || '',
+        items: parseJsonSafe(o.items, []),
+        subtotal: Number(o.subtotal || o.total_amount),
+        deliveryFee: Number(o.delivery_fee || 80),
+        totalAmount: Number(o.total_amount),
+        paymentMethod: o.payment_method || 'Cash on Delivery',
+        paymentStatus: o.payment_status || 'paid',
+        status: o.status || 'pending',
+        createdAt: o.created_at || new Date().toISOString()
+      }));
+      return res.json({ success: true, orders });
+    } else {
+      const db = await getDb();
+      return res.json({ success: true, orders: db.orders || [] });
+    }
+  } catch (error: any) {
+    console.error('Error fetching admin orders:', error);
+    res.status(500).json({ success: false, error: error.message, orders: [] });
   }
 });
 
@@ -2447,6 +2511,48 @@ app.patch('/api/withdrawals/:id/status', authMiddleware, verifyAdmin, handleWith
 // 2. VENDOR PROTECTED ROUTES (/api/vendor/*)
 // ==========================================
 
+// Vendor Isolated Orders Fetching
+app.get('/api/vendor/orders', authMiddleware, verifyVendor, async (req, res) => {
+  try {
+    const vendorId = req.user?.vendorId || req.user?.id || '';
+    if (isDbConfigured) {
+      const dbRes = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+      const filtered = dbRes.rows.filter(o => {
+        const items = parseJsonSafe(o.items, []);
+        return items.some((i: any) => String(i.vendorId) === String(vendorId));
+      }).map(o => ({
+        id: o.id,
+        customerId: o.customer_id || o.user_id,
+        user_id: o.user_id || o.customer_id,
+        customerName: o.customer_name || o.customerName || '',
+        customerEmail: o.customer_email || o.customerEmail || '',
+        customerPhone: o.customer_phone || o.phone || '',
+        phone: o.phone || o.customer_phone || '',
+        shippingAddress: o.shipping_address || o.address || '',
+        address: o.address || o.shipping_address || '',
+        items: parseJsonSafe(o.items, []),
+        subtotal: Number(o.subtotal || o.total_amount),
+        deliveryFee: Number(o.delivery_fee || 80),
+        totalAmount: Number(o.total_amount),
+        paymentMethod: o.payment_method || 'Cash on Delivery',
+        paymentStatus: o.payment_status || 'paid',
+        status: o.status || 'pending',
+        createdAt: o.created_at || new Date().toISOString()
+      }));
+      return res.json({ success: true, orders: filtered });
+    } else {
+      const db = await getDb();
+      const filtered = (db.orders || []).filter((o: any) => 
+        (o.items || []).some((i: any) => String(i.vendorId) === String(vendorId))
+      );
+      return res.json({ success: true, orders: filtered });
+    }
+  } catch (error: any) {
+    console.error('Error fetching vendor orders:', error);
+    res.status(500).json({ success: false, error: error.message, orders: [] });
+  }
+});
+
 // Dedicated Vendor product creation
 app.post('/api/vendor/products', authMiddleware, verifyVendor, async (req, res) => {
   try {
@@ -2993,6 +3099,98 @@ app.post('/api/my-orders/delete', authMiddleware, async (req, res) => {
     res.json({ success: true, message: 'অর্ডার ইতিহাস সফলভাবে ডিলেট করা হয়েছে' });
   } catch (error: any) {
     console.error('Error deleting user orders:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// ISOLATED USER NOTIFICATIONS ENDPOINTS
+// ==========================================
+
+// 1. Fetch Isolated User Notifications Endpoint
+app.get('/api/notifications', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userEmail = req.user?.email?.toLowerCase() || '';
+
+    if (!userId && !userEmail) {
+      return res.status(401).json({ success: false, error: 'Unauthorized user session', notifications: [] });
+    }
+
+    let notifications: any[] = [];
+
+    if (isDbConfigured) {
+      const dbRes = await pool.query(
+        `SELECT * FROM notifications 
+         WHERE user_id = $1 
+            OR LOWER(user_email) = $2 
+            OR user_id = 'all'
+         ORDER BY created_at DESC LIMIT 50`,
+        [userId, userEmail]
+      ).catch(() => ({ rows: [] }));
+      
+      notifications = dbRes.rows.map((n: any) => ({
+        id: n.id,
+        orderId: n.order_id || n.orderId,
+        userId: n.user_id || n.userId,
+        type: n.type || 'status_update',
+        title: n.title,
+        message: n.message,
+        status: n.status,
+        timestamp: new Date(n.created_at || n.timestamp || Date.now()).getTime(),
+        read: Boolean(n.is_read || n.read)
+      }));
+    } else {
+      const db = await getDb();
+      notifications = (db.notifications || []).filter((n: any) => {
+        const nUserId = String(n.userId || n.user_id || '');
+        const nEmail = (n.userEmail || n.user_email || '').toLowerCase();
+        return (
+          (userId && nUserId === String(userId)) ||
+          (userEmail && nEmail && nEmail === userEmail) ||
+          nUserId === 'all'
+        );
+      });
+    }
+
+    res.json({ success: true, notifications });
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, error: error.message, notifications: [] });
+  }
+});
+
+// 2. Mark Notification as Read Endpoint
+app.post('/api/notifications/read', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { notificationId } = req.body;
+
+    if (isDbConfigured) {
+      if (notificationId) {
+        await pool.query(
+          'UPDATE notifications SET is_read = TRUE WHERE id = $1 AND (user_id = $2 OR user_id = \'all\')',
+          [notificationId, userId]
+        ).catch(() => {});
+      } else {
+        await pool.query(
+          'UPDATE notifications SET is_read = TRUE WHERE user_id = $1 OR user_id = \'all\'',
+          [userId]
+        ).catch(() => {});
+      }
+    } else {
+      const db = await getDb();
+      if (!db.notifications) db.notifications = [];
+      db.notifications.forEach((n: any) => {
+        if ((!notificationId || n.id === notificationId) && (n.userId === userId || n.userId === 'all')) {
+          n.read = true;
+        }
+      });
+      saveDb(db);
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -3653,8 +3851,33 @@ app.patch('/api/cart/select', authMiddleware, async (req, res) => {
   }
 });
 
-// Vite middleware integration for development vs static serving for production / Render
-const isDev = process.env.NODE_ENV === 'development' && !process.env.RENDER;
+// 5. Checkout API Route (Order Placement)
+app.post('/api/checkout', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id || 'guest';
+    const { shippingAddress, totalAmount } = req.body;
+
+    if (!shippingAddress || !totalAmount) {
+      return res.status(400).json({ success: false, message: 'Missing checkout details' });
+    }
+
+    const { data, error } = await supabase.rpc('place_order', {
+      p_user_id: userId,
+      p_shipping_address: shippingAddress,
+      p_total: totalAmount
+    });
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, orderId: data });
+  } catch (err: any) {
+    console.error('Checkout Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Vite middleware integration for development vs static serving for production
+const isDev = process.env.NODE_ENV !== 'production' && !process.env.RENDER;
 
 if (isDev) {
   const { createServer: createViteServer } = await import('vite');
@@ -3682,34 +3905,8 @@ if (isDev) {
   });
 }
 
-// 5. Checkout API Route (Order Placement)
-app.post('/api/checkout', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user?.id || 'guest';
-    const { shippingAddress, totalAmount } = req.body;
-
-    if (!shippingAddress || !totalAmount) {
-      return res.status(400).json({ success: false, message: 'Missing checkout details' });
-    }
-
-    // Supabase RPC ফাংশন কল করা (যা আমরা SQL এ লিখেছি)
-    const { data, error } = await supabase.rpc('place_order', {
-      p_user_id: userId,
-      p_shipping_address: shippingAddress,
-      p_total: totalAmount
-    });
-
-    if (error) throw error;
-
-    res.status(200).json({ success: true, orderId: data });
-  } catch (err: any) {
-    console.error('Checkout Error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 6. Proper error handling and server startup listening on process.env.PORT or port 5000
-const PORT = process.env.PORT || 5000;
+// 6. Proper error handling and server startup listening on process.env.PORT or port 3000
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });

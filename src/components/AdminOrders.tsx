@@ -39,13 +39,16 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('/api/platform/data');
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+      const res = await fetch('/api/admin/orders', {
+        headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+      });
       const data = await res.json();
       if (data.orders) {
         setOrders(data.orders);
       }
     } catch (err) {
-      console.error('Fetch orders error:', err);
+      console.error('Fetch admin orders error:', err);
     } finally {
       setLoading(false);
     }
@@ -96,6 +99,9 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
+      const targetOrder = orders.find(o => String(o.id) === String(orderId));
+      const fallbackUserId = (targetOrder as any)?.customerId || (targetOrder as any)?.user_id || (targetOrder as any)?.userId;
+
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 
@@ -106,8 +112,11 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
       });
       const json = await res.json();
       if (json.success) {
-        addOrderStatusNotification(orderId, newStatus);
-        window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status: newStatus } }));
+        const orderOwnerId = json.order?.user_id || json.order?.customerId || fallbackUserId;
+        if (orderOwnerId) {
+          addOrderStatusNotification(orderId, newStatus, orderOwnerId);
+        }
+        window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status: newStatus, userId: orderOwnerId } }));
         notify(`📦 Order ${orderId} updated to ${newStatus}`);
         fetchOrders();
       } else {

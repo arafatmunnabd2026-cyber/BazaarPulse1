@@ -37,8 +37,28 @@ export default function VendorDashboard({
       balance: 0, 
       totalSales: 0 
     } : null);
+  const [vendorOrdersState, setVendorOrdersState] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchVendorOrders = async () => {
+      try {
+        const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+        const res = await fetch('/api/vendor/orders', {
+          headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+        });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.orders)) {
+          setVendorOrdersState(json.orders);
+        }
+      } catch (e) {}
+    };
+    fetchVendorOrders();
+    const interval = setInterval(fetchVendorOrders, 5000);
+    return () => clearInterval(interval);
+  }, [authToken]);
+
   const vendorProducts = (data.products || []).filter((p: any) => p.vendorId === currentVendor?.id);
-  const vendorOrders = (data.orders || []).filter((o: any) => (o.items || []).some((i: any) => i.vendorId === currentVendor?.id));
+  const vendorOrders = vendorOrdersState.length > 0 ? vendorOrdersState : (data.orders || []).filter((o: any) => (o.items || []).some((i: any) => String(i.vendorId) === String(currentVendor?.id)));
   const vendorWithdrawals = (data.withdrawals || []).filter((w: any) => w.vendorId === currentVendor?.id);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payouts' | 'settings'>('overview');
@@ -297,6 +317,9 @@ export default function VendorDashboard({
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
+      const targetOrder = (vendorOrders || []).find((o: any) => String(o.id) === String(orderId));
+      const fallbackUserId = targetOrder?.customerId || targetOrder?.user_id || (targetOrder as any)?.userId;
+
       const res = await fetch(`/api/vendor/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 
@@ -310,8 +333,11 @@ export default function VendorDashboard({
         notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
         return;
       }
-      addOrderStatusNotification(orderId, status);
-      window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status } }));
+      const orderOwnerId = json.order?.user_id || json.order?.customerId || fallbackUserId;
+      if (orderOwnerId) {
+        addOrderStatusNotification(orderId, status, orderOwnerId);
+      }
+      window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId, status, userId: orderOwnerId } }));
       notify('Order status updated');
       refreshData();
     } catch (err) {

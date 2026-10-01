@@ -123,17 +123,6 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
       
       if (data.success && Array.isArray(data.orders)) {
         serverOrders = data.orders;
-      } else {
-        // Fallback: If token endpoint fails, fetch platform data and strictly match userId
-        const altRes = await fetch('/api/platform/data');
-        const altData = await altRes.json();
-        if (Array.isArray(altData.orders)) {
-          serverOrders = altData.orders.filter((o: any) => {
-            if (!userId) return false;
-            const oUserId = String(o.customerId || o.user_id || '');
-            return oUserId === String(userId);
-          });
-        }
       }
 
       // 2. Read client-side saved orders for this specific user
