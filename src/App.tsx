@@ -5154,7 +5154,17 @@ function AuthModal({
   const [custEmail, setCustEmail] = useState(authUser?.email || 'arafatmunna.bd2026@gmail.com');
   const [custPhone, setCustPhone] = useState(authUser?.phone || '');
 
-  const handleCustomerGoogleSubmit = (e: React.FormEvent) => {
+  // Customer Google Redirect Flow
+  const handleGoogleRedirectLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1031776523831-nat48406vp252n1jj84g8v1qlr578atj.apps.googleusercontent.com';
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent('openid email profile')}&prompt=select_account`;
+    
+    notify('🔄 গুগলের অফিসিয়াল লগইন পেজে নিয়ে যাওয়া হচ্ছে...');
+    window.location.href = googleAuthUrl;
+  };
+
+  const handleCustomerGoogleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!custEmail.trim() || !custEmail.includes('@')) {
       notify('⚠️ অনুগ্রহ করে একটি সঠিক জিমেইল বা ইমেইল অ্যাড্রেস লিখুন');
@@ -5162,18 +5172,69 @@ function AuthModal({
     }
     const cleanEmail = custEmail.trim().toLowerCase();
     const cleanName = custName.trim() || cleanEmail.split('@')[0];
-    const userPayload = {
-      id: 'u_' + Math.abs(cleanEmail.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
-      name: cleanName,
-      email: cleanEmail,
-      phone: custPhone.trim(),
-      role: 'customer',
-      status: 'active',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`
-    };
-    onLoginUser(userPayload, 'google_token_' + Date.now());
-    notify(`🎉 "${cleanName}" (${cleanEmail}) হিসেবে সফলভাবে লগইন সম্পন্ন হয়েছে!`);
-    onClose();
+    const userRole = (cleanEmail === 'arafatmunna14620022@gmail.com') ? 'admin' : 'customer';
+
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/auth/customer-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cleanName,
+          email: cleanEmail,
+          phone: custPhone.trim(),
+          role: userRole
+        })
+      });
+      const data = await res.json();
+      
+      const finalUser = (data.success && data.user) ? data.user : {
+        id: 'u_' + Math.abs(cleanEmail.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
+        name: cleanName,
+        email: cleanEmail,
+        phone: custPhone.trim(),
+        role: userRole,
+        status: 'active',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`
+      };
+
+      if (supabase) {
+        try {
+          await supabase.from('users').upsert([{
+            id: finalUser.id,
+            name: finalUser.name,
+            email: finalUser.email,
+            role: finalUser.role,
+            status: 'active',
+            avatar: finalUser.avatar
+          }], { onConflict: 'email' });
+        } catch (supaErr) {
+          console.warn('Supabase customer sync notice:', supaErr);
+        }
+      }
+
+      onLoginUser(finalUser, data.token || ('google_token_' + Date.now()));
+      notify(`🎉 "${cleanName}" (${cleanEmail}) হিসেবে সফলভাবে ডাটাবেজে রেকর্ড সহ লগইন সম্পন্ন হয়েছে!`);
+      onClose();
+    } catch (err: any) {
+      console.error('Customer sync error:', err);
+      // Fallback client login if network fail
+      const fallbackUser = {
+        id: 'u_' + Math.abs(cleanEmail.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
+        name: cleanName,
+        email: cleanEmail,
+        phone: custPhone.trim(),
+        role: userRole,
+        status: 'active',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`
+      };
+      onLoginUser(fallbackUser, 'google_token_' + Date.now());
+      notify(`🎉 "${cleanName}" (${cleanEmail}) হিসেবে অফলাইন মোডে লগইন সম্পন্ন হয়েছে!`);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSellerLoginSubmit = async (e: React.FormEvent) => {
@@ -5401,58 +5462,35 @@ function AuthModal({
           )}
 
           {authView === 'signin' && (
-            <div className="space-y-4">
-              {/* Google Sign In Card matching reference image */}
-              <div 
-                onClick={() => {
-                  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1031776523831-nat48406vp252n1jj84g8v1qlr578atj.apps.googleusercontent.com';
-                  const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`;
-                  const scope = encodeURIComponent('openid email profile');
-                  const targetEmail = custEmail.trim() || authUser?.email || 'arafatmunna.bd2026@gmail.com';
-                  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&prompt=select_account&state=${encodeURIComponent(targetEmail)}`;
-                  
-                  notify(`🔗 গুগলের অফিসিয়াল লগইন পেজে নিয়ে যাওয়া হচ্ছে (${targetEmail})...`);
-                  window.location.href = googleAuthUrl;
-                }}
-                className="bg-[#181d24] border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md cursor-pointer hover:bg-[#202732] transition-colors"
+            <div className="space-y-4 text-left">
+              {/* Official Google OAuth 2.0 Redirect Button */}
+              <button
+                type="button"
+                onClick={handleGoogleRedirectLogin}
+                className="w-full bg-[#181d24] hover:bg-[#202630] border border-slate-700/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xl hover:border-orange-500/50 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
-                    {authUser?.avatar ? (
-                      <img src={authUser.avatar} alt="" className="w-full h-full object-cover" />
-                    ) : authUser?.name ? (
-                      <span>{authUser.name[0]}</span>
-                    ) : (
-                      <User className="w-5 h-5 text-white" />
-                    )}
+                  <div className="shrink-0 flex items-center justify-center w-11 h-11 bg-white rounded-full p-2.5 shadow-md group-hover:scale-105 transition-transform">
+                    <svg className="w-full h-full" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.18v3.15C3.17 21.32 7.23 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.18C.43 8.08 0 9.79 0 12s.43 3.92 1.18 5.42l4.1-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.18 6.58l4.1 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
                   </div>
                   <div className="min-w-0 text-left flex-1">
-                    <p className={`${authUser ? 'text-xs font-bold' : 'text-sm sm:text-base font-black'} text-white truncate`}>
-                      {authUser ? `Sign in as ${authUser.name}` : 'Continue with Google'}
+                    <p className="text-base font-black text-white group-hover:text-orange-400 transition-colors flex items-center gap-1.5">
+                      <span>Continue with Google</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                      {authUser?.email || 'Fast & secure authentication with Google'}
+                    <p className="text-xs text-slate-400 truncate mt-0.5">
+                      অফিসিয়াল গুগল লগইন পেজে নিয়ে যাওয়া হবে
                     </p>
                   </div>
                 </div>
-
-                <div className="shrink-0 relative flex items-center justify-center w-10 h-10 bg-white rounded-full p-2 shadow-sm">
-                  <svg className="w-6 h-6" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.18v3.15C3.17 21.32 7.23 24 12 24z"/>
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.18C.43 8.08 0 9.79 0 12s.43 3.92 1.18 5.42l4.1-3.15z"/>
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.18 6.58l4.1 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                  </svg>
-                  <div className="absolute inset-0 opacity-0 cursor-pointer overflow-hidden z-20 pointer-events-auto">
-                    <GoogleLogin 
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => {}}
-                      type="icon"
-                      shape="circle"
-                    />
-                  </div>
+                <div className="shrink-0 text-slate-400 group-hover:text-white transition-colors">
+                  <ArrowRight className="w-5 h-5" />
                 </div>
-              </div>
+              </button>
 
               {/* Divider with OR SELLER ZONE */}
               <div className="flex items-center gap-3 my-3">

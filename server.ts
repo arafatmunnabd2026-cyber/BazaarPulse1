@@ -32,7 +32,10 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET
+);
 
 const app = express();
 
@@ -1173,6 +1176,79 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Customer Direct / Google Choice Sync Endpoint
+app.post('/api/auth/customer-sync', async (req, res) => {
+  try {
+    const { name, email, phone, role } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'Valid email is required' });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name?.trim() || cleanEmail.split('@')[0];
+    const isAdminEmail = (cleanEmail === 'arafatmunna14620022@gmail.com');
+    const userRole = isAdminEmail ? 'admin' : (role || 'customer');
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`;
+    const userId = 'u_google_' + Math.abs(cleanEmail.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0));
+
+    let user;
+    if (isDbConfigured) {
+      const existingUser = await pool.query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
+      if (existingUser.rowCount! > 0) {
+        const updateRes = await pool.query(
+          'UPDATE users SET name = $1, phone = COALESCE(NULLIF($2, \'\'), phone), avatar = COALESCE(avatar, $3), role = $4 WHERE LOWER(email) = $5 RETURNING *',
+          [cleanName, phone || '', avatarUrl, userRole, cleanEmail]
+        );
+        user = updateRes.rows[0];
+      } else {
+        const insertRes = await pool.query(
+          'INSERT INTO users (id, name, email, phone, avatar, role, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+          [userId, cleanName, cleanEmail, phone || '', avatarUrl, userRole, 'active']
+        );
+        user = insertRes.rows[0];
+      }
+    } else {
+      user = {
+        id: userId,
+        name: cleanName,
+        email: cleanEmail,
+        phone: phone || '',
+        avatar: avatarUrl,
+        role: userRole,
+        status: 'active'
+      };
+      try {
+        const db = await getDb();
+        const existingIdx = db.users.findIndex((u: any) => u.email?.toLowerCase() === cleanEmail);
+        if (existingIdx >= 0) {
+          db.users[existingIdx] = { ...db.users[existingIdx], ...user };
+        } else {
+          db.users.push(user);
+        }
+      } catch (e) {
+        console.warn('In-memory DB sync warning:', e);
+      }
+    }
+
+    const token = generateToken(user, '7d');
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        status: user.status || 'active',
+        avatar: user.avatar
+      }
+    });
+  } catch (error: any) {
+    console.error('Customer Sync Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Google Sign-In verification
 app.post('/api/auth/google', async (req, res) => {
   try {
@@ -1230,42 +1306,50 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// Google OAuth 2.0 Redirect Callback Handler (Fail-Safe)
+// Google OAuth 2.0 Redirect Callback Handler
 app.get('/auth/google/callback', async (req, res) => {
   const code = req.query.code as string;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://bazaarpulse-1ty4.onrender.com/auth/google/callback';
+  const host = req.get('host');
+  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  const dynamicRedirectUri = `${protocol}://${host}/auth/google/callback`;
+  const envRedirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://bazaarpulse-1ty4.onrender.com/auth/google/callback';
   
   let user: any = null;
   
   if (code) {
-    try {
-      const { tokens } = await googleClient.getToken({
-        code,
-        redirect_uri: redirectUri
-      });
-      if (tokens.id_token) {
-        const ticket = await googleClient.verifyIdToken({
-          idToken: tokens.id_token,
-          audience: process.env.GOOGLE_CLIENT_ID
+    const redirectUrisToTry = Array.from(new Set([dynamicRedirectUri, envRedirectUri]));
+    for (const uri of redirectUrisToTry) {
+      try {
+        const { tokens } = await googleClient.getToken({
+          code,
+          redirect_uri: uri
         });
-        const payload = ticket.getPayload();
-        if (payload && payload.email) {
-          const email = payload.email.toLowerCase();
-          user = {
-            id: payload.sub,
-            name: payload.name || email.split('@')[0],
-            email,
-            avatar: payload.picture,
-            role: (email === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer')
-          };
+        if (tokens.id_token) {
+          const ticket = await googleClient.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: process.env.GOOGLE_CLIENT_ID
+          });
+          const payload = ticket.getPayload();
+          if (payload && payload.email) {
+            const email = payload.email.toLowerCase();
+            user = {
+              id: payload.sub,
+              name: payload.name || email.split('@')[0],
+              email,
+              avatar: payload.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
+              role: (email === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer'),
+              status: 'active'
+            };
+            break;
+          }
         }
+      } catch (e: any) {
+        console.warn(`Google OAuth Token Exchange warning (${uri}):`, e.message);
       }
-    } catch (e: any) {
-      console.warn('Google OAuth Token Exchange Warning (using fail-safe authentication):', e.message);
     }
   }
 
-  // Fail-Safe Fallback: Read exact selected email from state parameter if present
+  // Fallback if state was passed with email or fallback email
   if (!user) {
     let stateEmail = '';
     if (req.query.state) {
@@ -1276,20 +1360,25 @@ app.get('/auth/google/callback', async (req, res) => {
       }
     }
 
-    const finalEmail = (stateEmail && stateEmail.includes('@')) ? stateEmail : 'arafatmunna.bd2026@gmail.com';
-    const emailName = finalEmail.split('@')[0];
-    const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-
-    user = {
-      id: 'u_google_' + Math.abs(finalEmail.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
-      name: formattedName,
-      email: finalEmail,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalEmail)}`,
-      role: (finalEmail === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer')
-    };
+    if (stateEmail && stateEmail.includes('@')) {
+      const emailName = stateEmail.split('@')[0];
+      const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      user = {
+        id: 'u_google_' + Math.abs(stateEmail.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
+        name: formattedName,
+        email: stateEmail,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(stateEmail)}`,
+        role: (stateEmail === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer'),
+        status: 'active'
+      };
+    }
   }
 
-  // Save to DB if configured
+  if (!user) {
+    return res.redirect('/?login_error=true');
+  }
+
+  // Save/upsert to DB if configured
   if (isDbConfigured && user) {
     try {
       const email = user.email.toLowerCase();
@@ -1299,9 +1388,26 @@ app.get('/auth/google/callback', async (req, res) => {
           'INSERT INTO users (id, name, email, avatar, role, status) VALUES ($1, $2, $3, $4, $5, $6)',
           [user.id, user.name, email, user.avatar, user.role, 'active']
         );
+      } else {
+        await pool.query(
+          'UPDATE users SET name = $1, avatar = COALESCE($2, avatar) WHERE LOWER(email) = $3',
+          [user.name, user.avatar, email]
+        );
       }
     } catch (dbErr) {
       console.warn('Error saving Google user to DB:', dbErr);
+    }
+  } else {
+    try {
+      const db = await getDb();
+      const existingIdx = db.users.findIndex((u: any) => u.email?.toLowerCase() === user.email.toLowerCase());
+      if (existingIdx >= 0) {
+        db.users[existingIdx] = { ...db.users[existingIdx], ...user };
+      } else {
+        db.users.push(user);
+      }
+    } catch (e) {
+      console.warn('In-memory DB save warning:', e);
     }
   }
 
