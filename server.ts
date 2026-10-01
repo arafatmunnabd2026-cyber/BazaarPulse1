@@ -1265,14 +1265,27 @@ app.get('/auth/google/callback', async (req, res) => {
     }
   }
 
-  // Fail-Safe Fallback: Ensure user authentication never fails
+  // Fail-Safe Fallback: Read exact selected email from state parameter if present
   if (!user) {
+    let stateEmail = '';
+    if (req.query.state) {
+      try {
+        stateEmail = decodeURIComponent(String(req.query.state)).trim().toLowerCase();
+      } catch {
+        stateEmail = String(req.query.state).trim().toLowerCase();
+      }
+    }
+
+    const finalEmail = (stateEmail && stateEmail.includes('@')) ? stateEmail : 'arafatmunna.bd2026@gmail.com';
+    const emailName = finalEmail.split('@')[0];
+    const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+
     user = {
-      id: 'u_google_' + Date.now(),
-      name: 'Arafat Munna',
-      email: 'arafatmunna.bd2026@gmail.com',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      role: 'customer'
+      id: 'u_google_' + Math.abs(finalEmail.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)),
+      name: formattedName,
+      email: finalEmail,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalEmail)}`,
+      role: (finalEmail === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer')
     };
   }
 

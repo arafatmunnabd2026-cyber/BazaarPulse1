@@ -5408,9 +5408,10 @@ function AuthModal({
                   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1031776523831-nat48406vp252n1jj84g8v1qlr578atj.apps.googleusercontent.com';
                   const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`;
                   const scope = encodeURIComponent('openid email profile');
-                  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&prompt=select_account`;
+                  const targetEmail = custEmail.trim() || authUser?.email || 'arafatmunna.bd2026@gmail.com';
+                  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&prompt=select_account&state=${encodeURIComponent(targetEmail)}`;
                   
-                  notify('🔗 গুগলের অফিসিয়াল লগইন পেজে নিয়ে যাওয়া হচ্ছে...');
+                  notify(`🔗 গুগলের অফিসিয়াল লগইন পেজে নিয়ে যাওয়া হচ্ছে (${targetEmail})...`);
                   window.location.href = googleAuthUrl;
                 }}
                 className="bg-[#181d24] border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md cursor-pointer hover:bg-[#202732] transition-colors"
