@@ -1885,7 +1885,7 @@ function CustomerView({
             </button>
             <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1 cursor-pointer" onClick={() => navigateTo('/')}>
               <ShoppingBag className="w-7 h-7" />
-              <span>BazaarPulse</span>
+              <h1 className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
             </div>
           </div>
 
@@ -2151,22 +2151,6 @@ function CustomerView({
         </div>
       </div>
 
-      {/* SEO Optimized Main Header & Content Block */}
-      <section className="max-w-7xl mx-auto px-4 mt-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h1 className="text-3xl font-bold mb-4 text-slate-900">BazaarPulse: Ultimate Multi-Vendor Marketplace</h1>
-        <p className="text-slate-600 text-sm leading-relaxed mb-4">
-          Welcome to <strong>BazaarPulse</strong>, the leading full-stack multi-vendor e-commerce platform in Bangladesh. We connect thousands of verified sellers and independent vendors with millions of online shoppers, offering an unparalleled catalog of products ranging from cutting-edge electronics to trendy apparel and daily essentials. Whether you are browsing our <a href="/category/electronics" onClick={(e) => { e.preventDefault(); handleCategoryChange('c1'); }} className="text-orange-600 font-bold hover:underline">Electronics</a> department, exploring the latest styles in <a href="/category/fashion" onClick={(e) => { e.preventDefault(); handleCategoryChange('c2'); }} className="text-orange-600 font-bold hover:underline">Fashion & Apparel</a>, or upgrading your living space with items from <a href="/category/home-living" onClick={(e) => { e.preventDefault(); handleCategoryChange('c3'); }} className="text-orange-600 font-bold hover:underline">Home & Living</a>, BazaarPulse guarantees authenticity, competitive pricing, and lightning-fast delivery.
-        </p>
-        <p className="text-slate-600 text-sm leading-relaxed mb-4">
-          Manage your shopping journey effortlessly using our integrated user tools. Review your selected items in the <a href="/cart" onClick={(e) => { e.preventDefault(); handleOpenCart(); }} className="text-orange-600 font-bold hover:underline">Cart</a>, curate your favorite items in your <a href="/wishlist" onClick={(e) => { e.preventDefault(); handleOpenWishlist(); }} className="text-orange-600 font-bold hover:underline">Wishlist</a>, and monitor your recent purchases in real time through <a href="/orders" onClick={(e) => { e.preventDefault(); handleOpenMyOrders(); }} className="text-orange-600 font-bold hover:underline">Orders</a>. Our streamlined checkout process supports secure mobile financial services including bKash, Nagad, Rocket, and Cash on Delivery.
-        </p>
-        <p className="text-slate-600 text-sm leading-relaxed">
-          For aspiring merchants and brand owners, BazaarPulse provides a robust Vendor Dashboard equipped with instant inventory management, sales analytics, and automated commission calculations. Backed by dedicated 24/7 customer support and AI-powered shopping assistance, BazaarPulse is engineered to deliver the ultimate online retail experience.
-        </p>
-
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-slate-900">Explore Our Top Categories & Services</h2>
-      </section>
-
       {/* 3. Hero Banner Slider Section */}
       <HeroSlider banners={data.adminSettings.banners} />
 
@@ -2329,52 +2313,6 @@ function CustomerView({
         )}
       </div>
 
-      {/* SEO Content Section */}
-      <section className="max-w-7xl mx-auto px-4 mt-20 mb-16 border-t border-gray-200 pt-12">
-        <h2 className="text-3xl font-black text-slate-900 mb-6">
-          BazaarPulse: The Ultimate Multi-Vendor E-Commerce Platform in Bangladesh
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-sm text-slate-600 leading-relaxed">
-          <div>
-            <p className="mb-4 text-base">
-              Welcome to <strong>BazaarPulse</strong>, your premier destination for high-quality electronics, 
-              trendy fashion, home essentials, and more. As a leading multi-vendor marketplace, we connect 
-              thousands of verified sellers with customers across the nation, ensuring a seamless and 
-              secure shopping experience similar to global platforms like Daraz and Amazon.
-            </p>
-            <p>
-              Whether you are looking for the latest <a href="/electronics" onClick={(e) => { e.preventDefault(); handleCategoryChange('c1'); }} className="text-orange-600 hover:underline font-bold">Electronics</a> 
-              or stylish <a href="/fashion" onClick={(e) => { e.preventDefault(); handleCategoryChange('c2'); }} className="text-orange-600 hover:underline font-bold">Fashion & Apparel</a>, 
-              BazaarPulse offers a diverse range of products curated for quality and value. Our platform 
-              features advanced AI-powered shopping assistance, real-time order tracking, and a robust 
-              multi-vendor ecosystem designed for trust and efficiency.
-            </p>
-          </div>
-          <div>
-            <p className="mb-4">
-              At BazaarPulse, we prioritize customer satisfaction. Every purchase is backed by our 
-              comprehensive return policy and secure payment gateways. Shopping for <a href="/home-living" onClick={(e) => { e.preventDefault(); handleCategoryChange('c3'); }} className="text-orange-600 hover:underline font-bold">Home & Living</a> 
-              or <a href="/beauty" onClick={(e) => { e.preventDefault(); handleCategoryChange('c4'); }} className="text-orange-600 hover:underline font-bold">Beauty & Health</a> 
-              has never been easier. Explore our collections and discover why we are the top choice for 
-              online shoppers in Bangladesh.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-6 border-t border-gray-100 pt-6">
-              <button onClick={() => navigateTo('/track-order')} className="flex items-center gap-2 text-slate-800 font-bold hover:text-orange-600 transition-colors">
-                <Truck className="w-4 h-4" /> Track Your Order
-              </button>
-              <button onClick={() => navigateTo('/wishlist')} className="flex items-center gap-2 text-slate-800 font-bold hover:text-orange-600 transition-colors">
-                <Heart className="w-4 h-4" /> Your Wishlist
-              </button>
-              <button onClick={() => navigateTo('/vendor')} className="flex items-center gap-2 text-slate-800 font-bold hover:text-orange-600 transition-colors">
-                <Store className="w-4 h-4" /> Become a Seller
-              </button>
-              <button onClick={() => navigateTo('/admin')} className="flex items-center gap-2 text-slate-800 font-bold hover:text-orange-600 transition-colors">
-                <ShieldCheck className="w-4 h-4" /> Platform Admin
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
       </>
       )}
 
