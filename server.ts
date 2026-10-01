@@ -36,6 +36,13 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // 1. Express setup with JSON body parser (supports large uploads for multi-image products) and CORS
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -2491,6 +2498,25 @@ app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res)
         [status, paymentStatus, address, phone, customerName, id]
       );
       if (result.rowCount === 0) return res.status(404).json({ error: 'Order not found' });
+      
+      // Sync update to Supabase orders table for real-time tracking
+      if (supabase) {
+        try {
+          await supabase
+            .from('orders')
+            .update({ 
+              status: status || result.rows[0].status,
+              payment_status: paymentStatus || result.rows[0].payment_status,
+              address: address || result.rows[0].address,
+              phone: phone || result.rows[0].phone,
+              customer_name: customerName || result.rows[0].customer_name
+            })
+            .eq('id', id);
+        } catch (err: any) {
+          console.warn('Supabase admin order sync error:', err.message);
+        }
+      }
+
       res.json({ success: true, order: result.rows[0] });
     } else {
       const db = await getDb();
@@ -2504,6 +2530,25 @@ app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res)
       if (customerName) order.customerName = customerName;
       
       saveDb(db);
+
+      // Sync update to Supabase orders table for real-time tracking (local DB branch)
+      if (supabase) {
+        try {
+          await supabase
+            .from('orders')
+            .update({ 
+              status: order.status,
+              payment_status: order.paymentStatus,
+              address: order.address,
+              phone: order.phone,
+              customer_name: order.customerName
+            })
+            .eq('id', id);
+        } catch (err: any) {
+          console.warn('Supabase local admin order sync error:', err.message);
+        }
+      }
+
       res.json({ success: true, order });
     }
   } catch (error: any) {
