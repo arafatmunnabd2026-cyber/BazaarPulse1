@@ -181,6 +181,28 @@ export default function App() {
     return localStorage.getItem('bazaarpulse_token') || '';
   });
 
+  // Handle Google OAuth 2.0 Callback Query Parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login_success') === 'true') {
+      const token = urlParams.get('token');
+      const userRaw = urlParams.get('user');
+      if (token && userRaw) {
+        try {
+          const userObj = JSON.parse(decodeURIComponent(userRaw));
+          handleLoginUser(userObj, token);
+          notify(`🎉 Google OAuth 2.0-এর মাধ্যমে সফলভাবে সাইন ইন সম্পন্ন হয়েছে (${userObj.email})!`);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+          console.error('Error parsing OAuth callback user:', e);
+        }
+      }
+    } else if (urlParams.get('login_error') === 'true') {
+      notify('❌ Google OAuth লগইন ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   // Current Route Navigation from React Router
   const currentPath = location.pathname;
 
@@ -5379,104 +5401,57 @@ function AuthModal({
           )}
 
           {authView === 'signin' && (
-            <div className="space-y-4 text-left">
-              {/* Google Sign In Card Header */}
-              <div className="bg-[#181d24] border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+            <div className="space-y-4">
+              {/* Google Sign In Card matching reference image */}
+              <div 
+                onClick={() => {
+                  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1031776523831-nat48406vp252n1jj84g8v1qlr578atj.apps.googleusercontent.com';
+                  const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`;
+                  const scope = encodeURIComponent('openid email profile');
+                  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&prompt=select_account`;
+                  
+                  notify('🔗 গুগলের অফিসিয়াল লগইন পেজে নিয়ে যাওয়া হচ্ছে...');
+                  window.location.href = googleAuthUrl;
+                }}
+                className="bg-[#181d24] border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md cursor-pointer hover:bg-[#202732] transition-colors"
+              >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
                     {authUser?.avatar ? (
                       <img src={authUser.avatar} alt="" className="w-full h-full object-cover" />
-                    ) : custName ? (
-                      <span>{custName[0].toUpperCase()}</span>
+                    ) : authUser?.name ? (
+                      <span>{authUser.name[0]}</span>
                     ) : (
                       <User className="w-5 h-5 text-white" />
                     )}
                   </div>
                   <div className="min-w-0 text-left flex-1">
-                    <p className="text-sm sm:text-base font-black text-white truncate">
-                      Continue with Google
+                    <p className={`${authUser ? 'text-xs font-bold' : 'text-sm sm:text-base font-black'} text-white truncate`}>
+                      {authUser ? `Sign in as ${authUser.name}` : 'Continue with Google'}
                     </p>
                     <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                      {custEmail || 'Fast & secure authentication with Google'}
+                      {authUser?.email || 'Fast & secure authentication with Google'}
                     </p>
                   </div>
                 </div>
 
-                <div className="shrink-0 flex items-center justify-center w-10 h-10 bg-white rounded-full p-2 shadow-sm">
+                <div className="shrink-0 relative flex items-center justify-center w-10 h-10 bg-white rounded-full p-2 shadow-sm">
                   <svg className="w-6 h-6" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
                     <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.18v3.15C3.17 21.32 7.23 24 12 24z"/>
                     <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.18C.43 8.08 0 9.79 0 12s.43 3.92 1.18 5.42l4.1-3.15z"/>
                     <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.18 6.58l4.1 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                   </svg>
+                  <div className="absolute inset-0 opacity-0 cursor-pointer overflow-hidden z-20 pointer-events-auto">
+                    <GoogleLogin 
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => {}}
+                      type="icon"
+                      shape="circle"
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* Form to enter / select Gmail and Name */}
-              <form onSubmit={handleCustomerGoogleSubmit} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-inner">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1">
-                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-orange-400" /> আপনার জিমেইল অ্যাকাউন্ট তথ্য দিন
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
-                    ডাটাবেজে সেভ হবে
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    আপনার জিমেইল (Gmail) ইমেইল *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="আপনার জিমেইল লিখুন (e.g., arafatmunna.bd2026@gmail.com)"
-                    value={custEmail}
-                    onChange={e => setCustEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    আপনার নাম (Full Name) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="আপনার পূর্ণ নাম লিখুন"
-                    value={custName}
-                    onChange={e => setCustName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    ফোন নম্বর (ঐচ্ছিক)
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="আপনার মোবাইল নম্বর লিখুন"
-                    value={custPhone}
-                    onChange={e => setCustPhone(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-4 rounded-xl font-black text-sm bg-orange-600 hover:bg-orange-500 text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-3"
-                >
-                  <svg className="w-5 h-5 bg-white rounded-full p-0.5 shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.18v3.15C3.17 21.32 7.23 24 12 24z"/>
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.18C.43 8.08 0 9.79 0 12s.43 3.92 1.18 5.42l4.1-3.15z"/>
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.18 6.58l4.1 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
-              </form>
 
               {/* Divider with OR SELLER ZONE */}
               <div className="flex items-center gap-3 my-3">

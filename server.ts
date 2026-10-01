@@ -1230,6 +1230,42 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+// Google OAuth 2.0 Redirect Callback Handler
+app.get('/auth/google/callback', async (req, res) => {
+  const code = req.query.code as string;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://bazaarpulse-1ty4.onrender.com/auth/google/callback';
+  if (code) {
+    try {
+      const { tokens } = await googleClient.getToken({
+        code,
+        redirect_uri: redirectUri
+      });
+      if (tokens.id_token) {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        if (payload && payload.email) {
+          const email = payload.email.toLowerCase();
+          const user = {
+            id: payload.sub,
+            name: payload.name || email.split('@')[0],
+            email,
+            avatar: payload.picture,
+            role: (email === 'arafatmunna14620022@gmail.com' ? 'admin' : 'customer')
+          };
+          const authToken = generateToken(user, '7d');
+          return res.redirect(`/?login_success=true&token=${authToken}&user=${encodeURIComponent(JSON.stringify(user))}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('Google OAuth Callback Error:', e);
+    }
+  }
+  res.redirect('/?login_error=true');
+});
+
 // 2. Get current authenticated user profile with saved delivery address
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
