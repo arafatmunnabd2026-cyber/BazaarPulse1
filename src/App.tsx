@@ -2151,6 +2151,16 @@ function CustomerView({
         </div>
       </div>
 
+      {/* SEO Top Heading & Intro Section */}
+      <section className="max-w-7xl mx-auto px-4 mt-6">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          BazaarPulse – Online Shopping & Multi-Vendor E-Commerce Platform in Bangladesh
+        </h1>
+        <h2 className="text-sm font-semibold text-slate-600 mt-1">
+          Explore top deals across <a href="/electronics" onClick={(e) => { e.preventDefault(); handleCategoryChange('c1'); }} className="text-orange-600 hover:underline">Electronics</a>, <a href="/fashion" onClick={(e) => { e.preventDefault(); handleCategoryChange('c2'); }} className="text-orange-600 hover:underline">Fashion</a>, <a href="/home-living" onClick={(e) => { e.preventDefault(); handleCategoryChange('c3'); }} className="text-orange-600 hover:underline">Home & Living</a>, and more. Manage your <a href="/cart" onClick={(e) => { e.preventDefault(); handleOpenCart(); }} className="text-orange-600 hover:underline">Cart</a>, check your <a href="/wishlist" onClick={(e) => { e.preventDefault(); handleOpenWishlist(); }} className="text-orange-600 hover:underline">Wishlist</a>, and <a href="/orders" onClick={(e) => { e.preventDefault(); handleOpenMyOrders(); }} className="text-orange-600 hover:underline">Track Orders</a> live.
+        </h2>
+      </section>
+
       {/* 3. Hero Banner Slider Section */}
       <HeroSlider banners={data.adminSettings.banners} />
 
@@ -2315,9 +2325,9 @@ function CustomerView({
 
       {/* SEO Content Section */}
       <section className="max-w-7xl mx-auto px-4 mt-20 mb-16 border-t border-gray-200 pt-12">
-        <h1 className="text-3xl font-black text-slate-900 mb-6">
+        <h2 className="text-3xl font-black text-slate-900 mb-6">
           BazaarPulse: The Ultimate Multi-Vendor E-Commerce Platform in Bangladesh
-        </h1>
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-sm text-slate-600 leading-relaxed">
           <div>
             <p className="mb-4 text-base">
