@@ -49,70 +49,73 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   const fetchMyOrders = async () => {
     try {
       let serverOrders: any[] = [];
-      const res = await fetch('/api/platform/data');
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+
+      // 1. Fetch strictly authenticated user's orders from backend
+      const res = await fetch('/api/my-orders', {
+        headers: activeToken ? { 'Authorization': `Bearer ${activeToken}` } : {}
+      });
       const data = await res.json();
-      if (Array.isArray(data.orders)) {
+      
+      if (data.success && Array.isArray(data.orders)) {
         serverOrders = data.orders;
+      } else {
+        // Fallback: If token endpoint fails, fetch platform data and strictly match userId
+        const altRes = await fetch('/api/platform/data');
+        const altData = await altRes.json();
+        if (Array.isArray(altData.orders)) {
+          serverOrders = altData.orders.filter((o: any) => {
+            if (!userId) return false;
+            const oUserId = String(o.customerId || o.user_id || '');
+            return oUserId === String(userId);
+          });
+        }
       }
 
-      // 2. Read client-side saved orders
+      // 2. Read client-side saved orders for this specific user
       let localOrders: any[] = [];
       try {
-        localOrders = JSON.parse(localStorage.getItem('bazaarpulse_my_orders') || '[]');
+        const rawLocal = JSON.parse(localStorage.getItem('bazaarpulse_my_orders') || '[]');
+        if (Array.isArray(rawLocal)) {
+          localOrders = rawLocal.filter((o: any) => {
+            if (!userId) return false;
+            const oUserId = String(o.customerId || o.user_id || '');
+            return oUserId === String(userId);
+          });
+        }
       } catch (e) {}
 
-      // 3. Deduplicate combined orders by ID - SERVER DATA MUST OVERWRITE LOCAL DATA
+      // 3. Deduplicate combined orders by ID
       const orderMap = new Map<string, any>();
       
-      // Add local orders first
       localOrders.forEach(o => {
-        if (o && o.id) {
-          orderMap.set(String(o.id), o);
-        }
+        if (o && o.id) orderMap.set(String(o.id), o);
       });
       
-      // Overwrite with server orders (server is source of truth for status)
       serverOrders.forEach(o => {
-        if (o && o.id) {
-          orderMap.set(String(o.id), o);
-        }
+        if (o && o.id) orderMap.set(String(o.id), o);
       });
       
-      const allOrdersList = Array.from(orderMap.values());
+      const userOrders = Array.from(orderMap.values());
 
-      // 4. Smart match user orders
-      const filtered = allOrdersList.filter((o: any) => {
-        if (!userId) return true;
-        const oId = String(o.customerId || o.user_id || '');
-        const uId = String(userId);
-        return (
-          oId === uId ||
-          oId === 'u4' ||
-          (o.customerPhone && String(o.customerPhone) === uId) ||
-          (o.phone && String(o.phone) === uId)
-        );
-      });
-
-      const matchedOrders = filtered.length > 0 ? filtered : allOrdersList;
-
-      // Sort matchedOrders by date descending so the newest order is first
-      matchedOrders.sort((a, b) => {
+      // 4. Sort user orders by date descending
+      userOrders.sort((a, b) => {
         const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
         const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
         return dateB - dateA;
       });
 
-      setOrders(matchedOrders);
+      setOrders(userOrders);
 
-      // Auto tracking: automatically select the newest order to track instantly if none is selected
-      if (matchedOrders.length > 0 && onSelectTrackOrder) {
+      // Auto tracking: select newest order if none is selected
+      if (userOrders.length > 0 && onSelectTrackOrder) {
         if (currentTrackedOrder) {
-          const newestState = matchedOrders.find(o => String(o.id) === String(currentTrackedOrder.id));
+          const newestState = userOrders.find(o => String(o.id) === String(currentTrackedOrder.id));
           if (newestState) {
             onSelectTrackOrder(newestState);
           }
         } else {
-          onSelectTrackOrder(matchedOrders[0]);
+          onSelectTrackOrder(userOrders[0]);
         }
       }
     } catch (err) {
@@ -125,17 +128,15 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   useEffect(() => {
     fetchMyOrders();
 
-    // Fast poll to ensure instant zero-latency updates even on local fallback DB
     const pollInterval = setInterval(() => {
       fetchMyOrders();
-    }, 3000);
+    }, 4000);
 
     const handleOrderCreated = (e: any) => {
       fetchMyOrders();
     };
     window.addEventListener('bazaarpulse-order-created', handleOrderCreated);
 
-    // Live tracking using Supabase Channel
     if (!supabase) {
       return () => {
         clearInterval(pollInterval);
@@ -144,7 +145,7 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
     }
 
     const channel = supabase
-      .channel(`user-orders-realtime`)
+      .channel(`user-orders-realtime-${userId || 'guest'}`)
       .on(
         'postgres_changes',
         { 
@@ -153,12 +154,21 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
           table: 'orders' 
         },
         (payload) => {
+          const updated = payload.new as any;
+          if (!updated) return;
+
+          // Security check: Only process updates if the order belongs to this specific user
+          const orderUserId = String(updated.user_id || updated.customer_id || '');
+          if (userId && orderUserId && orderUserId !== String(userId)) {
+            return; // Ignore unrelated order updates
+          }
+
           if (payload.eventType === 'INSERT') {
             fetchMyOrders();
           } else if (payload.eventType === 'UPDATE') {
-            setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, status: payload.new.status } : o));
-            if (selectedOrderDetails && selectedOrderDetails.id === payload.new.id) {
-              setSelectedOrderDetails(prev => prev ? { ...prev, status: payload.new.status } : null);
+            setOrders(prev => prev.map(o => String(o.id) === String(updated.id) ? { ...o, status: updated.status } : o));
+            if (selectedOrderDetails && String(selectedOrderDetails.id) === String(updated.id)) {
+              setSelectedOrderDetails(prev => prev ? { ...prev, status: updated.status } : null);
             }
           }
         }
@@ -172,7 +182,7 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
         supabase.removeChannel(channel);
       }
     };
-  }, [userId]);
+  }, [userId, authToken]);
 
   const handleCancelOrder = async (orderId: string) => {
     if (!window.confirm('আপনি কি নিশ্চিত যে এই অর্ডারটি বাতিল করতে চান?')) {

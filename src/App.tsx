@@ -2845,13 +2845,24 @@ function CustomerView({
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const found = (data.orders || []).find((o: any) => o.id?.toLowerCase().trim() === trackOrderIdInput.toLowerCase().trim());
-                      if (found) {
-                        setTrackedOrder(found);
-                      } else {
-                        setTrackedOrder(null);
-                        notify('❌ অর্ডার আইডি পাওয়া যায়নি! অনুগ্রহ করে সঠিক নম্বর দিয়ে পুনরায় চেষ্টা করুন।');
+                    onClick={async () => {
+                      if (!trackOrderIdInput.trim()) return;
+                      try {
+                        const res = await fetch(`/api/orders/track/${encodeURIComponent(trackOrderIdInput.trim())}`);
+                        const json = await res.json();
+                        if (json.success && json.order) {
+                          setTrackedOrder(json.order);
+                        } else {
+                          const found = (data?.orders || []).find((o: any) => o.id?.toLowerCase().trim() === trackOrderIdInput.toLowerCase().trim());
+                          if (found) {
+                            setTrackedOrder(found);
+                          } else {
+                            setTrackedOrder(null);
+                            notify('❌ অর্ডার আইডি পাওয়া যায়নি! অনুগ্রহ করে সঠিক নম্বর দিয়ে পুনরায় চেষ্টা করুন।');
+                          }
+                        }
+                      } catch {
+                        notify('❌ ট্র্যাক করতে সমস্যা হয়েছে');
                       }
                     }}
                     className="bg-[#0092d8] hover:bg-[#0081c2] text-white font-medium px-5 py-2.5 rounded-xl shadow-xs transition-colors text-sm flex items-center gap-1.5 cursor-pointer"

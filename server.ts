@@ -2895,10 +2895,127 @@ app.delete('/api/cart', authMiddleware, async (req, res) => {
   }
 });
 
+// ==========================================
+// ISOLATED USER ORDERS & TRACKING ENDPOINTS
+// ==========================================
+
+// 1. Secure Isolated User Orders API Endpoint
+app.get('/api/my-orders', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userEmail = req.user?.email?.toLowerCase() || '';
+
+    if (!userId && !userEmail) {
+      return res.status(401).json({ success: false, error: 'Unauthorized user session', orders: [] });
+    }
+
+    let userOrders: any[] = [];
+
+    if (isDbConfigured) {
+      const dbRes = await pool.query(
+        `SELECT * FROM orders 
+         WHERE user_id = $1 
+            OR customer_id = $1 
+            OR (LOWER(customer_email) = $2 AND customer_email != '')
+         ORDER BY created_at DESC`,
+        [userId, userEmail]
+      );
+      userOrders = dbRes.rows.map(o => ({
+        id: o.id,
+        customerId: o.customer_id || o.user_id || userId,
+        user_id: o.user_id || o.customer_id || userId,
+        customerName: o.customer_name || o.customerName || '',
+        customerEmail: o.customer_email || o.customerEmail || userEmail,
+        customerPhone: o.customer_phone || o.phone || '',
+        phone: o.phone || o.customer_phone || '',
+        shippingAddress: o.shipping_address || o.address || '',
+        address: o.address || o.shipping_address || '',
+        items: parseJsonSafe(o.items, []),
+        subtotal: Number(o.subtotal || o.total_amount),
+        deliveryFee: Number(o.delivery_fee || 80),
+        totalAmount: Number(o.total_amount),
+        paymentMethod: o.payment_method || 'Cash on Delivery',
+        paymentStatus: o.payment_status || 'paid',
+        status: o.status || 'pending',
+        createdAt: o.created_at || new Date().toISOString()
+      }));
+    } else {
+      const db = await getDb();
+      userOrders = (db.orders || []).filter((o: any) => {
+        const oUserId = String(o.customerId || o.user_id || '');
+        const oEmail = (o.customerEmail || '').toLowerCase();
+        return (
+          (userId && oUserId === String(userId)) ||
+          (userEmail && oEmail && oEmail === userEmail)
+        );
+      });
+    }
+
+    // Sort newest orders first
+    userOrders.sort((a, b) => new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime());
+
+    res.json({ success: true, orders: userOrders });
+  } catch (error: any) {
+    console.error('Error fetching isolated user orders:', error);
+    res.status(500).json({ success: false, error: error.message, orders: [] });
+  }
+});
+
+// 2. Public Single Order Tracking Endpoint
+app.get('/api/orders/track/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) return res.status(400).json({ success: false, error: 'Order ID is required' });
+    
+    const cleanId = orderId.trim().toUpperCase();
+
+    if (isDbConfigured) {
+      const dbRes = await pool.query('SELECT * FROM orders WHERE UPPER(id) = $1', [cleanId]);
+      if (dbRes.rowCount === 0) {
+        return res.status(404).json({ success: false, error: 'অর্ডার পাওয়া যায়নি' });
+      }
+      const o = dbRes.rows[0];
+      const orderObj = {
+        id: o.id,
+        customerId: o.customer_id || o.user_id,
+        user_id: o.user_id || o.customer_id,
+        customerName: o.customer_name || o.customerName,
+        customerEmail: o.customer_email || o.customerEmail,
+        customerPhone: o.customer_phone || o.phone,
+        phone: o.phone || o.customer_phone,
+        shippingAddress: o.shipping_address || o.address,
+        address: o.address || o.shipping_address,
+        items: parseJsonSafe(o.items, []),
+        subtotal: Number(o.subtotal || o.total_amount),
+        deliveryFee: Number(o.delivery_fee || 80),
+        totalAmount: Number(o.total_amount),
+        paymentMethod: o.payment_method || 'Cash on Delivery',
+        paymentStatus: o.payment_status || 'paid',
+        status: o.status || 'pending',
+        createdAt: o.created_at
+      };
+      return res.json({ success: true, order: orderObj });
+    } else {
+      const db = await getDb();
+      const found = (db.orders || []).find((o: any) => o.id?.trim().toUpperCase() === cleanId);
+      if (!found) {
+        return res.status(404).json({ success: false, error: 'অর্ডার পাওয়া যায়নি' });
+      }
+      return res.json({ success: true, order: found });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Real Order Placement using Atomic Transaction (RPC)
 app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const targetUserId = req.body.customerId || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.id : 'u4');
+    const authenticatedUserId = (req.user && req.user.id !== 'admin-bypass-id') ? req.user.id : null;
+    const authenticatedEmail = (req.user && req.user.id !== 'admin-bypass-id') ? req.user.email?.toLowerCase() : null;
+
+    const targetUserId = authenticatedUserId || req.body.customerId || ('u_' + Date.now());
+    const targetEmail = authenticatedEmail || req.body.customerEmail?.toLowerCase() || '';
 
     const { 
       totalAmount, 
@@ -2907,8 +3024,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       phone, 
       customerPhone,
       items, 
-      customerName, 
-      customerEmail 
+      customerName
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -2923,7 +3039,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       customerId: targetUserId,
       user_id: targetUserId,
       customerName: customerName || req.body.fullName || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.name : 'Customer'),
-      customerEmail: customerEmail || (req.user && req.user.id !== 'admin-bypass-id' ? req.user.email : ''),
+      customerEmail: targetEmail || req.body.customerEmail || '',
       customerPhone: realPhone,
       phone: realPhone,
       shippingAddress: shippingAddress || req.body.address || '',
