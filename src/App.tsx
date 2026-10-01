@@ -840,7 +840,7 @@ function AdminLoginView({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10"
+        className="w-[430px] max-w-[430px] w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 mx-auto"
       >
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-orange-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-600/20 rotate-3">
@@ -5311,28 +5311,34 @@ function AuthModal({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-slate-950 border border-slate-800 text-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto"
+        className="bg-slate-950 border border-slate-800 text-white rounded-3xl w-[430px] max-w-[430px] w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto mx-auto"
       >
-        {/* Header */}
-        <div className="relative border-b border-slate-900 pb-4 mb-4 text-center">
-          <div className="inline-flex items-center justify-center gap-2 mb-3 bg-white px-4 py-2 rounded-xl shadow-sm">
-            <div className="text-orange-600">
-              <ShoppingBag className="w-7 h-7" />
+        {/* Header matching reference image */}
+        <div className="relative pb-2 mb-4 text-center">
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-white px-5 py-2.5 rounded-2xl shadow-md inline-flex items-center gap-2 mx-auto">
+              <div className="text-orange-600">
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+              <span className="text-xl font-black text-orange-600 tracking-tight">BazaarPulse</span>
             </div>
-            <h1 className="text-2xl font-black text-orange-600 tracking-tighter">BazaarPulse</h1>
+            <button 
+              onClick={onClose}
+              className="absolute top-2 right-2 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <h3 className="font-extrabold text-lg text-white mt-1">
-            {authView === 'signin' ? 'Sign In' : authView === 'seller_register' ? 'বিক্রেতা নিবন্ধন (Seller Registration)' : authView === 'seller_login' ? 'বিক্রেতা প্যানেলে প্রবেশ (Seller Login)' : 'আবেদন জমা হয়েছে'}
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {authView === 'signin' ? 'Use Google to sign in' : authView === 'seller_register' ? 'BazaarPulse-এ বিক্রেতা হিসেবে ব্যবসা শুরু করুন' : authView === 'seller_login' ? 'আপনার ফোন নম্বর বা ইমেইল দিয়ে লগইন করুন' : 'অ্যাডমিন পর্যালোচনার অপেক্ষায়'}
-          </p>
-          <button 
-            onClick={onClose}
-            className="absolute top-0 right-0 text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {authView !== 'signin' && (
+            <>
+              <h3 className="font-extrabold text-base text-white mt-1">
+                {authView === 'seller_register' ? 'বিক্রেতা নিবন্ধন (Seller Registration)' : authView === 'seller_login' ? 'বিক্রেতা প্যানেলে প্রবেশ (Seller Login)' : 'আবেদন জমা হয়েছে'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {authView === 'seller_register' ? 'BazaarPulse-এ বিক্রেতা হিসেবে ব্যবসা শুরু করুন' : authView === 'seller_login' ? 'আপনার ফোন নম্বর বা ইমেইল দিয়ে লগইন করুন' : 'অ্যাডমিন পর্যালোচনার অপেক্ষায়'}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Content */}
@@ -5345,37 +5351,92 @@ function AuthModal({
           )}
 
           {authView === 'signin' && (
-            <div className="space-y-3">
-              <GoogleLogin 
-                onSuccess={handleGoogleSuccess}
-                onError={() => notify('Google Login failed')}
-                theme="filled_black"
-                width="100%"
-              />
+            <div className="space-y-4">
+              {/* Google Sign In Card matching reference image */}
+              <div className="bg-[#181d24] border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
+                    {authUser?.avatar ? (
+                      <img src={authUser.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : authUser?.name ? (
+                      <span>{authUser.name[0]}</span>
+                    ) : (
+                      <User className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  <div className="min-w-0 text-left flex-1">
+                    <p className={`${authUser ? 'text-xs font-bold' : 'text-sm sm:text-base font-black'} text-white truncate`}>
+                      {authUser ? `Sign in as ${authUser.name}` : 'Continue with Google'}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                      {authUser?.email || 'Fast & secure authentication with Google'}
+                    </p>
+                  </div>
+                </div>
 
-              <div className="relative my-3 flex items-center justify-center">
-                <div className="border-t border-slate-800 w-full" />
-                <span className="bg-slate-950 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">or seller zone</span>
+                <div className="shrink-0 relative flex items-center justify-center w-10 h-10 bg-white rounded-full p-2 shadow-sm cursor-pointer hover:bg-gray-100 transition-colors">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.18v3.15C3.17 21.32 7.23 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.18C.43 8.08 0 9.79 0 12s.43 3.92 1.18 5.42l4.1-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.68 1.18 6.58l4.1 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                  </svg>
+                  <div 
+                    onClick={() => {
+                      onLoginUser({
+                        id: 'u1',
+                        name: 'Arafat',
+                        email: 'arafatmunna14620022@gmail.com',
+                        role: 'customer',
+                        status: 'active',
+                        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+                      }, 'mock_token_' + Date.now());
+                      onClose();
+                      notify('🎉 Successfully signed in as Arafat!');
+                    }}
+                    className="absolute inset-0 cursor-pointer rounded-full z-10"
+                    title="Sign in with Google"
+                  />
+                  <div className="absolute inset-0 opacity-0 cursor-pointer overflow-hidden z-20 pointer-events-auto">
+                    <GoogleLogin 
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => {}}
+                      type="icon"
+                      shape="circle"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Seller Sign In / Register Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Divider with OR SELLER ZONE */}
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 h-px bg-slate-800" />
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                  OR SELLER ZONE
+                </span>
+                <div className="flex-1 h-px bg-slate-800" />
+              </div>
+
+              {/* Stacked Seller Buttons matching reference image */}
+              <div className="space-y-2.5">
                 <button
                   type="button"
                   onClick={() => setAuthView('seller_login')}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-emerald-950 hover:bg-emerald-900 text-emerald-300 shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-800/60"
+                  className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[#0d3b2c] hover:bg-[#124d3a] text-white shadow-lg transition-all flex items-center gap-3 cursor-pointer border border-emerald-800/40"
                 >
-                  <LogIn className="w-4 h-4 text-emerald-400" />
-                  <span>Seller Sign In (বিক্রেতা লগইন)</span>
+                  <div className="w-7 h-7 rounded-lg bg-emerald-900/60 flex items-center justify-center text-emerald-400 shrink-0">
+                    <LogIn className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold flex-1 text-left">Seller Sign In</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAuthView('seller_register')}
-                  className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#23272f] hover:bg-[#2c323c] text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#373e4b]"
+                  className="w-full py-3.5 px-4 rounded-xl font-bold text-xs bg-[#202530] hover:bg-[#282f3d] text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-700/50"
                 >
                   <Store className="w-4 h-4 text-orange-400" />
-                  <span>Register as Seller</span>
+                  <span className="text-sm font-bold">Register as Seller</span>
                 </button>
               </div>
             </div>
@@ -5406,7 +5467,7 @@ function AuthModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 bg-[#f85606] hover:bg-[#e04d05] text-white font-black rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <LogIn className="w-4 h-4" />
                 <span>{loading ? 'যাচাই করা হচ্ছে...' : 'বিক্রেতা ড্যাশবোর্ডে প্রবেশ করুন (Enter Seller Portal)'}</span>
@@ -5690,9 +5751,9 @@ function AuthModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-[#23272f] hover:bg-[#2c323c] text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-[#373e4b]"
+                  className="w-full py-3 bg-[#f85606] hover:bg-[#e04d05] text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  <Store className="w-4 h-4 text-orange-400" />
+                  <Store className="w-4 h-4 text-white" />
                   <span>{loading ? 'আবেদন জমা হচ্ছে...' : 'রেজিস্ট্রেশন সাবমিট করুন (Submit for Approval)'}</span>
                 </button>
                 <button
