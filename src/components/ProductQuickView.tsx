@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SharedNavigation } from './SharedNavigation';
 
 // Helper to normalize variation data whether it's an array, JSON string, or comma-separated string
 const normalizeList = (val: any): string[] => {
@@ -90,6 +89,12 @@ export const ProductQuickView = ({
   setIsCheckoutOpen, 
   handleAddToCart,
   onBuyNow,
+  onOpenCart,
+  onOpenAiAdvisor,
+  onOpenLogin,
+  onOpenMenu,
+  searchQuery,
+  setSearchQuery,
   addToCart,
   selectedCategory,
   setSelectedCategory,
@@ -144,15 +149,6 @@ export const ProductQuickView = ({
 
   const handleCloseModal = () => {
     setSelectedProduct(null);
-    if (window.location.pathname.startsWith('/product/')) {
-      if (selectedCategory && selectedCategory !== 'all') {
-        const catObj = displayCategories.find((c: any) => c.id === selectedCategory);
-        const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : selectedCategory);
-        navigate(`/${slug}`);
-      } else {
-        navigate('/');
-      }
-    }
   };
 
   const handleBuyNow = () => {
@@ -170,22 +166,8 @@ export const ProductQuickView = ({
   };
 
   const handleCategoryClick = (catId: string) => {
-    setSelectedProduct(null);
     setSelectedCategory(catId);
-
-    let newPath = '/';
-    if (catId && catId !== 'all') {
-      const catObj = displayCategories.find((c: any) => c.id === catId);
-      const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : catId);
-      newPath = `/${slug}`;
-    }
-    navigate(newPath);
-
-    // Scroll to products section
-    const productsSection = document.getElementById('products-section');
-    if (productsSection) {
-      productsSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    handleCloseModal();
   };
 
   const displayCategories = [
@@ -208,26 +190,129 @@ export const ProductQuickView = ({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] bg-white overflow-y-auto"
       >
-        {/* Identical Sticky Header and Categories Navigation Bar */}
-        <SharedNavigation
-          data={{ categories: displayCategories }}
-          selectedCategory={selectedCategory}
-          handleCategoryChange={handleCategoryClick}
-          searchQuery=""
-          setSearchQuery={() => {}}
-          authUser={null}
-          onOpenLogin={handleCloseModal}
-          isMenuOpen={false}
-          setIsMenuOpen={() => {}}
-          onCartClick={handleCloseModal}
-          onNotificationClick={handleCloseModal}
-          onAiAdvisorClick={handleCloseModal}
-          onProfileClick={handleCloseModal}
-          onClose={handleCloseModal}
-          isPDP={true}
-        />
+        <div className="sticky top-0 z-[101] bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
+          {/* Identical Sticky Header and Categories Navigation Bar */}
+          <header className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenMenu && onOpenMenu();
+                }}
+                className="p-2 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={(e) => {
+                e.stopPropagation();
+                handleCategoryClick('all');
+              }}>
+                <ShoppingBag className="w-7 h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+                <h1 className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+              </div>
+            </div>
 
-        {/* Modal Content */}
+            <div className="flex-1 max-w-2xl flex items-center">
+              <div className="w-full relative flex">
+                <input
+                  type="text"
+                  placeholder="Search in BazaarPulse..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCloseModal();
+                    }
+                  }}
+                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900"
+                />
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseModal();
+                  }}
+                  className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
+                >
+                  <Search className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenCart && onOpenCart();
+                }}
+                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
+                title="Shopping Cart"
+              >
+                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Notifications are handled by NotificationDropdown in storefront,
+                  // for now just prevent closing in PDP.
+                }}
+                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="w-6 h-6" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAiAdvisor && onOpenAiAdvisor();
+                }}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">AI Advisor</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenLogin && onOpenLogin();
+                }}
+                className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 hover:scale-105 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
+                <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
+              </button>
+            </div>
+          </div>
+        </header>
+
+          {/* Categories Bar */}
+          <div className="bg-white border-b border-gray-100 py-1.5 group/pbar">
+          <button className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <div className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+            {displayCategories.map((cat: any, index: number) => (
+              <button
+                key={`pdp-${cat.id}-${index}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCategoryClick(cat.id);
+                }}
+                className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === cat.id ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+              >
+                {cat.id !== 'all' && <CategoryIcon categoryId={cat.id} className="w-4 h-4" />}
+                {cat.id === 'all' && <Layers className="w-4 h-4" />}
+                <span>{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Content */}
         <div className="max-w-7xl mx-auto p-4 sm:p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">

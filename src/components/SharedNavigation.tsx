@@ -121,10 +121,13 @@ export const SharedNavigation = ({
           <ChevronRight className="w-4 h-4 stroke-[2.5]" />
         </button>
         <div ref={scrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
-          {displayCategories.map((cat: any) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.id)}
+          {displayCategories.map((cat: any, index: number) => (
+              <button
+              key={`nav-${cat.id}-${index}`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleCategoryChange(cat.id);
+              }}
               className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === cat.id ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
             >
               {cat.id !== 'all' && <CategoryIcon categoryId={cat.id} className="w-4 h-4" />}

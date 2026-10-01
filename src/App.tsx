@@ -1593,6 +1593,10 @@ function CustomerView({
     }
   };
 
+  const closeOnlyProduct = () => {
+    setSelectedProduct(null);
+  };
+
   // 2. Sync Checkout Modal with /checkout route
   const isCheckoutRoute = location.pathname === '/checkout';
   useEffect(() => {
@@ -1925,7 +1929,9 @@ function CustomerView({
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
       {/* 2. Main Header & Search Bar */}
-      <header className="bg-white shadow-xs hover:shadow-md transition-shadow duration-500 sticky top-0 z-40 border-b border-gray-100">
+      <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
+        {/* 2. Main Header & Search Bar */}
+        <header className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button 
@@ -2146,22 +2152,11 @@ function CustomerView({
             </div>
           </div>
         </div>
-      </header>
-      
-      {/* Conditionally Render Dedicated Checkout Single Page View OR Storefront Content */}
-      {isCheckoutOpen ? (
-        <CheckoutModal
-          isOpen={isCheckoutOpen}
-          onClose={handleCloseCheckout}
-          cart={directCheckoutItem ? [directCheckoutItem] : cart}
-          authUser={authUser}
-          onSubmitOrder={handleOrderSubmitPayload}
-          notify={notify}
-        />
-      ) : (
-        <>
-          {/* Categories Bar */}
-          <div className="bg-white border-b border-gray-100 py-1.5 shadow-xs relative group/pbar">
+        </header>
+        
+        {!isCheckoutOpen && (
+          /* Categories Bar */
+          <div className="bg-white border-b border-gray-100 py-1.5 group/pbar">
             {/* Left Chevron Button - hidden by default, visible on hover */}
             <button
               onClick={() => {
@@ -2210,7 +2205,7 @@ function CustomerView({
                 const isSelected = selectedCategory === cat.id;
                 return (
                   <a
-                    key={cat.id}
+                    key={`app-${cat.id}`}
                     href={`/${slug}`}
                     onClick={(e) => {
                       e.preventDefault();
@@ -2229,9 +2224,23 @@ function CustomerView({
               })}
             </div>
           </div>
+        )}
+      </div>
 
-      {/* 3. Hero Banner Slider Section */}
-      <HeroSlider banners={data.adminSettings.banners} />
+      {/* Conditionally Render Dedicated Checkout Single Page View OR Storefront Content */}
+      {isCheckoutOpen ? (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={handleCloseCheckout}
+          cart={directCheckoutItem ? [directCheckoutItem] : cart}
+          authUser={authUser}
+          onSubmitOrder={handleOrderSubmitPayload}
+          notify={notify}
+        />
+      ) : (
+        <>
+          {/* 3. Hero Banner Slider Section */}
+          <HeroSlider banners={data.adminSettings.banners} />
 
       {/* 4. Promotional Campaign Strip */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
@@ -2286,9 +2295,11 @@ function CustomerView({
                 : 0;
 
               return (
-                <div 
+                <a 
                   key={product.id} 
-                  onClick={() => handleOpenProduct(product)}
+                  href={`/product/${product.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group cursor-pointer"
                 >
                   <div className="relative aspect-square overflow-hidden bg-gray-50">
@@ -2385,7 +2396,7 @@ function CustomerView({
                       </button>
                     </div>
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>
@@ -2644,12 +2655,12 @@ function CustomerView({
       <ProductQuickView 
         selectedProduct={selectedProduct}
         setSelectedProduct={(p: any) => {
-          if (!p) handleCloseProduct();
+          if (!p) closeOnlyProduct();
           else handleOpenProduct(p);
         }}
         setIsCheckoutOpen={handleOpenCheckout}
         selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+        setSelectedCategory={handleCategoryChange}
         categories={data?.categories || []}
         allProducts={data?.products || []}
         allOrders={data?.orders || []}
@@ -2663,9 +2674,15 @@ function CustomerView({
         setProductQty={setProductQty}
         handleAddToCart={(p: any, q: number, s: string, c: string) => {
           addToCart(p, q, s, c);
-          handleCloseProduct();
+          closeOnlyProduct();
           handleOpenCart();
         }}
+        onOpenCart={handleOpenCart}
+        onOpenAiAdvisor={() => setIsAiOpen(true)}
+        onOpenLogin={onOpenLogin}
+        onOpenMenu={() => setIsMenuOpen(true)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         onBuyNow={handleDirectBuyNow}
         addToCart={addToCart}
         notify={notify}
