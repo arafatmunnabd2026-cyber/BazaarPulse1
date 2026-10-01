@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase, getActiveSupabase } from './lib/supabase';
 import { ProductQuickView } from './components/ProductQuickView';
+import { SharedNavigation } from './components/SharedNavigation';
 import { WishlistModal } from './components/WishlistModal';
 import AdminOrders from './components/AdminOrders';
 import UserOrders from './components/UserOrders';
