@@ -26,7 +26,7 @@ import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
-import { addOrderSuccessNotification, addOrderStatusNotification } from './lib/notificationStore';
+import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification } from './lib/notificationStore';
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -523,6 +523,7 @@ export default function App() {
     localStorage.setItem('bazaarpulse_token', token);
     setIsAuthModalOpen(false);
     setAccessDeniedAlert(null);
+    addLoginWelcomeNotification(user.id);
     notify(`👋 Welcome back, ${user.name}! (Role: ${user.role})`);
     
     // Sync login info to Supabase automatically using the active dynamically resolved client
@@ -596,7 +597,6 @@ export default function App() {
     localStorage.removeItem('bazaarpulse_token');
     localStorage.removeItem('bazaarpulse_saved_address');
     navigateTo('/');
-    notify('👋 Logged out successfully. You are now browsing as a guest.');
   };
 
   if (loading || !data) {

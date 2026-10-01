@@ -202,3 +202,34 @@ export const formatRelativeTimeBengali = (timestamp: number): string => {
   if (hours < 24) return `${hours} ঘণ্টা আগে`;
   return `${Math.floor(hours / 24)} দিন আগে`;
 };
+
+/**
+ * Add Login Welcome Notification
+ */
+export const addLoginWelcomeNotification = (userId?: string): OrderNotification => {
+  const current = getStoredNotifications(userId);
+  
+  const recentLoginNotif = current.find(n => 
+    n.type === 'system' && 
+    n.message.includes('BazaarPulse-এ আপনাকে স্বাগতম') && 
+    (Date.now() - n.timestamp) < 600000
+  );
+
+  if (recentLoginNotif) {
+    return recentLoginNotif;
+  }
+
+  const newNotif: OrderNotification = {
+    id: 'notif-login-' + Date.now(),
+    userId: userId || undefined,
+    type: 'system',
+    title: 'স্বাগতম (Welcome)',
+    message: 'BazaarPulse-এ আপনাকে স্বাগতম! আপনার অ্যাকাউন্ট সফলভাবে লগইন হয়েছে চলুন, আপনার পরবর্তী পছন্দের জিনিসটি খুঁজে বের করি',
+    timestamp: Date.now(),
+    read: false
+  };
+
+  const updated = [newNotif, ...current];
+  saveNotifications(updated);
+  return newNotif;
+};
