@@ -647,13 +647,9 @@ export default function CheckoutModal({
               {/* Input 4: Country Dropdown */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Country / দেশ</label>
-                <select
-                  value={shippingInfo.country}
-                  onChange={e => setShippingInfo({ ...shippingInfo, country: e.target.value })}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                >
-                  <option value="বাংলাদেশ"> Bangladesh</option>
-                </select>
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 select-none">
+                  Bangladesh
+                </div>
               </div>
 
               {/* Input 5 & 6: District & Thana Selectors */}
