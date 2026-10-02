@@ -33,6 +33,7 @@ import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { AdvancedFilterSidebar, FilterState, DEFAULT_FILTER_STATE } from './components/AdvancedFilterSidebar';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { sendInvoiceEmail } from './lib/invoiceService';
 import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
@@ -2092,6 +2093,19 @@ function CustomerView({
         // Notify and dispatch event
         window.dispatchEvent(new CustomEvent('bazaarpulse-order-created', { detail: newOrder }));
         notify('🎉 আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে!');
+
+        // Automatic background invoice email trigger
+        const invoiceTargetEmail = newOrder.customerEmail || authUser?.email || fullPayload.customerEmail;
+        if (invoiceTargetEmail && invoiceTargetEmail.includes('@') && !invoiceTargetEmail.includes('@customer.com')) {
+          sendInvoiceEmail(newOrder, invoiceTargetEmail)
+            .then(res => {
+              if (res.success) {
+                console.log('✅ Background auto invoice email dispatched to', invoiceTargetEmail);
+              }
+            })
+            .catch(e => console.warn('Background auto invoice email note:', e));
+        }
+
         refreshData();
       } else {
         notify('❌ ' + (json.error || 'Failed to place order'));
