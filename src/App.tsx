@@ -2046,6 +2046,7 @@ function CustomerView({
         addressType: orderPayload.addressType || 'Home',
         items: Array.isArray(orderPayload.items) ? orderPayload.items : [],
         subtotal: Number(orderPayload.subtotal || 0),
+        deliveryFee: Number(orderPayload.deliveryFee || 80),
         shippingFee: Number(orderPayload.deliveryFee || 80),
         discountAmount: Number(orderPayload.discountAmount || 0),
         totalAmount: Number(orderPayload.totalAmount || 0),
@@ -2137,6 +2138,7 @@ function CustomerView({
         items: Array.isArray(orderPayload?.items) ? orderPayload.items : [],
         subtotal: Number(orderPayload?.subtotal || 0),
         deliveryFee: Number(orderPayload?.deliveryFee || 80),
+        shippingFee: Number(orderPayload?.deliveryFee || 80),
         totalAmount: Number(orderPayload?.totalAmount || 0),
         paymentMethod: orderPayload?.paymentMethod || 'Cash on Delivery',
         createdAt: new Date().toISOString()
