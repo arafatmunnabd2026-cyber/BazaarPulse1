@@ -16,7 +16,8 @@ import {
   Upload, Image, Eye, Cpu, Shirt, Home, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase, getActiveSupabase } from './lib/supabase';
+import { ShopProvider, useShop } from './context/ShopContext';
+import { useAuth } from './context/AuthContext';
 import { ProductQuickView } from './components/ProductQuickView';
 import { SharedNavigation } from './components/SharedNavigation';
 import { WishlistModal } from './components/WishlistModal';
@@ -27,7 +28,12 @@ import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
+import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mhpmwsafqrjgsodnztll.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_q5zax92UyLCrAIs7ZJDODQ_T93URdMc';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -194,20 +200,7 @@ const storefrontCategoryScrollRef = { current: null as any };
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Global Auth State (Defaults to null so new users start as Guest)
-  const [authUser, setAuthUser] = useState<any>(() => {
-    try {
-      const saved = localStorage.getItem('bazaarpulse_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [authToken, setAuthToken] = useState<string>(() => {
-    return localStorage.getItem('bazaarpulse_token') || '';
-  });
+  const { authUser, authToken, setAuthUser, setAuthToken, login: centralLogin, logout: centralLogout } = useAuth();
 
   // Handle Google OAuth 2.0 Callback Query Parameters
   useEffect(() => {
@@ -567,17 +560,14 @@ export default function App() {
   }, [authUser]);
 
   const handleLoginUser = async (user: any, token: string) => {
-    setAuthUser(user);
-    setAuthToken(token);
-    localStorage.setItem('bazaarpulse_user', JSON.stringify(user));
-    localStorage.setItem('bazaarpulse_token', token);
+    centralLogin(user, token);
     setIsAuthModalOpen(false);
     setAccessDeniedAlert(null);
     addLoginWelcomeNotification(user.id);
     notify(`👋 Welcome back, ${user.name}! (Role: ${user.role})`);
     
     // Sync login info to Supabase automatically using the active dynamically resolved client
-    const activeSupabase = getActiveSupabase();
+    const activeSupabase = supabase;
     if (activeSupabase) {
       try {
         let existingSavedAddress = user.saved_address || user.savedAddress || null;
@@ -641,11 +631,8 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setAuthUser(null);
-    setAuthToken('');
+    centralLogout();
     clearLoginWelcomeNotifications();
-    localStorage.removeItem('bazaarpulse_user');
-    localStorage.removeItem('bazaarpulse_token');
     localStorage.removeItem('bazaarpulse_saved_address');
     navigateTo('/');
   };
@@ -662,7 +649,16 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
+    <ShopProvider 
+      initialData={data} 
+      authUser={authUser} 
+      setAuthUser={setAuthUser}
+      onOpenLogin={() => setIsAuthModalOpen(true)}
+      onLogout={handleLogout}
+      refreshData={loadData}
+      notify={notify}
+    >
+      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-orange-500 selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
@@ -732,6 +728,8 @@ export default function App() {
           notify={notify}
           authUser={authUser}
           onOpenLogin={handleOpenLogin}
+          onCloseLogin={handleCloseLogin}
+          isAuthModalOpen={isAuthModalOpen}
           onLogout={handleLogout}
           navigateTo={navigateTo}
         />
@@ -824,11 +822,12 @@ export default function App() {
           authUser={authUser}
           onClose={() => setIsSecurityModalOpen(false)}
           onApplyToken={(token: string, user: any) => {
-            setAuthToken(token);
-            setAuthUser(user);
-            localStorage.setItem('bazaarpulse_token', token);
-            localStorage.setItem('bazaarpulse_user', JSON.stringify(user));
-            notify(`🔐 Applied session token for role: ${user?.role}`);
+            if (user) {
+              centralLogin(user, token);
+            } else {
+              centralLogout();
+            }
+            notify(`🔐 Applied session token for role: ${user?.role || 'Guest'}`);
           }}
           onTestRoute={(path: string) => {
             setIsSecurityModalOpen(false);
@@ -838,6 +837,7 @@ export default function App() {
         />
       )}
     </div>
+    </ShopProvider>
   );
 }
 
@@ -1258,6 +1258,8 @@ function CustomerView({
   authUser,
   authToken,
   onOpenLogin,
+  onCloseLogin,
+  isAuthModalOpen,
   onLogout,
   navigateTo 
 }: { 
@@ -1267,6 +1269,8 @@ function CustomerView({
   authUser: any;
   authToken?: string;
   onOpenLogin: () => void;
+  onCloseLogin: () => void;
+  isAuthModalOpen: boolean;
   onLogout: () => void;
   navigateTo: (path: string) => void;
 }) {
@@ -1277,6 +1281,7 @@ function CustomerView({
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>(() => findCategoryFromPath(window.location.pathname, data?.categories || []));
   const [searchQuery, setSearchQuery] = useState('');
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Category Route Changer
   const handleCategoryChange = (catId: string) => {
@@ -1930,303 +1935,180 @@ function CustomerView({
     <div className="min-h-screen bg-gray-100 pb-20">
       {/* 2. Main Header & Search Bar */}
       <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
-        {/* 2. Main Header & Search Bar */}
         <header className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsMenuOpen(true)}
-              className="p-2 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => navigateTo('/')}>
-              <ShoppingBag className="w-7 h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
-              <h1 className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
-            </div>
-          </div>
-
-          <div className="flex-1 max-w-2xl flex items-center">
-            <div className="w-full relative flex">
-              <input
-                type="text"
-                placeholder="Search in BazaarPulse..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900"
-              />
-              <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
-                <Search className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+              >
+                <Menu className="w-6 h-6" />
               </button>
+              <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => handleCategoryChange('all')}>
+                <ShoppingBag className="w-7 h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+                <h1 className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Shopping Cart Button */}
-            <button
-              onClick={handleOpenCart}
-              className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
-              title="Shopping Cart"
-            >
-              <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
-              {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {cart.reduce((sum, i) => sum + i.quantity, 0)}
-                </span>
-              )}
-            </button>
+            <div className="flex-1 max-w-2xl flex items-center">
+              <div className="w-full relative flex">
+                <input
+                  type="text"
+                  placeholder="Search in BazaarPulse..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900"
+                />
+                <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
+                  <Search className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </button>
+              </div>
+            </div>
 
-            {/* Notification Dropdown with 12h Auto-Cleanup */}
-            <NotificationDropdown
-              userId={authUser?.id}
-              onOpenOrders={(orderId) => {
-                if (orderId) {
-                  setTrackOrderIdInput(orderId);
-                  const found = (data?.orders || []).find((o: any) => o.id?.toLowerCase().trim() === orderId.toLowerCase().trim());
-                  if (found) setTrackedOrder(found);
-                }
-                handleOpenMyOrders();
-              }}
-              notify={notify}
-            />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={handleOpenCart}
+                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
+                title="Shopping Cart"
+              >
+                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                {cart.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                    {cart.reduce((sum, i) => sum + i.quantity, 0)}
+                  </span>
+                )}
+              </button>
 
-            <button
-              onClick={() => setIsAiOpen(true)}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">AI Advisor</span>
-            </button>
+              <NotificationDropdown
+                userId={authUser?.id}
+                onOpenOrders={handleOpenMyOrders}
+                notify={notify}
+              />
 
-            {/* Profile / Account Action Button */}
-            <div className="relative">
-              {authUser ? (
-                <div>
-                  <button
-                    onClick={() => setIsProfileDropdownOpen(prev => !prev)}
-                    className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all duration-300 ease-out shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 group cursor-pointer"
-                    aria-label="User profile menu"
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
-                      {authUser.avatar ? (
-                        <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-5 h-5 text-slate-500" />
-                      )}
-                    </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
-                  </button>
+              <button
+                onClick={() => setIsAiOpen(true)}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">AI Advisor</span>
+              </button>
 
-                  {/* Interactive Profile Dropdown Menu */}
-                  <AnimatePresence>
-                    {isProfileDropdownOpen && (
-                      <>
-                        {/* Invisible backdrop to dismiss dropdown on click outside */}
-                        <div 
-                          className="fixed inset-0 z-40" 
-                          onClick={() => setIsProfileDropdownOpen(false)} 
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
-                        >
-                          {/* User Header Profile Card */}
-                          <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white flex items-center justify-center shrink-0">
-                                {authUser.avatar ? (
-                                  <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <User className="w-6 h-6 text-slate-500" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-black text-slate-900 truncate leading-snug">
-                                  {authUser.name}
-                                </h4>
-                                <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
-                                  {authUser.email}
-                                </p>
-                                <div className="mt-1.5 flex items-center gap-1.5">
-                                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                                    {authUser.role || 'Customer'}
-                                  </span>
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  <span className="text-[10px] font-bold text-emerald-600">Active</span>
+              <div className="relative">
+                {authUser ? (
+                  <div>
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(prev => !prev)}
+                      className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all duration-300 ease-out shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 group cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
+                        {authUser.avatar ? (
+                          <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-5 h-5 text-slate-500" />
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isProfileDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                            className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
+                          >
+                            <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
+                              <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white flex items-center justify-center shrink-0">
+                                  {authUser.avatar ? <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-slate-500" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-black text-slate-900 truncate">{authUser.name}</h4>
+                                  <p className="text-xs text-slate-500 truncate">{authUser.email}</p>
                                 </div>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Quick Action Navigation Links */}
-                          <div className="p-2 space-y-1">
-                            <button
-                              onClick={() => {
-                                setIsProfileDropdownOpen(false);
-                                handleOpenWishlist();
-                              }}
-                              className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group"
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <Heart className={`w-4 h-4 text-pink-500 ${wishlist.length > 0 ? 'fill-pink-500' : ''}`} />
-                                <span>আমার পছন্দের তালিকা (My Wishlist)</span>
-                              </div>
-                              {wishlist.length > 0 && (
-                                <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-pink-200">
-                                  {wishlist.length}
-                                </span>
+                            <div className="p-2 space-y-1">
+                              <button onClick={() => { setIsProfileDropdownOpen(false); handleOpenWishlist(); }} className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group">
+                                <div className="flex items-center gap-2.5">
+                                  <Heart className={`w-4 h-4 text-pink-500 ${wishlist.length > 0 ? 'fill-pink-500' : ''}`} />
+                                  <span>আমার পছন্দের তালিকা</span>
+                                </div>
+                                {wishlist.length > 0 && <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full">{wishlist.length}</span>}
+                              </button>
+                              <button onClick={() => { setIsProfileDropdownOpen(false); handleOpenMyOrders(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer">
+                                <Package className="w-4 h-4 text-orange-600" />
+                                <span>আমার অর্ডারসমূহ</span>
+                              </button>
+                              {authUser.role === 'admin' && (
+                                <button onClick={() => { setIsProfileDropdownOpen(false); navigateTo('/admin'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-colors text-left cursor-pointer">
+                                  <ShieldCheck className="w-4 h-4 text-purple-600" />
+                                  <span>অ্যাডমিন ড্যাশবোর্ড</span>
+                                </button>
                               )}
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setIsProfileDropdownOpen(false);
-                                handleOpenMyOrders();
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer"
-                            >
-                              <Package className="w-4 h-4 text-orange-600" />
-                              <span>আমার অর্ডারসমূহ (My Orders)</span>
-                            </button>
-
-                            {authUser.role === 'admin' && (
-                              <button
-                                onClick={() => {
-                                  setIsProfileDropdownOpen(false);
-                                  navigateTo('/admin');
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <ShieldCheck className="w-4 h-4 text-purple-600" />
-                                <span>অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</span>
+                              {authUser.role === 'vendor' && (
+                                <button onClick={() => { setIsProfileDropdownOpen(false); navigateTo('/vendor'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors text-left cursor-pointer">
+                                  <Store className="w-4 h-4 text-emerald-600" />
+                                  <span>ভেন্ডর ড্যাশবোর্ড</span>
+                                </button>
+                              )}
+                              <div className="border-t border-slate-100 my-1" />
+                              <button onClick={() => { setIsProfileDropdownOpen(false); onLogout(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer">
+                                <LogOut className="w-4 h-4 text-red-500" />
+                                <span>লগআউট</span>
                               </button>
-                            )}
-
-                            {authUser.role === 'vendor' && (
-                              <button
-                                onClick={() => {
-                                  setIsProfileDropdownOpen(false);
-                                  navigateTo('/vendor');
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Store className="w-4 h-4 text-emerald-600" />
-                                <span>ভেন্ডর ড্যাশবোর্ড (Vendor Panel)</span>
-                              </button>
-                            )}
-
-                            <div className="border-t border-slate-100 my-1" />
-
-                            <button
-                              onClick={() => {
-                                setIsProfileDropdownOpen(false);
-                                onLogout();
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer"
-                            >
-                              <LogOut className="w-4 h-4 text-red-500" />
-                              <span>লগআউট (Logout)</span>
-                            </button>
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <button
-                  onClick={onOpenLogin}
-                  className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-                    <User className="w-5 h-5 text-slate-400" />
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left">
-                    <span className="text-sm font-semibold text-slate-600">Login / Sign Up</span>
-                  </div>
-                </button>
-              )}
+                ) : (
+                  <button onClick={onOpenLogin} className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
+                    <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+        </header>
+
+        {/* Categories Bar */}
+        <div className="relative bg-white border-b border-gray-100 py-1.5 group/pbar">
+          <button onClick={() => categoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <button onClick={() => categoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+          </button>
+          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+            <button 
+              onClick={() => handleCategoryChange('all')} 
+              className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>All</span>
+            </button>
+            {data?.categories?.map((cat: any) => {
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <button 
+                  key={`cat-${cat.id}`} 
+                  onClick={() => handleCategoryChange(cat.id)} 
+                  className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${isSelected ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+                >
+                  <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
+                  <span>{cat.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
-        </header>
-        
-        {!isCheckoutOpen && (
-          /* Categories Bar */
-          <div className="bg-white border-b border-gray-100 py-1.5 group/pbar">
-            {/* Left Chevron Button - hidden by default, visible on hover */}
-            <button
-              onClick={() => {
-                storefrontCategoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
-              title="Scroll Left"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-            </button>
-
-            {/* Right Chevron Button - hidden by default, visible on hover */}
-            <button
-              onClick={() => {
-                storefrontCategoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
-              title="Scroll Right"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-            </button>
-
-            <div 
-              ref={storefrontCategoryScrollRef}
-              className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth"
-            >
-              <a
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleCategoryChange('all');
-                }}
-                className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                  selectedCategory === 'all' 
-                    ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
-                    : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                <span>All</span>
-              </a>
-              {data.categories.map((cat: any) => {
-                const slug = getCategorySlug(cat) || cat.id;
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <a
-                    key={`app-${cat.id}`}
-                    href={`/${slug}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleCategoryChange(cat.id);
-                    }}
-                    className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
-                      isSelected 
-                        ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' 
-                        : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'
-                    }`}
-                  >
-                    <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
-                    <span>{cat.name}</span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
-
       {/* Conditionally Render Dedicated Checkout Single Page View OR Storefront Content */}
       {isCheckoutOpen ? (
         <CheckoutModal
@@ -2298,8 +2180,12 @@ function CustomerView({
                 <a 
                   key={product.id} 
                   href={`/product/${product.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
+                      e.preventDefault();
+                      handleOpenProduct(product);
+                    }
+                  }}
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group cursor-pointer"
                 >
                   <div className="relative aspect-square overflow-hidden bg-gray-50">
@@ -2322,10 +2208,10 @@ function CustomerView({
 
                   <div className="p-3 flex-1 flex flex-col justify-between">
                     <div>
-                      <h4 className="font-normal text-gray-900 text-sm line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug">
+                      <h4 className="font-semibold text-black/90 text-xs sm:text-[13px] line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
                         {product.title}
                       </h4>
-                      <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
+                      <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
                         <Store className="w-3 h-3" /> {product.vendorName}
                       </div>
                     </div>
@@ -2490,7 +2376,7 @@ function CustomerView({
                       <img src={item.product?.images?.[0] || item.product?.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} alt="" className="w-16 h-16 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
                       
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{item.product.title}</h4>
+                        <h4 className="font-semibold text-xs sm:text-sm text-black/90 line-clamp-1">{item.product.title}</h4>
                         <div className="text-[11px] text-slate-500 mt-0.5">{item.product.vendorName}</div>
                         
                         {/* Low stock warning */}
@@ -2655,7 +2541,7 @@ function CustomerView({
       <ProductQuickView 
         selectedProduct={selectedProduct}
         setSelectedProduct={(p: any) => {
-          if (!p) closeOnlyProduct();
+          if (!p) handleCloseProduct();
           else handleOpenProduct(p);
         }}
         setIsCheckoutOpen={handleOpenCheckout}
@@ -2674,7 +2560,7 @@ function CustomerView({
         setProductQty={setProductQty}
         handleAddToCart={(p: any, q: number, s: string, c: string) => {
           addToCart(p, q, s, c);
-          closeOnlyProduct();
+          handleCloseProduct();
           handleOpenCart();
         }}
         onOpenCart={handleOpenCart}
@@ -2688,9 +2574,15 @@ function CustomerView({
         notify={notify}
         onToggleWishlist={toggleWishlist}
         isWishlisted={selectedProduct ? isInWishlist(selectedProduct.id) : false}
+        authUser={authUser}
+        onLogout={onLogout}
+        onOpenWishlist={handleOpenWishlist}
+        onOpenMyOrders={handleOpenMyOrders}
+        cart={cart}
+        wishlist={wishlist}
       />
 
-      {/* Customer Wishlist Modal */}
+      {/* Wishlist Modal */}
       <WishlistModal 
         isOpen={isWishlistOpen}
         onClose={handleCloseWishlist}
@@ -2698,176 +2590,12 @@ function CustomerView({
         onRemoveFromWishlist={removeFromWishlist}
         onAddToCart={(p, q) => {
           addToCart(p, q);
-          notify(`🛍️ "${p.title.substring(0, 20)}..." কার্টে যোগ হয়েছে!`);
+          handleCloseWishlist();
         }}
-        onViewProduct={(p) => {
-          handleOpenProduct(p);
-        }}
+        onViewProduct={handleOpenProduct}
         onClearWishlist={clearWishlist}
         onMoveAllToCart={moveAllWishlistToCart}
       />
-
-      {/* Mobile Hamburger Menu Sidebar */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm"
-            />
-            {/* Sidebar Content */}
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col"
-            >
-              {/* Sidebar Header with Profile Section */}
-              <div className="p-6 bg-white border-b border-slate-100">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="text-orange-600 font-black text-xl tracking-tighter flex items-center gap-1">
-                    <ShoppingBag className="w-6 h-6" />
-                    <span>BazaarPulse</span>
-                  </div>
-                  <button 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-slate-400" />
-                  </button>
-                </div>
-
-                {/* Profile Section */}
-                <div className="mt-4">
-                  {authUser ? (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm">
-                          {authUser.avatar ? (
-                            <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                              <User className="w-6 h-6 text-slate-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-slate-900 truncate">{authUser.name}</p>
-                          <p className="text-[10px] text-slate-500 truncate">{authUser.email}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          onLogout();
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-all border border-red-100"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout Account</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-xs text-slate-500 font-medium">Welcome to BazaarPulse</p>
-                      <button
-                        onClick={() => {
-                          onOpenLogin();
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2"
-                      >
-                        <LogIn className="w-4 h-4" />
-                        <span>Sign In / Register</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Sidebar Navigation Links */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                <div className="px-3 py-2 text-[10px] font-black text-black uppercase tracking-widest">Main Menu</div>
-                <button 
-                  onClick={() => { handleCategoryChange('all'); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
-                >
-                  <Search className="w-4 h-4 text-slate-400" />
-                  <span>Home & Explore</span>
-                </button>
-                <button 
-                  onClick={() => { handleOpenCart(); setIsMenuOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <ShoppingCart className="w-4 h-4 text-slate-400" />
-                    <span>My Shopping Cart</span>
-                  </div>
-                  {cart.length > 0 && (
-                    <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">{cart.length}</span>
-                  )}
-                </button>
-
-                <button 
-                  onClick={() => { handleOpenWishlist(); setIsMenuOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-black hover:bg-pink-50 hover:text-pink-600 rounded-xl text-sm font-bold transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-                    <span>My Wishlist</span>
-                  </div>
-                  {wishlist.length > 0 && (
-                    <span className="bg-pink-100 text-pink-700 text-[10px] px-2 py-0.5 rounded-full font-black border border-pink-200">{wishlist.length}</span>
-                  )}
-                </button>
-
-                <button 
-                  onClick={() => { handleOpenMyOrders(); setIsMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-black hover:bg-slate-50 rounded-xl text-sm font-bold transition-all cursor-pointer"
-                >
-                  <Package className="w-4 h-4 text-slate-400" />
-                  <span>Track & View Orders</span>
-                </button>
-                
-                <div className="pt-4 px-3 py-2 text-[10px] font-black text-black uppercase tracking-widest border-t border-slate-100 mt-2">Browse Categories</div>
-                <div className="grid grid-cols-1 gap-1">
-                  {data.categories.map((cat: any) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => { handleCategoryChange(cat.id); setIsMenuOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                        selectedCategory === cat.id ? 'bg-orange-50 text-orange-600' : 'text-black hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className={`p-1.5 rounded-lg ${
-                        selectedCategory === cat.id ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
-                      </div>
-                      <span>{cat.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sidebar Footer */}
-              <div className="p-3.5 border-t border-slate-100 bg-slate-50">
-                <div className="flex items-center justify-center gap-2.5 opacity-30 grayscale pointer-events-none">
-                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
-                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
-                  <div className="w-3 h-3 bg-slate-400 rounded-sm" />
-                </div>
-                <p className="text-center text-[9px] text-black font-bold mt-2">BazaarPulse v2.0 • 2026</p>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Order Confirmation Success Modal */}
       <OrderConfirmationModal
@@ -2882,263 +2610,100 @@ function CustomerView({
 
       {/* Robust My Orders & Live Tracking Modal */}
       {isMyOrdersOpen && (
-        <div className="fixed inset-0 z-[80] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[150] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 text-slate-900"
+            className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200"
           >
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
-                  <Package className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-lg text-slate-900">My Orders & Live Tracking</h3>
-                  <p className="text-xs text-slate-500 font-medium">Track your packages & browse your order history</p>
-                </div>
+                <Package className="w-5 h-5 text-orange-600" />
+                <h3 className="font-extrabold text-lg">My Orders & Tracking</h3>
               </div>
-              <button 
-                onClick={handleCloseMyOrders} 
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={handleCloseMyOrders} className="p-2 text-slate-400 hover:text-slate-600 rounded-full"><X className="w-5 h-5" /></button>
             </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Tracker Input search box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5 text-left">
-                <h4 className="text-xs font-bold uppercase text-black mb-2 tracking-wider">ইনস্ট্যান্ট অর্ডার আইডি ট্র্যাক করুন (Track Order ID)</h4>
-                <div className="flex gap-2.5 font-sans">
-                  <input
-                    type="text"
-                    placeholder="অর্ডার আইডি লিখুন (e.g. ORD-1234)..."
-                    value={trackOrderIdInput}
-                    onChange={e => setTrackOrderIdInput(e.target.value)}
-                    className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!trackOrderIdInput.trim()) return;
-                      try {
-                        const res = await fetch(`/api/orders/track/${encodeURIComponent(trackOrderIdInput.trim())}`);
-                        const json = await res.json();
-                        if (json.success && json.order) {
-                          setTrackedOrder(json.order);
-                        } else {
-                          const found = (data?.orders || []).find((o: any) => o.id?.toLowerCase().trim() === trackOrderIdInput.toLowerCase().trim());
-                          if (found) {
-                            setTrackedOrder(found);
-                          } else {
-                            setTrackedOrder(null);
-                            notify('❌ অর্ডার আইডি পাওয়া যায়নি! অনুগ্রহ করে সঠিক নম্বর দিয়ে পুনরায় চেষ্টা করুন।');
-                          }
-                        }
-                      } catch {
-                        notify('❌ ট্র্যাক করতে সমস্যা হয়েছে');
-                      }
-                    }}
-                    className="bg-[#0092d8] hover:bg-[#0081c2] text-white font-medium px-5 py-2.5 rounded-xl shadow-xs transition-colors text-sm flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>ট্র্যাক করুন</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tracked Order Progress Visual Tracker */}
-              {trackedOrder && (
-                <div id="bazaarpulse-live-tracker-title" className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs text-left scroll-mt-6">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                    <div>
-                      <span className="text-xs font-medium text-black uppercase tracking-wider">Tracking Order</span>
-                      <h4 className="font-bold text-base text-black font-mono">{trackedOrder.id}</h4>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-medium text-black uppercase tracking-wider block">Status</span>
-                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-lg inline-block ${
-                        trackedOrder.status === 'processing' || trackedOrder.status === 'pending'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : trackedOrder.status === 'shipped'
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : trackedOrder.status === 'delivered'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}>
-                        {trackedOrder.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Status Progress Stepper */}
-                  {trackedOrder.status === 'cancelled' ? (
-                    <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-center text-rose-800">
-                      <p className="font-bold text-sm flex items-center justify-center gap-1.5">
-                        🚫 এই অর্ডারটি বাতিল করা হয়েছে।
-                      </p>
-                      <p className="text-xs text-black mt-1 font-medium">সহায়তার জন্য আমাদের কাস্টমার সার্ভিসে যোগাযোগ করুন অথবা নতুন অর্ডার প্লেস করুন।</p>
-                    </div>
-                  ) : (
-                    <div className="relative py-4">
-                      {/* Stepper Lines */}
-                      <div className="absolute left-6 top-1/2 -translate-y-1/2 w-[80%] h-0.5 bg-slate-200 -z-10 hidden sm:block" />
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-4">
-                        {/* Step 1: Order Placed */}
-                        <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                          <div className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold shadow-xs">
-                            <Check className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-xs text-black">Order Placed</p>
-                            <p className="text-[11px] font-medium text-black opacity-80">Order confirmed successfully</p>
-                          </div>
-                        </div>
-
-                        {/* Step 2: Processing */}
-                        {(() => {
-                          const active = ['processing', 'shipped', 'delivered'].includes(trackedOrder.status);
-                          return (
-                            <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                              }`}>
-                                {active ? <Check className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-                              </div>
-                              <div>
-                                <p className="font-medium text-xs text-black">Processing</p>
-                                <p className="text-[11px] font-medium text-black opacity-80">Items being packaged</p>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Step 3: Shipped */}
-                        {(() => {
-                          const active = ['shipped', 'delivered'].includes(trackedOrder.status);
-                          return (
-                            <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                              }`}>
-                                {active ? <Check className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
-                              </div>
-                              <div>
-                                <p className="font-medium text-xs text-black">Shipped</p>
-                                <p className="text-[11px] font-medium text-black opacity-80">In transit to your city</p>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Step 4: Delivered */}
-                        {(() => {
-                          const active = trackedOrder.status === 'delivered';
-                          return (
-                            <div className="flex sm:flex-col items-center gap-3 sm:text-center">
-                              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shadow-xs transition-all ${
-                                active ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                              }`}>
-                                {active ? <Check className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                              </div>
-                              <div>
-                                <p className="font-medium text-xs text-black">Delivered</p>
-                                <p className="text-[11px] font-medium text-black opacity-80">Package received safely</p>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Order Details summary */}
-                  <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-3.5 text-left">
-                    <div>
-                      <h5 className="text-xs uppercase font-medium text-black tracking-wider mb-2">ORDERED ITEMS</h5>
-                      <div className="space-y-2">
-                        {(trackedOrder.items || []).map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-xs sm:text-sm">
-                            <span className="font-medium text-black max-w-[80%] truncate">
-                              <span className="font-bold text-black mr-1.5">x{item.quantity}</span> {item.title} 
-                              {(item.size || item.color) && ` (${item.size || ''}${item.size && item.color ? ', ' : ''}${item.color || ''})`}
-                            </span>
-                            <span className="font-medium text-black">৳{item.price * item.quantity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-xs sm:text-sm">
-                      <span className="font-medium text-black">Shipping Charge</span>
-                      <span className="font-medium text-black">৳{trackedOrder.shippingFee || trackedOrder.deliveryFee || 150}</span>
-                    </div>
-
-                    <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-sm font-bold text-black">
-                      <span className="font-bold text-black">Total Price</span>
-                      <span className="font-bold text-orange-600 text-base">৳{trackedOrder.totalAmount}</span>
-                    </div>
-
-                    <div className="border-t border-slate-200 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-[10px] uppercase font-medium text-black block mb-0.5">DELIVER TO:</span>
-                        <p className="font-medium text-black text-xs sm:text-sm">{trackedOrder.customerName}</p>
-                        <p className="text-xs font-medium text-black mt-1 leading-relaxed">{trackedOrder.shippingAddress}</p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase font-medium text-black block mb-0.5">PAYMENT METHOD:</span>
-                        <p className="font-medium text-black text-xs sm:text-sm">{trackedOrder.paymentMethod || 'Cash on Delivery'}</p>
-                        <p className="text-xs font-medium text-black mt-1">
-                          Status: <span className="font-bold text-orange-600">{trackedOrder.paymentStatus || 'pending'}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Full User Orders History with Details & Pre-shipping Cancellation */}
+            <div className="flex-1 overflow-y-auto p-6">
               <UserOrders
-                userId={authUser?.id || 'u4'}
+                userId={authUser?.id || 'guest'}
                 authToken={authToken}
                 notify={notify}
                 productsCatalog={data.products}
                 onSelectTrackOrder={setTrackedOrder}
                 currentTrackedOrder={trackedOrder}
               />
-
-              {!authUser && (
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center text-xs">
-                  <p className="text-slate-500 font-bold">💡 Tip: Log in to save your orders to your account</p>
-                  <button 
-                    onClick={() => {
-                      handleCloseMyOrders();
-                      onOpenLogin();
-                    }}
-                    className="text-orange-600 font-black mt-1 hover:underline cursor-pointer"
-                  >
-                    Click here to Sign In / Register
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
-              <button
-                onClick={handleCloseMyOrders}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow cursor-pointer"
-              >
-                Close Tracking
-              </button>
             </div>
           </motion.div>
         </div>
       )}
+      {/* Sidebar Navigation Drawer */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-72 bg-white z-50 shadow-2xl p-6 flex flex-col"
+            >
+              <div className="flex items-center justify-between pb-6 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-[#f85606]" />
+                  <span className="font-black text-xl text-[#f85606]">BazaarPulse</span>
+                </div>
+                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="py-6 space-y-4 flex-1 overflow-y-auto">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Categories</p>
+                <div className="space-y-1">
+                  <button 
+                    onClick={() => { handleCategoryChange('all'); setIsMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${selectedCategory === 'all' ? 'bg-[#f85606] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>All Categories</span>
+                  </button>
+                  {data?.categories?.map((cat: any) => (
+                    <button 
+                      key={`menu-${cat.id}`}
+                      onClick={() => { handleCategoryChange(cat.id); setIsMenuOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${selectedCategory === cat.id ? 'bg-[#f85606] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
+                      <span>{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                {authUser ? (
+                  <button onClick={() => { setIsMenuOpen(false); onLogout(); }} className="w-full flex items-center gap-2 text-red-600 font-semibold text-sm p-2 hover:bg-red-50 rounded-lg cursor-pointer">
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout ({authUser.name})</span>
+                  </button>
+                ) : (
+                  <button onClick={() => { setIsMenuOpen(false); onOpenLogin(); }} className="w-full flex items-center justify-center gap-2 bg-[#f85606] text-white font-semibold text-sm py-2.5 rounded-xl cursor-pointer">
+                    <LogIn className="w-4 h-4" />
+                    <span>Login / Sign Up</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

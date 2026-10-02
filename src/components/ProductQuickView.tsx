@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight, ChevronDown, LogOut, ShieldCheck, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 // Helper to normalize variation data whether it's an array, JSON string, or comma-separated string
 const normalizeList = (val: any): string[] => {
@@ -100,9 +101,31 @@ export const ProductQuickView = ({
   setSelectedCategory,
   categories: dynamicCategories = [],
   onToggleWishlist,
-  isWishlisted: propIsWishlisted
+  isWishlisted: propIsWishlisted,
+  authUser: propAuthUser,
+  onLogout: propOnLogout,
+  onOpenWishlist,
+  onOpenMyOrders,
+  cart: propCart = [],
+  wishlist: propWishlist = []
 }: any) => {
   const navigate = useNavigate();
+  const auth = useAuth();
+  const authUser = propAuthUser !== undefined ? propAuthUser : auth.authUser;
+  const onLogout = propOnLogout || auth.logout;
+  const onOpenLoginHandler = onOpenLogin || auth.openLoginModal;
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  const cartCount = useMemo(() => {
+    if (!Array.isArray(propCart)) return 0;
+    return propCart.reduce((total: number, item: any) => total + (item?.quantity || 1), 0);
+  }, [propCart]);
+
+  const wishlistCount = useMemo(() => {
+    if (Array.isArray(propWishlist)) return propWishlist.length;
+    return 0;
+  }, [propWishlist]);
+
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -149,6 +172,9 @@ export const ProductQuickView = ({
 
   const handleCloseModal = () => {
     setSelectedProduct(null);
+    if (window.location.pathname.startsWith('/product/')) {
+      navigate('/');
+    }
   };
 
   const handleBuyNow = () => {
@@ -166,8 +192,23 @@ export const ProductQuickView = ({
   };
 
   const handleCategoryClick = (catId: string) => {
-    setSelectedCategory(catId);
-    handleCloseModal();
+    if (setSelectedCategory) {
+      setSelectedCategory(catId);
+    }
+    let targetPath = '/';
+    if (catId && catId !== 'all') {
+      const catObj = Array.isArray(dynamicCategories) ? dynamicCategories.find((c: any) => c.id === catId) : null;
+      const slug = catObj?.slug || (catObj?.name ? catObj.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : catId);
+      targetPath = `/${slug}`;
+    }
+    navigate(targetPath);
+    setSelectedProduct(null);
+    setTimeout(() => {
+      const section = document.getElementById('products-section');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const displayCategories = [
@@ -222,7 +263,12 @@ export const ProductQuickView = ({
                   onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleCloseModal();
+                      setSelectedProduct(null);
+                      navigate('/');
+                      setTimeout(() => {
+                        const section = document.getElementById('products-section');
+                        if (section) section.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
                     }
                   }}
                   className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900"
@@ -230,7 +276,12 @@ export const ProductQuickView = ({
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCloseModal();
+                    setSelectedProduct(null);
+                    navigate('/');
+                    setTimeout(() => {
+                      const section = document.getElementById('products-section');
+                      if (section) section.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
                   }}
                   className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
                 >
@@ -249,12 +300,15 @@ export const ProductQuickView = ({
                 title="Shopping Cart"
               >
                 <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center border-2 border-white shadow-sm">
+                    {cartCount}
+                  </span>
+                )}
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Notifications are handled by NotificationDropdown in storefront,
-                  // for now just prevent closing in PDP.
                 }}
                 className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
                 title="Notifications"
@@ -271,29 +325,128 @@ export const ProductQuickView = ({
                 <Sparkles className="w-4 h-4" />
                 <span className="hidden sm:inline">AI Advisor</span>
               </button>
+
+              <div className="relative">
+                {authUser ? (
+                  <div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsProfileDropdownOpen(prev => !prev);
+                      }}
+                      className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all duration-300 ease-out shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 group cursor-pointer"
+                      title={authUser.name}
+                    >
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
+                        {authUser.avatar ? (
+                          <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-5 h-5 text-slate-500" />
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isProfileDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                            className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
+                          >
+                            <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
+                              <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white flex items-center justify-center shrink-0">
+                                  {authUser.avatar ? <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-slate-500" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-black text-slate-900 truncate">{authUser.name}</h4>
+                                  <p className="text-xs text-slate-500 truncate">{authUser.email}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-2 space-y-1">
+                              <button onClick={() => { setIsProfileDropdownOpen(false); onOpenWishlist?.(); }} className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group">
+                                <div className="flex items-center gap-2.5">
+                                  <Heart className={`w-4 h-4 text-pink-500 ${wishlistCount > 0 ? 'fill-pink-500' : ''}`} />
+                                  <span>আমার পছন্দের তালিকা</span>
+                                </div>
+                                {wishlistCount > 0 && <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full">{wishlistCount}</span>}
+                              </button>
+                              <button onClick={() => { setIsProfileDropdownOpen(false); onOpenMyOrders?.(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer">
+                                <Package className="w-4 h-4 text-orange-600" />
+                                <span>আমার অর্ডারসমূহ</span>
+                              </button>
+                              {authUser.role === 'admin' && (
+                                <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-colors text-left cursor-pointer">
+                                  <ShieldCheck className="w-4 h-4 text-purple-600" />
+                                  <span>অ্যাডমিন ড্যাশবোর্ড</span>
+                                </button>
+                              )}
+                              {authUser.role === 'vendor' && (
+                                <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/vendor'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors text-left cursor-pointer">
+                                  <Store className="w-4 h-4 text-emerald-600" />
+                                  <span>ভেন্ডর ড্যাশবোর্ড</span>
+                                </button>
+                              )}
+                              <div className="border-t border-slate-100 my-1" />
+                              <button onClick={() => { setIsProfileDropdownOpen(false); onLogout?.(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer">
+                                <LogOut className="w-4 h-4 text-red-500" />
+                                <span>লগআউট</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenLoginHandler();
+                    }}
+                    className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 hover:scale-105 cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
+                    <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
+                  </button>
+                )}
+              </div>
+
+              {/* Close Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenLogin && onOpenLogin();
+                  handleCloseModal();
                 }}
-                className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 hover:scale-105 cursor-pointer"
+                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 cursor-pointer"
+                title="Close"
               >
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
-                <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
+                <X className="w-6 h-6" />
               </button>
             </div>
           </div>
         </header>
 
           {/* Categories Bar */}
-          <div className="bg-white border-b border-gray-100 py-1.5 group/pbar">
-          <button className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+          <div className="relative bg-white border-b border-gray-100 py-1.5 group/pbar">
+          <button 
+            onClick={() => pdpCategoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+          >
             <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+          <button 
+            onClick={() => pdpCategoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer"
+          >
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
-          <div className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+          <div ref={pdpCategoryScrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
             {displayCategories.map((cat: any, index: number) => (
               <button
                 key={`pdp-${cat.id}-${index}`}
@@ -320,7 +473,7 @@ export const ProductQuickView = ({
                 <img 
                   src={productImages[activeImageIdx] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
                   alt={selectedProduct.title} 
-                  className="w-full h-full object-cover transition-all duration-300"
+                  className="w-full h-full object-cover transition-all duration-300" 
                   onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'; }}
                 />
                 {discountPercent > 0 && (
@@ -349,8 +502,10 @@ export const ProductQuickView = ({
               )}
             </div>
             
-            <div className="flex flex-col gap-4">
-              <h1 className="text-3xl font-extrabold text-gray-900">{selectedProduct.title}</h1>
+            <div className="flex flex-col gap-3">
+              <h1 className="text-base sm:text-lg font-semibold text-black/90 tracking-tight leading-snug">
+                {selectedProduct.title}
+              </h1>
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1 text-yellow-500"><Star className="w-4 h-4 fill-current" /> 4.8 (128 Reviews)</div>
                 <div className="text-gray-900 font-bold">Vendor: <span className="text-[#f85606] underline cursor-pointer">{selectedProduct.vendorName || 'Bazaar Store'}</span></div>

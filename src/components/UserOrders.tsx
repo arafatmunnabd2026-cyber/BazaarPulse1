@@ -404,8 +404,8 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                           className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-white"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-black truncate">{item.title}</p>
-                          <p className="text-sm font-medium text-black">
+                          <p className="text-sm font-medium text-gray-800 truncate">{item.title}</p>
+                          <p className="text-sm font-medium text-gray-600">
                             ৳{item.price} × {item.quantity} {item.size && `(${item.size})`}
                           </p>
                         </div>
@@ -572,8 +572,8 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 bg-white"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-black text-xs sm:text-sm truncate">{item.title}</p>
-                          <p className="text-xs font-medium text-black mt-0.5">
+                          <p className="font-medium text-gray-800 text-xs sm:text-sm truncate">{item.title}</p>
+                          <p className="text-xs font-medium text-gray-600 mt-0.5">
                             একক মূল্য: ৳{item.price} | পরিমাণ: {item.quantity}টি
                           </p>
                         </div>

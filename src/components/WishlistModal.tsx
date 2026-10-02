@@ -164,7 +164,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                               onClose();
                               onViewProduct(prod);
                             }}
-                            className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#f85606] transition-colors cursor-pointer"
+                            className="text-xs sm:text-sm font-semibold text-black/90 line-clamp-2 leading-snug group-hover:text-[#f85606] transition-colors cursor-pointer"
                           >
                             {prod.title}
                           </h4>

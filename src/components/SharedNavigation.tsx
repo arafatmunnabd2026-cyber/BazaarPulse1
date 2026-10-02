@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingBag, Search, ShoppingCart, Bell, Sparkles, User, Menu, X, ChevronLeft, ChevronRight, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, Heart } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // Simplified Category Mapping to be reused
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {
@@ -45,7 +46,7 @@ export const SharedNavigation = ({
   handleCategoryChange,
   searchQuery,
   setSearchQuery,
-  authUser,
+  authUser: propAuthUser,
   onOpenLogin,
   isMenuOpen,
   setIsMenuOpen,
@@ -56,6 +57,9 @@ export const SharedNavigation = ({
   onClose,
   isPDP = false
 }: any) => {
+  const auth = useAuth();
+  const effectiveAuthUser = propAuthUser !== undefined ? propAuthUser : auth.authUser;
+  const effectiveOnOpenLogin = onOpenLogin || auth.openLoginModal;
   const scrollRef = React.useRef<HTMLDivElement>(null);
   
   const displayCategories = [
@@ -106,10 +110,22 @@ export const SharedNavigation = ({
             <Sparkles className="w-4 h-4" />
             <span className="hidden sm:inline">AI Advisor</span>
           </button>
-          <button onClick={onOpenLogin} className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer">
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
-            <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
-          </button>
+          {effectiveAuthUser ? (
+            <div className="flex items-center gap-2 p-1.5 rounded-full border border-slate-200 bg-white shadow-xs">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+                {effectiveAuthUser.avatar ? <img src={effectiveAuthUser.avatar} alt={effectiveAuthUser.name} className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-slate-400" />}
+              </div>
+              <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left">
+                <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">{effectiveAuthUser.name}</span>
+                <span className="text-[10px] text-slate-500 capitalize">{effectiveAuthUser.role}</span>
+              </div>
+            </div>
+          ) : (
+            <button onClick={effectiveOnOpenLogin} className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
+              <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
+            </button>
+          )}
         </div>
       </div>
 

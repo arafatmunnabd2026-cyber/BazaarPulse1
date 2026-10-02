@@ -993,7 +993,7 @@ export default function CheckoutModal({
                       className="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-50"
                     />
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-xs font-bold text-slate-900 truncate">
+                      <h3 className="text-xs font-bold text-gray-800 truncate">
                         {item.product.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
