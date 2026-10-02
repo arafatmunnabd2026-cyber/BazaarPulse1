@@ -319,46 +319,144 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                 </div>
 
                 {/* Progress Visual Timeline */}
-                <div className="relative pt-2 pb-4">
-                  {/* Progress Line */}
-                  <div className="hidden sm:block absolute top-1/2 left-8 right-8 h-1.5 bg-slate-100 -translate-y-1/2 rounded-full overflow-hidden">
+                <div className="relative pt-2 pb-2">
+                  {/* Desktop Connecting Progress Line */}
+                  <div className="hidden sm:block absolute top-6 left-[12.5%] right-[12.5%] h-1.5 bg-slate-100 rounded-full overflow-hidden z-0">
                     <div 
                       className="h-full bg-gradient-to-r from-orange-500 to-emerald-500 transition-all duration-700 ease-out"
                       style={{ width: `${(activeStep / (steps.length - 1)) * 100}%` }}
                     />
                   </div>
 
-                  {/* Step Nodes */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-2 relative z-10">
+                  {/* Desktop Step Nodes Grid */}
+                  <div className="hidden sm:grid sm:grid-cols-4 gap-3 lg:gap-4 relative z-10">
                     {steps.map((step, idx) => {
                       const Icon = step.icon;
                       const isCompleted = activeStep >= idx;
                       const isCurrent = activeStep === idx;
 
                       return (
-                        <div key={idx} className="flex sm:flex-col items-center gap-3 sm:gap-2 text-left sm:text-center">
+                        <div 
+                          key={idx} 
+                          className="flex flex-col items-center text-center p-2 rounded-2xl transition-all"
+                        >
+                          {/* Icon with white ring backdrop so line passes cleanly behind */}
+                          <div className="p-1 bg-white rounded-2xl mb-2.5 shadow-2xs">
+                            <div 
+                              className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm ${
+                                isCurrent
+                                  ? 'bg-orange-600 text-white ring-4 ring-orange-100 scale-105'
+                                  : isCompleted
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                          </div>
+
+                          {/* Step Text Container with proper break-words & margins */}
+                          <div className="w-full max-w-full flex flex-col items-center space-y-1 px-1">
+                            <h5 
+                              className={`text-xs font-bold leading-tight break-words max-w-full text-center ${
+                                isCurrent 
+                                  ? 'text-orange-600 font-extrabold' 
+                                  : isCompleted 
+                                  ? 'text-slate-900' 
+                                  : 'text-slate-500'
+                              }`}
+                            >
+                              {step.title}
+                            </h5>
+                            
+                            <p className="text-[10px] text-slate-500 leading-snug break-words max-w-full text-center">
+                              {step.subtitle}
+                            </p>
+
+                            <div className="pt-1 w-full flex justify-center">
+                              <span 
+                                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border leading-tight break-words shadow-2xs ${
+                                  isCurrent
+                                    ? 'bg-orange-50 text-orange-700 border-orange-200 animate-pulse'
+                                    : isCompleted
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-slate-50 text-slate-400 border-slate-200'
+                                }`}
+                              >
+                                {step.time}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mobile Vertical Timeline Flow */}
+                  <div className="sm:hidden space-y-2.5 relative">
+                    {steps.map((step, idx) => {
+                      const Icon = step.icon;
+                      const isCompleted = activeStep >= idx;
+                      const isCurrent = activeStep === idx;
+
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`relative flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all ${
+                            isCurrent
+                              ? 'bg-orange-50/70 border-orange-200 ring-1 ring-orange-200'
+                              : isCompleted
+                              ? 'bg-emerald-50/40 border-emerald-100'
+                              : 'bg-slate-50/70 border-slate-200/80 opacity-80'
+                          }`}
+                        >
+                          {/* Step Icon */}
                           <div 
-                            className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shrink-0 transition-all duration-300 shadow-sm ${
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 shadow-sm mt-0.5 ${
                               isCurrent
-                                ? 'bg-orange-600 text-white ring-4 ring-orange-100 scale-110'
+                                ? 'bg-orange-600 text-white ring-3 ring-orange-200 scale-105'
                                 : isCompleted
                                 ? 'bg-emerald-500 text-white'
-                                : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                : 'bg-slate-200 text-slate-400'
                             }`}
                           >
                             <Icon className="w-5 h-5" />
                           </div>
 
-                          <div className="min-w-0 flex-1 sm:flex-initial">
-                            <h5 className={`text-xs font-bold ${isCurrent ? 'text-orange-600 font-extrabold' : isCompleted ? 'text-slate-900' : 'text-slate-500'}`}>
-                              {step.title}
-                            </h5>
-                            <p className="text-[10px] text-slate-500 hidden sm:block mt-0.5 leading-snug">
+                          {/* Step Content */}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h5 
+                                className={`text-xs font-bold leading-tight break-words ${
+                                  isCurrent 
+                                    ? 'text-orange-600 font-extrabold' 
+                                    : isCompleted 
+                                    ? 'text-slate-900' 
+                                    : 'text-slate-500'
+                                }`}
+                              >
+                                {step.title}
+                              </h5>
+                              <span 
+                                className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md border leading-tight ${
+                                  isCurrent
+                                    ? 'bg-orange-100 text-orange-800 border-orange-300'
+                                    : isCompleted
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                                }`}
+                              >
+                                {step.time}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-600 leading-snug break-words">
                               {step.subtitle}
                             </p>
-                            <span className="inline-block sm:block text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 border border-emerald-100">
-                              {step.time}
-                            </span>
+                            
+                            <p className="text-[10px] text-slate-400 leading-relaxed break-words pt-0.5">
+                              {step.desc}
+                            </p>
                           </div>
                         </div>
                       );
