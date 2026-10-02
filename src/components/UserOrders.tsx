@@ -4,6 +4,7 @@ import { Package, Clock, Truck, CheckCircle, Search, RefreshCw, XCircle, Eye, Al
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlugins } from '../plugins/PluginContext';
 import { InvoiceModal } from './InvoiceModal';
+import { LiveOrderTrackingModal } from './LiveOrderTrackingModal';
 
 interface OrderItem {
   productId: string;
@@ -48,7 +49,14 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
   const [cancellingOrderId, setSubmittingCancelId] = useState<string | null>(null);
   const [invoiceModalOrder, setInvoiceModalOrder] = useState<Order | null>(null);
+  const [liveTrackingOrder, setLiveTrackingOrder] = useState<Order | null>(currentTrackedOrder || null);
   const { isPluginActive } = usePlugins();
+
+  useEffect(() => {
+    if (currentTrackedOrder) {
+      setLiveTrackingOrder(currentTrackedOrder);
+    }
+  }, [currentTrackedOrder]);
 
   const isInvoiceActive = isPluginActive('automated-invoice');
 
@@ -445,23 +453,19 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                       </button>
                     )}
 
-                    {onSelectTrackOrder && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectTrackOrder(order);
-                          const trackerEl = document.getElementById('bazaarpulse-live-tracker-title');
-                          if (trackerEl) {
-                            trackerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }
-                          if (notify) notify(`📍 অর্ডার নম্বর #${order.id} ট্র্যাক করা হচ্ছে!`);
-                        }}
-                        className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-all shadow-xs"
-                      >
-                        <Truck className="w-4 h-4 animate-bounce" />
-                        <span className="text-sm font-medium text-white">লাইভ ট্র্যাক করুন</span>
-                      </button>
-                    )}
+                    {/* Live Tracking Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLiveTrackingOrder(order);
+                        if (onSelectTrackOrder) onSelectTrackOrder(order);
+                        if (notify) notify(`📍 অর্ডার নম্বর #${order.id} এর লাইভ ট্র্যাকিং ওপেন হয়েছে!`);
+                      }}
+                      className="flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-all shadow-xs"
+                    >
+                      <Truck className="w-4 h-4 animate-bounce" />
+                      <span className="text-sm font-medium text-white">লাইভ ট্র্যাক করুন</span>
+                    </button>
 
                     {/* Single Order Delete Button */}
                     <button
@@ -548,7 +552,20 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                   </div>
                   <div>
                     <span className="font-medium text-black block mb-0.5">অর্ডার স্ট্যাটাস:</span>
-                    <span className="font-bold text-black uppercase">{selectedOrderDetails.status}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-black uppercase">{selectedOrderDetails.status}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLiveTrackingOrder(selectedOrderDetails);
+                          if (onSelectTrackOrder) onSelectTrackOrder(selectedOrderDetails);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200 transition-colors cursor-pointer"
+                      >
+                        <Truck className="w-3 h-3" />
+                        <span>লাইভ ট্র্যাক</span>
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium text-black block mb-0.5">পেমেন্ট মেথড:</span>
@@ -639,6 +656,19 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                 )}
 
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLiveTrackingOrder(selectedOrderDetails);
+                      if (onSelectTrackOrder) onSelectTrackOrder(selectedOrderDetails);
+                      if (notify) notify(`📍 অর্ডার নম্বর #${selectedOrderDetails.id} এর লাইভ ট্র্যাকিং ওপেন হয়েছে!`);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>লাইভ ট্র্যাক করুন</span>
+                  </button>
+
                   {isInvoiceActive && (
                     <button
                       type="button"
@@ -672,6 +702,18 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
           order={invoiceModalOrder}
           onClose={() => setInvoiceModalOrder(null)}
           notify={notify}
+        />
+      )}
+
+      {/* Live Order Tracking Modal */}
+      {liveTrackingOrder && (
+        <LiveOrderTrackingModal
+          isOpen={!!liveTrackingOrder}
+          order={liveTrackingOrder as any}
+          orderId={liveTrackingOrder.id}
+          onClose={() => setLiveTrackingOrder(null)}
+          notify={notify}
+          productsCatalog={productsCatalog}
         />
       )}
     </div>
