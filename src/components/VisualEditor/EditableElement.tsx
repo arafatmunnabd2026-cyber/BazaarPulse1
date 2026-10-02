@@ -55,7 +55,9 @@ export const EditableElement: React.FC<EditableElementProps> = ({
     ...(override.color ? { color: override.color } : defaultColor ? { color: defaultColor } : {}),
     ...(override.bgColor ? { backgroundColor: override.bgColor } : defaultBgColor ? { backgroundColor: defaultBgColor } : {}),
     ...(override.fontSize ? { fontSize: override.fontSize } : {}),
-    ...(override.fontWeight ? { fontWeight: override.fontWeight } : {})
+    ...(override.fontWeight ? { fontWeight: override.fontWeight } : {}),
+    ...(override.padding ? { padding: override.padding } : {}),
+    ...(override.borderRadius ? { borderRadius: override.borderRadius } : {})
   };
 
   const handleEditClick = (e: React.MouseEvent) => {

@@ -53,6 +53,8 @@ export const VisualEditDrawer: React.FC = () => {
   const [bgColor, setBgColor] = useState('');
   const [fontSize, setFontSize] = useState('');
   const [fontWeight, setFontWeight] = useState('');
+  const [padding, setPadding] = useState('');
+  const [borderRadius, setBorderRadius] = useState('');
   const [href, setHref] = useState('');
   const [hidden, setHidden] = useState(false);
 
@@ -64,6 +66,8 @@ export const VisualEditDrawer: React.FC = () => {
     setBgColor(current.bgColor || activeElement.defaultBgColor || '');
     setFontSize(current.fontSize || '');
     setFontWeight(current.fontWeight || '');
+    setPadding(current.padding || '');
+    setBorderRadius(current.borderRadius || '');
     setHref(current.href || activeElement.defaultHref || '');
     setHidden(!!current.hidden);
   }, [activeElement, visualOverrides]);
@@ -78,9 +82,16 @@ export const VisualEditDrawer: React.FC = () => {
       bgColor: bgColor || undefined,
       fontSize: fontSize || undefined,
       fontWeight: fontWeight || undefined,
+      padding: padding || undefined,
+      borderRadius: borderRadius || undefined,
       href: href || undefined,
       hidden
     });
+    setActiveElement(null);
+  };
+
+  const handlePermanentDelete = () => {
+    updateOverride(activeElement.id, { hidden: true });
     setActiveElement(null);
   };
 
@@ -271,6 +282,39 @@ export const VisualEditDrawer: React.FC = () => {
               </div>
             </div>
 
+            {/* Advanced Styling: Padding & Border Radius */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-800">প্যাডিং (Padding):</label>
+                <select
+                  value={padding}
+                  onChange={e => setPadding(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
+                >
+                  <option value="">ডিফল্ট (Default)</option>
+                  <option value="4px 8px">কম (Small)</option>
+                  <option value="8px 16px">সাধারণ (Normal)</option>
+                  <option value="16px 24px">বড় (Spacious)</option>
+                  <option value="24px 32px">মেগা (Extra Large)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-800">বর্ডার রেডিয়াস (Radius):</label>
+                <select
+                  value={borderRadius}
+                  onChange={e => setBorderRadius(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs"
+                >
+                  <option value="">ডিফল্ট (Default)</option>
+                  <option value="4px">ছোট কোণ (4px)</option>
+                  <option value="12px">রাউন্ড (12px)</option>
+                  <option value="24px">বড় রাউন্ড (24px)</option>
+                  <option value="9999px">সম্পূর্ণ গোল (Pill)</option>
+                </select>
+              </div>
+            </div>
+
             {/* Visibility Toggle */}
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
               <div>
@@ -322,15 +366,27 @@ export const VisualEditDrawer: React.FC = () => {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="text-xs font-bold text-slate-600 hover:text-red-600 px-3 py-2 rounded-xl hover:bg-red-50 flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>রিসেট (Reset)</span>
-              </button>
+            <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-xs font-bold text-slate-600 hover:text-red-600 px-3 py-2 rounded-xl hover:bg-red-50 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>রিসেট</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePermanentDelete}
+                  className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 px-3 py-2 rounded-xl border border-rose-200 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="এই উপাদানটি চিরতরে মুছে বা হাইড করুন"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>ডিলিট (Delete)</span>
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
@@ -346,7 +402,7 @@ export const VisualEditDrawer: React.FC = () => {
                   className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  <span>লাইভ প্রয়োগ করুন (Apply)</span>
+                  <span>লাইভ প্রয়োগ করুন</span>
                 </button>
               </div>
             </div>
