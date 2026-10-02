@@ -605,7 +605,7 @@ export default function CheckoutModal({
                   {/* Input 1: Full Name */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Full Name / প্রাপকের নাম <span className="text-red-500">*</span>
+                      Full Name /  <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -620,7 +620,7 @@ export default function CheckoutModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Mobile Number / মোবাইল নম্বর <span className="text-red-500">*</span>
+                        Mobile Number /  <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="tel"
@@ -633,7 +633,7 @@ export default function CheckoutModal({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Alt. Mobile Number (বিকল্প নম্বর - ঐচ্ছিক)
+                        Alt. Mobile Number 
                       </label>
                       <input
                         type="tel"
@@ -652,7 +652,7 @@ export default function CheckoutModal({
                   onChange={e => setShippingInfo({ ...shippingInfo, country: e.target.value })}
                   className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 >
-                  <option value="বাংলাদেশ">বাংলাদেশ (Bangladesh)</option>
+                  <option value="বাংলাদেশ"> Bangladesh</option>
                 </select>
               </div>
 
@@ -660,7 +660,7 @@ export default function CheckoutModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    জেলা (Select District - 64 Districts) <span className="text-red-500">*</span>
+                     (Select District - 64 Districts) <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={shippingInfo.district}
@@ -678,7 +678,7 @@ export default function CheckoutModal({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    থানা / এলাকা (Thana / Upazila) <span className="text-red-500">*</span>
+                     / এলাকা (Thana / Upazila) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
