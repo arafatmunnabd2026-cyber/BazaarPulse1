@@ -543,15 +543,17 @@ export default function CheckoutModal({
                 <MapPin className="w-5 h-5 text-blue-600" />
                 <span>Shipping Address</span>
               </h2>
-              {/* Close Button for Shipping Address Box */}
-              <button
-                type="button"
-                onClick={() => setShowShippingAddressBox(prev => !prev)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors cursor-pointer border border-slate-200 shadow-2xs"
-                title={showShippingAddressBox ? "শিপিং এড্রেস বক্স বন্ধ করুন" : "শিপিং এড্রেস বক্স খুলুন"}
-              >
-                <X className="w-5 h-5 text-slate-600 hover:text-red-600" />
-              </button>
+              {/* Close Button for Shipping Address Box - Only visible when form is OPEN */}
+              {showShippingAddressBox && (
+                <button
+                  type="button"
+                  onClick={() => setShowShippingAddressBox(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors cursor-pointer border border-slate-200 shadow-2xs"
+                  title="শিপিং এড্রেস বক্স বন্ধ করুন"
+                >
+                  <X className="w-5 h-5 text-slate-600 hover:text-red-600" />
+                </button>
+              )}
             </div>
 
             {!showShippingAddressBox ? (
