@@ -243,9 +243,9 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-black tracking-tight">লাইভ অর্ডার ট্র্যাকার (Live Order Tracker)</h3>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight">Live Order Tracker</h3>
                   <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                    রিয়েল-টাইম
+                    Real-Time
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -554,12 +554,7 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
           </div>
 
           {/* Modal Footer Actions */}
-          <div className="bg-white border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-black">
-              <Sparkles className="w-4 h-4 text-orange-500" />
-              <span>যেকোনো সহায়তায় হেল্পলাইন: <strong className="text-black font-bold">+880 1756-482001</strong></span>
-            </div>
-
+          <div className="bg-white border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-end gap-3 shrink-0">
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               {isInvoiceActive && (
                 <button
