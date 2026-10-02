@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Package, Clock, Truck, CheckCircle, Search, RefreshCw, XCircle, Eye, AlertCircle, ShieldCheck, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, Search, RefreshCw, XCircle, Eye, AlertCircle, ShieldCheck, Trash2, CheckSquare, Square, FileText, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePlugins } from '../plugins/PluginContext';
+import { InvoiceModal } from './InvoiceModal';
 
 interface OrderItem {
   productId: string;
@@ -45,6 +47,10 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
   const [loading, setLoading] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
   const [cancellingOrderId, setSubmittingCancelId] = useState<string | null>(null);
+  const [invoiceModalOrder, setInvoiceModalOrder] = useState<Order | null>(null);
+  const { isPluginActive } = usePlugins();
+
+  const isInvoiceActive = isPluginActive('automated-invoice');
 
   // Selection & Deletion State
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -428,6 +434,17 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                       <span className="text-sm font-medium text-black">অর্ডার ডিটেইলস দেখুন</span>
                     </button>
 
+                    {isInvoiceActive && (
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceModalOrder(order)}
+                        className="flex items-center gap-1.5 border border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-800 px-3.5 py-1.5 rounded-xl text-sm font-medium cursor-pointer transition-colors"
+                      >
+                        <FileText className="w-4 h-4 text-orange-600" />
+                        <span className="text-sm font-medium text-orange-950 font-bold">ইনভয়েস (PDF)</span>
+                      </button>
+                    )}
+
                     {onSelectTrackOrder && (
                       <button
                         type="button"
@@ -621,19 +638,42 @@ export default function UserOrders({ userId, authToken, notify, productsCatalog 
                   </span>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrderDetails(null)}
-                  className="bg-slate-800 hover:bg-slate-900 text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
-                >
-                  বন্ধ করুন (Close)
-                </button>
+                <div className="flex items-center gap-2">
+                  {isInvoiceActive && (
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceModalOrder(selectedOrderDetails)}
+                      className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>PDF ইনভয়েস</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderDetails(null)}
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    বন্ধ করুন (Close)
+                  </button>
+                </div>
               </div>
 
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Invoice Modal */}
+      {invoiceModalOrder && (
+        <InvoiceModal
+          isOpen={!!invoiceModalOrder}
+          order={invoiceModalOrder}
+          onClose={() => setInvoiceModalOrder(null)}
+          notify={notify}
+        />
+      )}
     </div>
   );
 }

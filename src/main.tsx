@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {GoogleOAuthProvider} from '@react-oauth/google';
 import {BrowserRouter} from 'react-router-dom';
 import {AuthProvider} from './context/AuthContext';
+import {PluginProvider} from './plugins/PluginContext';
 import App from './App.tsx';
 import './index.css';
 
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
     <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <PluginProvider>
+            <App />
+          </PluginProvider>
         </AuthProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>

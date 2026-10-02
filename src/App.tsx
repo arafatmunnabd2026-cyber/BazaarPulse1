@@ -13,11 +13,14 @@ import {
   Menu, X, Filter, RefreshCw, ChevronRight, ChevronLeft, Settings, Layers, CreditCard,
   Truck, MapPin, Key, Lock, Shield, Terminal, Copy, CheckCheck,
   ShieldAlert, LogOut, LogIn, ExternalLink, ChevronDown, ShieldOff,
-  Upload, Image, Eye, Cpu, Shirt, Home, Trophy
+  Upload, Image, Eye, Cpu, Shirt, Home, Trophy, Sliders, SlidersHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { useAuth } from './context/AuthContext';
+import { usePlugins } from './plugins/PluginContext';
+import { FlashSaleWidget } from './plugins/FlashSaleWidget';
+import { AdminMarketplacePlugins } from './components/AdminMarketplacePlugins';
 import { ProductQuickView } from './components/ProductQuickView';
 import { SharedNavigation } from './components/SharedNavigation';
 import { WishlistModal } from './components/WishlistModal';
@@ -28,6 +31,7 @@ import VendorDashboard from './components/VendorDashboard';
 import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
+import { AdvancedFilterSidebar, FilterState, DEFAULT_FILTER_STATE } from './components/AdvancedFilterSidebar';
 import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
@@ -201,6 +205,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const { authUser, authToken, setAuthUser, setAuthToken, login: centralLogin, logout: centralLogout } = useAuth();
+  const { isPluginActive } = usePlugins();
 
   // Handle Google OAuth 2.0 Callback Query Parameters
   useEffect(() => {
@@ -245,11 +250,43 @@ export default function App() {
   const [authModalTab, setAuthModalTab] = useState<'login' | 'quick_roles' | 'security_test'>('login');
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
-  // Fetch initial data with full two-way merging
+  // Fetch initial data with full two-way merging and bulletproof fallback
   const loadData = async () => {
     try {
-      const res = await fetch('/api/platform/data');
-      const json = await res.json();
+      let json: any = null;
+      try {
+        const res = await fetch('/api/platform/data');
+        if (res.ok) {
+          json = await res.json();
+        }
+      } catch (fetchErr) {
+        console.warn('Backend API /api/platform/data unavailable, continuing with client/Supabase data:', fetchErr);
+      }
+
+      // Safe default structure if API fetch failed
+      if (!json || typeof json !== 'object') {
+        json = {
+          products: [],
+          categories: [
+            { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
+            { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
+            { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
+            { id: 'c4', name: 'Beauty', slug: 'beauty', icon: 'Sparkles' },
+            { id: 'c7', name: 'Health', slug: 'health', icon: 'Heart' },
+            { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
+            { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
+          ],
+          vendors: [
+            { id: 'v1', name: 'BazaarPulse Official Store', shopName: 'BazaarPulse Official Store', logo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100', rating: 4.9, status: 'approved' }
+          ],
+          orders: [],
+          adminSettings: {
+            globalCommissionRate: 10,
+            platformName: 'BazaarPulse',
+            banners: []
+          }
+        };
+      }
 
       // Direct client-side Supabase sync to guarantee instant zero-delay updates
       if (supabase) {
@@ -365,7 +402,22 @@ export default function App() {
       setData(json);
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load platform data', err);
+      console.warn('Note while loading platform data, ensuring fallback state:', err);
+      setData((prev: any) => prev || {
+        products: [],
+        categories: [
+          { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
+          { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
+          { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
+          { id: 'c4', name: 'Beauty', slug: 'beauty', icon: 'Sparkles' },
+          { id: 'c7', name: 'Health', slug: 'health', icon: 'Heart' },
+          { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
+          { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
+        ],
+        vendors: [],
+        orders: [],
+        adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse', banners: [] }
+      });
       setLoading(false);
     }
   };
@@ -1276,6 +1328,7 @@ function CustomerView({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isPluginActive } = usePlugins();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -1724,6 +1777,23 @@ function CustomerView({
     navigate(getBaseStorefrontPath());
   };
 
+  // Abandoned Cart recovery global event listeners
+  useEffect(() => {
+    const handleTriggerCheckout = () => {
+      setIsCheckoutOpen(true);
+      setIsCartOpen(false);
+    };
+    const handleTriggerCart = () => {
+      setIsCartOpen(true);
+    };
+    window.addEventListener('bazaarpulse_open_checkout', handleTriggerCheckout);
+    window.addEventListener('bazaarpulse_open_cart', handleTriggerCart);
+    return () => {
+      window.removeEventListener('bazaarpulse_open_checkout', handleTriggerCheckout);
+      window.removeEventListener('bazaarpulse_open_cart', handleTriggerCart);
+    };
+  }, []);
+
   // 6. Sync category state with URL path on data load and route changes
   useEffect(() => {
     const specialPaths = ['/checkout', '/cart', '/wishlist', '/orders', '/my-orders', '/track-order', '/login', '/auth', '/register', '/order-success', '/order-confirmation'];
@@ -1755,6 +1825,58 @@ function CustomerView({
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Advanced Product Filter State & URL Search Params Sync
+  const isFilterPluginActive = isPluginActive('advanced-product-filter');
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        minPrice: Number(params.get('minPrice')) || 0,
+        maxPrice: Number(params.get('maxPrice')) || 50000,
+        brands: params.get('brands') ? params.get('brands')!.split(',').filter(Boolean) : [],
+        sizes: params.get('sizes') ? params.get('sizes')!.split(',').filter(Boolean) : [],
+        colors: params.get('colors') ? params.get('colors')!.split(',').filter(Boolean) : [],
+        minRating: Number(params.get('rating')) || 0,
+        inStockOnly: params.get('inStock') === 'true',
+        discountedOnly: params.get('sale') === 'true',
+        sortBy: (params.get('sort') as any) || 'default'
+      };
+    } catch {
+      return DEFAULT_FILTER_STATE;
+    }
+  });
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (newFilters.minPrice > 0) params.set('minPrice', String(newFilters.minPrice)); else params.delete('minPrice');
+      if (newFilters.maxPrice < 50000) params.set('maxPrice', String(newFilters.maxPrice)); else params.delete('maxPrice');
+      if (newFilters.brands.length > 0) params.set('brands', newFilters.brands.join(',')); else params.delete('brands');
+      if (newFilters.sizes.length > 0) params.set('sizes', newFilters.sizes.join(',')); else params.delete('sizes');
+      if (newFilters.colors.length > 0) params.set('colors', newFilters.colors.join(',')); else params.delete('colors');
+      if (newFilters.minRating > 0) params.set('rating', String(newFilters.minRating)); else params.delete('rating');
+      if (newFilters.inStockOnly) params.set('inStock', 'true'); else params.delete('inStock');
+      if (newFilters.discountedOnly) params.set('sale', 'true'); else params.delete('sale');
+      if (newFilters.sortBy !== 'default') params.set('sort', newFilters.sortBy); else params.delete('sort');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+      window.history.replaceState(null, '', newUrl);
+    } catch {}
+  };
+
+  const handleResetFilters = () => {
+    setFilters(DEFAULT_FILTER_STATE);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      ['minPrice', 'maxPrice', 'brands', 'sizes', 'colors', 'rating', 'inStock', 'sale', 'sort'].forEach(k => params.delete(k));
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '');
+      window.history.replaceState(null, '', newUrl);
+    } catch {}
+  };
+
   const filteredProducts = (data?.products || []).filter((p: any) => {
     const normP = normalizeCategoryId(p.categoryId, p.categoryName);
     const matchesCat = selectedCategory === 'all' || normP === selectedCategory || p.categoryId === selectedCategory;
@@ -1765,7 +1887,60 @@ function CustomerView({
       (p.description && p.description.toLowerCase().includes(cleanQuery)) ||
       cleanQuery.split(/\s+/).some((word: string) => word.length > 1 && (p.title?.toLowerCase().includes(word) || (p.categoryName && p.categoryName.toLowerCase().includes(word))));
     const isActive = p.status === 'active' || !p.status || p.status === 'Active';
-    return matchesCat && matchesSearch && isActive;
+    
+    if (!matchesCat || !matchesSearch || !isActive) return false;
+
+    if (isFilterPluginActive) {
+      const effPrice = Number(p.discountPrice || p.price || 0);
+
+      if (filters.minPrice > 0 && effPrice < filters.minPrice) return false;
+      if (filters.maxPrice > 0 && effPrice > filters.maxPrice) return false;
+
+      if (filters.brands.length > 0 && !filters.brands.includes(p.vendorName || 'BazaarPulse Store')) {
+        return false;
+      }
+
+      if (filters.sizes.length > 0) {
+        const prodSizes = Array.isArray(p.sizes) ? p.sizes : [];
+        const hasSize = filters.sizes.some(s => prodSizes.includes(s));
+        if (!hasSize) return false;
+      }
+
+      if (filters.colors.length > 0) {
+        const prodColors = Array.isArray(p.colors) ? p.colors : [];
+        const hasColor = filters.colors.some(c => prodColors.includes(c));
+        if (!hasColor) return false;
+      }
+
+      if (filters.minRating > 0 && Number(p.rating || 5) < filters.minRating) {
+        return false;
+      }
+
+      if (filters.inStockOnly && (p.stock !== undefined && p.stock <= 0)) {
+        return false;
+      }
+
+      if (filters.discountedOnly && (!p.discountPrice || p.discountPrice >= p.price)) {
+        return false;
+      }
+    }
+
+    return true;
+  }).sort((a: any, b: any) => {
+    if (!isFilterPluginActive || filters.sortBy === 'default') return 0;
+    if (filters.sortBy === 'price_low') {
+      return Number(a.discountPrice || a.price || 0) - Number(b.discountPrice || b.price || 0);
+    }
+    if (filters.sortBy === 'price_high') {
+      return Number(b.discountPrice || b.price || 0) - Number(a.discountPrice || a.price || 0);
+    }
+    if (filters.sortBy === 'rating') {
+      return Number(b.rating || 5) - Number(a.rating || 5);
+    }
+    if (filters.sortBy === 'newest') {
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    }
+    return 0;
   });
 
   const addToCart = async (product: any, qty: number = 1, size?: string, color?: string) => {
@@ -1881,6 +2056,8 @@ function CustomerView({
           // Regular cart checkout: clear cart
           setCart([]);
           localStorage.removeItem('bazaarpulse_cart');
+          localStorage.removeItem('bazaarpulse_abandoned_cart_data');
+          window.dispatchEvent(new Event('bazaarpulse_cart_recovered'));
         }
 
         // Add user notification for order success
@@ -2124,6 +2301,9 @@ function CustomerView({
           {/* 3. Hero Banner Slider Section */}
           <HeroSlider banners={data.adminSettings.banners} />
 
+          {/* Flash Sale Countdown Timer & Dynamic Banner Widget */}
+          <FlashSaleWidget />
+
       {/* 4. Promotional Campaign Strip */}
       <div className="max-w-7xl mx-auto px-4 mt-4">
         <div 
@@ -2154,139 +2334,253 @@ function CustomerView({
         </div>
       </div>
 
-      {/* Products Grid */}
+      {/* Products Grid Section with Advanced Filter Sidebar */}
       <div id="products-section" className="max-w-7xl mx-auto px-4 mt-10">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-gray-900">
-            {selectedCategory === 'all' ? 'Just For You' : 'Category Products'}
-          </h3>
-          <span className="text-sm text-gray-500">{filteredProducts.length} items found</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900">
+              {selectedCategory === 'all' ? 'Just For You' : 'Category Products'}
+            </h3>
+            <span className="text-xs text-gray-500">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {isFilterPluginActive && (
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              >
+                <Sliders className="w-3.5 h-3.5 text-orange-600" />
+                <span>ফিল্টার ও সর্ট</span>
+                {(filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') && (
+                  <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></span>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        {filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
-            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h4 className="font-bold text-gray-800 text-lg">No products found</h4>
-            <p className="text-sm text-gray-500 mt-1">Try searching for something else or change category.</p>
+        {/* Active Filter Chips Strip */}
+        {isFilterPluginActive && (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">সক্রিয় ফিল্টার:</span>
+            
+            {filters.minPrice > 0 && (
+              <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                মিন ৳{filters.minPrice}
+                <button type="button" onClick={() => handleFilterChange({ ...filters, minPrice: 0 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            )}
+
+            {filters.maxPrice < 50000 && (
+              <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                ম্যাক্স ৳{filters.maxPrice}
+                <button type="button" onClick={() => handleFilterChange({ ...filters, maxPrice: 50000 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            )}
+
+            {filters.brands.map(b => (
+              <span key={b} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                {b}
+                <button type="button" onClick={() => handleFilterChange({ ...filters, brands: filters.brands.filter(x => x !== b) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            ))}
+
+            {filters.sizes.map(s => (
+              <span key={s} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                সাইজ: {s}
+                <button type="button" onClick={() => handleFilterChange({ ...filters, sizes: filters.sizes.filter(x => x !== s) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            ))}
+
+            {filters.colors.map(c => (
+              <span key={c} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                রং: {c}
+                <button type="button" onClick={() => handleFilterChange({ ...filters, colors: filters.colors.filter(x => x !== c) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            ))}
+
+            {filters.minRating > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-amber-900 font-bold">
+                {filters.minRating}★+
+                <button type="button" onClick={() => handleFilterChange({ ...filters, minRating: 0 })} className="text-amber-500 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            )}
+
+            {filters.inStockOnly && (
+              <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-emerald-900 font-bold">
+                ইন-স্টক
+                <button type="button" onClick={() => handleFilterChange({ ...filters, inStockOnly: false })} className="text-emerald-500 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            )}
+
+            {filters.discountedOnly && (
+              <span className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg text-rose-900 font-bold">
+                অন সেল
+                <button type="button" onClick={() => handleFilterChange({ ...filters, discountedOnly: false })} className="text-rose-500 hover:text-red-600 cursor-pointer">✕</button>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-[11px] font-bold text-red-600 hover:underline ml-auto cursor-pointer"
+            >
+              সব ক্লিয়ার করুন
+            </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {filteredProducts.map((product: any) => {
-              const discountPercent = product.discountPrice 
-                ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-                : 0;
+        )}
 
-              return (
-                <a 
-                  key={product.id} 
-                  href={`/product/${product.id}`}
-                  onClick={(e) => {
-                    if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
-                      e.preventDefault();
-                      handleOpenProduct(product);
-                    }
-                  }}
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group cursor-pointer"
-                >
-                  <div className="relative aspect-square overflow-hidden bg-gray-50">
-                    <img 
-                      src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
-                      alt={product.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                    />
-                    {product.discountPrice && (
-                      <div className="absolute top-2.5 left-2.5 z-10 bg-[#e53935] text-white rounded-xl w-11 h-11 flex flex-col items-center justify-center shadow-md select-none border border-red-400/20">
-                        <span className="text-xs font-black leading-none">
-                          {discountPercent}%
-                        </span>
-                        <span className="text-[9px] font-black tracking-wider uppercase mt-0.5 leading-none">
-                          OFF
-                        </span>
-                      </div>
-                    )}
-                  </div>
+        {/* Sidebar + Products Grid Container */}
+        <div className={isFilterPluginActive ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
+          {isFilterPluginActive && (
+            <AdvancedFilterSidebar
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
+              allProducts={data?.products || []}
+              isMobileOpen={isMobileFilterOpen}
+              onCloseMobile={() => setIsMobileFilterOpen(false)}
+            />
+          )}
 
-                  <div className="p-3 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-semibold text-black/90 text-xs sm:text-[13px] line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
-                        {product.title}
-                      </h4>
-                      <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
-                        <Store className="w-3 h-3" /> {product.vendorName}
-                      </div>
-                    </div>
+          <div className={isFilterPluginActive ? 'flex-1 min-w-0 w-full' : 'w-full'}>
+            {filteredProducts.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h4 className="font-bold text-gray-800 text-lg">কোনো পণ্য পাওয়া যায়নি (No products found)</h4>
+                <p className="text-sm text-gray-500 mt-1">ফিল্টারের মান পরিবর্তন করুন অথবা রিসেট বাটন চাপুন।</p>
+                {isFilterPluginActive && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    ফিল্টার রিসেট করুন
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className={isFilterPluginActive ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' : 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}>
+                {filteredProducts.map((product: any) => {
+                  const discountPercent = product.discountPrice 
+                    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+                    : 0;
 
-                    <div className="mt-2 pt-1.5 border-t border-gray-100">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-[#f85606] font-black text-base sm:text-lg">
-                          ৳{product.discountPrice || product.price}
-                        </span>
+                  return (
+                    <a 
+                      key={product.id} 
+                      href={`/product/${product.id}`}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
+                          e.preventDefault();
+                          handleOpenProduct(product);
+                        }
+                      }}
+                      className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group cursor-pointer"
+                    >
+                      <div className="relative aspect-square overflow-hidden bg-gray-50">
+                        <img 
+                          src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
+                          alt={product.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                        />
                         {product.discountPrice && (
-                          <>
-                            <span className="text-sm text-red-500 line-through font-semibold">
-                              ৳{product.price}
+                          <div className="absolute top-2.5 left-2.5 z-10 bg-[#e53935] text-white rounded-xl w-11 h-11 flex flex-col items-center justify-center shadow-md select-none border border-red-400/20">
+                            <span className="text-xs font-black leading-none">
+                              {discountPercent}%
                             </span>
-                            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-100 flex items-center shrink-0">
-                              You Save ৳{product.price - product.discountPrice}
+                            <span className="text-[9px] font-black tracking-wider uppercase mt-0.5 leading-none">
+                              OFF
                             </span>
-                          </>
+                          </div>
                         )}
                       </div>
 
-                      {/* Optional sizes/colors preview inside product card */}
-                      {((Array.isArray(product.sizes) && product.sizes.length > 0) || 
-                        (Array.isArray(product.colors) && product.colors.length > 0)) && (
-                        <div className="mt-1.5 space-y-0.5 text-[10px] text-gray-500 border-t border-dashed border-gray-100 pt-1">
-                          {Array.isArray(product.sizes) && product.sizes.length > 0 && (
-                            <div className="flex flex-wrap gap-1 items-center">
-                              <span className="font-semibold text-gray-400">Sizes:</span>
-                              <span className="text-gray-600 font-bold">{product.sizes.join(', ')}</span>
+                      <div className="p-3 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-semibold text-black/90 text-xs sm:text-[13px] line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
+                            {product.title}
+                          </h4>
+                          <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                            <Store className="w-3 h-3" /> {product.vendorName}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 pt-1.5 border-t border-gray-100">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-[#f85606] font-black text-base sm:text-lg">
+                              ৳{product.discountPrice || product.price}
+                            </span>
+                            {product.discountPrice && (
+                              <>
+                                <span className="text-sm text-red-500 line-through font-semibold">
+                                  ৳{product.price}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-100 flex items-center shrink-0">
+                                  You Save ৳{product.price - product.discountPrice}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Optional sizes/colors preview inside product card */}
+                          {((Array.isArray(product.sizes) && product.sizes.length > 0) || 
+                            (Array.isArray(product.colors) && product.colors.length > 0)) && (
+                            <div className="mt-1.5 space-y-0.5 text-[10px] text-gray-500 border-t border-dashed border-gray-100 pt-1">
+                              {Array.isArray(product.sizes) && product.sizes.length > 0 && (
+                                <div className="flex flex-wrap gap-1 items-center">
+                                  <span className="font-semibold text-gray-400">Sizes:</span>
+                                  <span className="text-gray-600 font-bold">{product.sizes.join(', ')}</span>
+                                </div>
+                              )}
+                              {Array.isArray(product.colors) && product.colors.length > 0 && (
+                                <div className="flex flex-wrap gap-1 items-center">
+                                  <span className="font-semibold text-gray-400">Colors:</span>
+                                  <span className="text-gray-600 font-bold">{product.colors.join(', ')}</span>
+                                </div>
+                              )}
                             </div>
                           )}
-                          {Array.isArray(product.colors) && product.colors.length > 0 && (
-                            <div className="flex flex-wrap gap-1 items-center">
-                              <span className="font-semibold text-gray-400">Colors:</span>
-                              <span className="text-gray-600 font-bold">{product.colors.join(', ')}</span>
+
+                          {!product.stock || product.stock <= 0 ? (
+                            <div className="mt-1.5 flex justify-end">
+                              <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                                Out of Stock
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          ) : null}
 
-                      {!product.stock || product.stock <= 0 ? (
-                        <div className="mt-1.5 flex justify-end">
-                          <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                            Out of Stock
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              e.preventDefault(); 
+                              if (product.stock !== undefined && product.stock !== null && product.stock <= 0) {
+                                notify('⚠️ দুঃখিত, এই পণ্যটি স্টক আউট!');
+                                return;
+                              }
+                              addToCart(product); 
+                            }}
+                            disabled={product.stock !== undefined && product.stock !== null && product.stock <= 0}
+                            className={`w-full mt-2 font-medium py-2 rounded-lg text-xs transition-all duration-300 ease-out shadow flex items-center justify-center gap-1.5 cursor-pointer ${
+                              product.stock !== undefined && product.stock !== null && product.stock <= 0
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-900 hover:bg-[#f85606] hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md hover:shadow-orange-500/10 text-white active:scale-95 active:translate-y-0'
+                            }`}
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
+                          </button>
                         </div>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          e.preventDefault(); 
-                          if (product.stock !== undefined && product.stock !== null && product.stock <= 0) {
-                            notify('⚠️ দুঃখিত, এই পণ্যটি স্টক আউট!');
-                            return;
-                          }
-                          addToCart(product); 
-                        }}
-                        disabled={product.stock !== undefined && product.stock !== null && product.stock <= 0}
-                        className={`w-full mt-2 font-medium py-2 rounded-lg text-xs transition-all duration-300 ease-out shadow flex items-center justify-center gap-1.5 cursor-pointer ${
-                          product.stock !== undefined && product.stock !== null && product.stock <= 0
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-gray-900 hover:bg-[#f85606] hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md hover:shadow-orange-500/10 text-white active:scale-95 active:translate-y-0'
-                        }`}
-                      >
-                        <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       </>
@@ -2728,7 +3022,7 @@ function AdminControlCenter({
   navigateTo?: (path: string) => void;
   onLogout?: () => void;
 }) {
-  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders' | 'plugins'>('overview');
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
   const [vendorSearch, setVendorSearch] = useState('');
   const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
@@ -3209,7 +3503,22 @@ function AdminControlCenter({
           >
             📋 Orders History
           </button>
+          <button
+            onClick={() => setAdminTab('plugins')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              adminTab === 'plugins' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            🧩 Marketplace Plugins
+          </button>
         </div>
+
+        {/* Marketplace Plugins Tab */}
+        {adminTab === 'plugins' && (
+          <div className="mt-6 space-y-6">
+            <AdminMarketplacePlugins notify={notify} />
+          </div>
+        )}
 
         {/* Products Tab */}
         {adminTab === 'products' && (

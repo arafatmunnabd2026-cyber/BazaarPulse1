@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight, ChevronDown, LogOut, ShieldCheck, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { ProductReviewWidget } from '../plugins/ProductReviewWidget';
 
 // Helper to normalize variation data whether it's an array, JSON string, or comma-separated string
 const normalizeList = (val: any): string[] => {
@@ -647,6 +648,14 @@ export const ProductQuickView = ({
               </div>
             </div>
           </div>
+
+          {/* Product Reviews & Ratings Section */}
+          <ProductReviewWidget 
+            productId={selectedProduct.id} 
+            productTitle={selectedProduct.title} 
+            authUser={authUser} 
+            onOpenLogin={onOpenLogin} 
+          />
         </div>
       </motion.div>
     </AnimatePresence>
