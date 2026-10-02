@@ -541,7 +541,7 @@ export default function CheckoutModal({
                 className="w-full py-4 border border-blue-500 rounded-xl bg-white text-blue-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-all cursor-pointer group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>+ Add Shipping Address</span>
+                <span>Add Shipping Address</span>
               </button>
             ) : (
               <>
