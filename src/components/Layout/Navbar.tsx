@@ -82,17 +82,17 @@ export function Navbar() {
   return (
     <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
       <header className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsMenuOpen(true)}
-              className="p-2 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+              className="p-1.5 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <div className="text-[#f85606] font-black text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => navigate('/')}>
-              <ShoppingBag className="w-7 h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
-              <h1 className="text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+            <div className="text-[#f85606] font-black text-xl sm:text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => navigate('/')}>
+              <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+              <h1 className="text-xl sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
             </div>
           </div>
 
@@ -103,10 +103,10 @@ export function Navbar() {
                 placeholder="Search in BazaarPulse..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2.5 px-4 text-sm focus:outline-none focus:bg-white text-gray-900"
+                className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-3 text-xs sm:text-sm focus:outline-none focus:bg-white text-gray-900"
               />
-              <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
-                <Search className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+              <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-4 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110" />
               </button>
             </div>
           </div>

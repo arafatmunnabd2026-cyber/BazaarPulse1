@@ -139,9 +139,9 @@ export default function CheckoutModal({
 
   // Independent boolean state for each payment method's 'Save Payment Method' checkbox
   const [savedPaymentMethods, setSavedPaymentMethods] = useState({
-    cod: true,
-    wallet: true,
-    card: true
+    cod: false,
+    wallet: false,
+    card: false
   });
 
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -528,209 +528,7 @@ export default function CheckoutModal({
         {/* LEFT COLUMN: Payment Methods & Add Address Form */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Payment Method Header Box */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left">
-            <div className="border-b border-slate-100 pb-3 mb-4">
-              <h2 className="text-lg font-bold text-black flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-blue-600" />
-                Payment Method (পেমেন্ট পদ্ধতি)
-              </h2>
-              <p className="text-xs font-medium text-slate-500">অনুগ্রহ করে আপনার পছন্দের পেমেন্ট পদ্ধতি বেছে নিন</p>
-            </div>
-
-            {/* CATEGORY 1: ক্যাশ অন ডেলিভারি (Cash on Delivery) */}
-            <div className="mb-6 space-y-2">
-              <div className="text-left">
-                <h3 className="font-bold text-sm text-black">ক্যাশ অন ডেলিভারি (Cash on Delivery)</h3>
-                <p className="text-xs font-medium text-slate-500">পণ্য হাতে পেয়ে দেখে টাকা পরিশোধ করুন</p>
-              </div>
-
-              <div 
-                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'cod' })}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between bg-white ${
-                  shippingInfo.paymentMethod === 'cod'
-                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'cod' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                  }`}>
-                    {shippingInfo.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-
-                  {/* Cash Icon */}
-                  <div className="flex items-center gap-2">
-                    <svg className="w-7 h-7 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="2" y="6" width="20" height="12" rx="2" />
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M6 12h0.01M18 12h0.01" />
-                    </svg>
-                    <div>
-                      <span className="text-sm font-bold text-black block">ক্যাশ অন ডেলিভারি (COD)</span>
-                      <span className="text-[11px] text-slate-500">অগ্রিম কোনো পেমেন্ট ছাড়া পণ্য বুঝে পেয়ে টাকা দিন</span>
-                    </div>
-                  </div>
-                </div>
-
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                  জনপ্রিয়
-                </span>
-              </div>
-
-              {/* Checkbox: Save Payment Method for COD */}
-              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
-                <input
-                  type="checkbox"
-                  id="save-payment-cod"
-                  checked={savedPaymentMethods.cod}
-                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, cod: e.target.checked }))}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                />
-                <label htmlFor="save-payment-cod" className="cursor-pointer font-medium text-black">
-                  পরবর্তী অর্ডারের জন্য পেমেন্ট পদ্ধতি সেভ করে রাখুন
-                </label>
-              </div>
-            </div>
-
-            {/* CATEGORY 2: মোবাইল ওয়ালেট (Mobile Wallet) */}
-            <div className="mb-6 space-y-2">
-              <div className="text-left">
-                <h3 className="font-bold text-sm text-black">মোবাইল ওয়ালেট (Mobile Banking)</h3>
-                <p className="text-xs font-medium text-slate-500">বিকাশ, নগদ বা রকেট এর মাধ্যমে নিরাপদে তাৎক্ষণিক পেমেন্ট করুন</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                
-                {/* bKash */}
-                <div
-                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
-                    shippingInfo.paymentMethod === 'bkash'
-                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600' : 'border-slate-300'
-                  }`}>
-                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                  </div>
-
-                  {/* bKash Logo */}
-                  <div className="flex items-center gap-3">
-                    <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="h-16 w-auto object-contain min-w-[80px]" />
-                  </div>
-                </div>
-
-                {/* Nagad */}
-                <div
-                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
-                    shippingInfo.paymentMethod === 'nagad'
-                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600' : 'border-slate-300'
-                  }`}>
-                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                  </div>
-
-                  {/* Nagad Logo */}
-                  <div className="flex items-center gap-3">
-                    <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="h-16 w-auto object-contain min-w-[80px]" />
-                  </div>
-                </div>
-
-                {/* Rocket */}
-                <div
-                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
-                    shippingInfo.paymentMethod === 'rocket'
-                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600' : 'border-slate-300'
-                  }`}>
-                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                  </div>
-
-                  {/* Rocket Logo */}
-                  <div className="flex items-center gap-3">
-                    <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="h-16 w-auto object-contain min-w-[80px]" />
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Checkbox: Save Payment Method for Mobile Wallet */}
-              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
-                <input
-                  type="checkbox"
-                  id="save-payment-wallet"
-                  checked={savedPaymentMethods.wallet}
-                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, wallet: e.target.checked }))}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                />
-                <label htmlFor="save-payment-wallet" className="cursor-pointer font-medium text-black">Save Payment Method</label>
-              </div>
-            </div>
-
-            {/* CATEGORY 3: ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card) */}
-            <div className="space-y-2">
-              <div className="text-left">
-                <h3 className="font-bold text-sm text-black">ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card)</h3>
-                <p className="text-xs font-medium text-slate-500">ভিসা, মাস্টারকার্ড বা অন্যান্য কার্ডের মাধ্যমে দ্রুত পেমেন্ট</p>
-              </div>
-
-              <div 
-                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'card' })}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
-                  shippingInfo.paymentMethod === 'card'
-                    ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                  shippingInfo.paymentMethod === 'card' ? 'border-blue-600' : 'border-slate-300'
-                }`}>
-                  {shippingInfo.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
-                </div>
-
-                {/* Bank Operator Logos */}
-                <div className="flex items-center flex-wrap gap-2">
-                  <img src={PAYMENT_LOGOS.visa} alt="Visa" className="h-5 sm:h-6 w-auto" />
-                  <img src={PAYMENT_LOGOS.mastercard} alt="Mastercard" className="h-5 sm:h-6 w-auto" />
-                  <img src={PAYMENT_LOGOS.amex} alt="Amex" className="h-5 sm:h-6 w-auto" />
-                  <img src={PAYMENT_LOGOS.unionpay} alt="UnionPay" className="h-5 sm:h-6 w-auto" />
-                  <img 
-                    src={PAYMENT_LOGOS.qcash} 
-                    alt="QCash" 
-                    className="h-5 sm:h-6 w-auto" 
-                  />
-                </div>
-              </div>
-
-              {/* Checkbox: Save Payment Method */}
-              <div className="pt-2 flex items-center gap-2 text-xs text-black">
-                <input
-                  type="checkbox"
-                  id="save-payment-card"
-                  checked={savedPaymentMethods.card}
-                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, card: e.target.checked }))}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                />
-                <label htmlFor="save-payment-card" className="cursor-pointer font-medium text-black">Save Payment Method</label>
-              </div>
-            </div>
-          </div>
-
-          {/* REFERENCE EXACT DESIGN: Add Address Box */}
+          {/* REFERENCE EXACT DESIGN: Add Address Box (Shipping Address placed above Payment) */}
           <div id="address-form-section" className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
             <div className="pb-3">
               <h2 className="text-lg font-bold text-slate-900">Shipping Address</h2>
@@ -960,6 +758,208 @@ export default function CheckoutModal({
           </>
         )}
       </div>
+
+      {/* Payment Method Header Box */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left">
+            <div className="border-b border-slate-100 pb-3 mb-4">
+              <h2 className="text-lg font-bold text-black flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                Payment Method (পেমেন্ট পদ্ধতি)
+              </h2>
+              <p className="text-xs font-medium text-slate-500">অনুগ্রহ করে আপনার পছন্দের পেমেন্ট পদ্ধতি বেছে নিন</p>
+            </div>
+
+            {/* CATEGORY 1: ক্যাশ অন ডেলিভারি (Cash on Delivery) */}
+            <div className="mb-6 space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">ক্যাশ অন ডেলিভারি (Cash on Delivery)</h3>
+                <p className="text-xs font-medium text-slate-500">পণ্য হাতে পেয়ে দেখে টাকা পরিশোধ করুন</p>
+              </div>
+
+              <div 
+                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'cod' })}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between bg-white ${
+                  shippingInfo.paymentMethod === 'cod'
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'cod' ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+
+                  {/* Cash Icon */}
+                  <div className="flex items-center gap-2">
+                    <svg className="w-7 h-7 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="6" width="20" height="12" rx="2" />
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M6 12h0.01M18 12h0.01" />
+                    </svg>
+                    <div>
+                      <span className="text-sm font-bold text-black block">ক্যাশ অন ডেলিভারি (COD)</span>
+                      <span className="text-[11px] text-slate-500">অগ্রিম কোনো পেমেন্ট ছাড়া পণ্য বুঝে পেয়ে টাকা দিন</span>
+                    </div>
+                  </div>
+                </div>
+
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                  জনপ্রিয়
+                </span>
+              </div>
+
+              {/* Checkbox: Save Payment Method for COD */}
+              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment-cod"
+                  checked={savedPaymentMethods.cod}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, cod: e.target.checked }))}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment-cod" className="cursor-pointer font-medium text-black">
+                  পরবর্তী অর্ডারের জন্য পেমেন্ট পদ্ধতি সেভ করে রাখুন
+                </label>
+              </div>
+            </div>
+
+            {/* CATEGORY 2: মোবাইল ওয়ালেট (Mobile Wallet) */}
+            <div className="mb-6 space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">মোবাইল ওয়ালেট (Mobile Banking)</h3>
+                <p className="text-xs font-medium text-slate-500">বিকাশ, নগদ বা রকেট এর মাধ্যমে নিরাপদে তাৎক্ষণিক পেমেন্ট করুন</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                
+                {/* bKash */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'bkash' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'bkash'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'bkash' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'bkash' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* bKash Logo */}
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.bkash} alt="bKash" className="h-16 w-auto object-contain min-w-[80px]" />
+                  </div>
+                </div>
+
+                {/* Nagad */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'nagad' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'nagad'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'nagad' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'nagad' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* Nagad Logo */}
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.nagad} alt="Nagad" className="h-16 w-auto object-contain min-w-[80px]" />
+                  </div>
+                </div>
+
+                {/* Rocket */}
+                <div
+                  onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'rocket' })}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                    shippingInfo.paymentMethod === 'rocket'
+                      ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                    shippingInfo.paymentMethod === 'rocket' ? 'border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {shippingInfo.paymentMethod === 'rocket' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+
+                  {/* Rocket Logo */}
+                  <div className="flex items-center gap-3">
+                    <img src={PAYMENT_LOGOS.rocket} alt="Rocket" className="h-16 w-auto object-contain min-w-[80px]" />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Checkbox: Save Payment Method for Mobile Wallet */}
+              <div className="pt-1.5 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment-wallet"
+                  checked={savedPaymentMethods.wallet}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, wallet: e.target.checked }))}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment-wallet" className="cursor-pointer font-medium text-black">Save Payment Method</label>
+              </div>
+            </div>
+
+            {/* CATEGORY 3: ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card) */}
+            <div className="space-y-2">
+              <div className="text-left">
+                <h3 className="font-bold text-sm text-black">ডেবিট / ক্রেডিট কার্ড (Debit / Credit Card)</h3>
+                <p className="text-xs font-medium text-slate-500">ভিসা, মাস্টারকার্ড বা অন্যান্য কার্ডের মাধ্যমে দ্রুত পেমেন্ট</p>
+              </div>
+
+              <div 
+                onClick={() => setShippingInfo({ ...shippingInfo, paymentMethod: 'card' })}
+                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 bg-white ${
+                  shippingInfo.paymentMethod === 'card'
+                    ? 'border-blue-500 ring-1 ring-blue-500/20 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                  shippingInfo.paymentMethod === 'card' ? 'border-blue-600' : 'border-slate-300'
+                }`}>
+                  {shippingInfo.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                </div>
+
+                {/* Bank Operator Logos */}
+                <div className="flex items-center flex-wrap gap-2">
+                  <img src={PAYMENT_LOGOS.visa} alt="Visa" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.mastercard} alt="Mastercard" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.amex} alt="Amex" className="h-5 sm:h-6 w-auto" />
+                  <img src={PAYMENT_LOGOS.unionpay} alt="UnionPay" className="h-5 sm:h-6 w-auto" />
+                  <img 
+                    src={PAYMENT_LOGOS.qcash} 
+                    alt="QCash" 
+                    className="h-5 sm:h-6 w-auto" 
+                  />
+                </div>
+              </div>
+
+              {/* Checkbox: Save Payment Method */}
+              <div className="pt-2 flex items-center gap-2 text-xs text-black">
+                <input
+                  type="checkbox"
+                  id="save-payment-card"
+                  checked={savedPaymentMethods.card}
+                  onChange={e => setSavedPaymentMethods(prev => ({ ...prev, card: e.target.checked }))}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="save-payment-card" className="cursor-pointer font-medium text-black">Save Payment Method</label>
+              </div>
+            </div>
+          </div>
 
         </div>
 
