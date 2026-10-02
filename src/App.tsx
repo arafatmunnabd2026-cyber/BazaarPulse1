@@ -32,6 +32,7 @@ import CheckoutModal from './components/CheckoutModal';
 import OrderConfirmationModal from './components/OrderConfirmationModal';
 import { NotificationDropdown } from './components/NotificationDropdown';
 import { AdvancedFilterSidebar, FilterState, DEFAULT_FILTER_STATE } from './components/AdvancedFilterSidebar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
@@ -774,17 +775,19 @@ export default function App() {
 
       {/* Protected Routes & Dynamic View Rendering */}
       {(!currentPath.startsWith('/admin') && !currentPath.startsWith('/vendor')) && (
-        <CustomerView 
-          data={data} 
-          refreshData={loadData} 
-          notify={notify}
-          authUser={authUser}
-          onOpenLogin={handleOpenLogin}
-          onCloseLogin={handleCloseLogin}
-          isAuthModalOpen={isAuthModalOpen}
-          onLogout={handleLogout}
-          navigateTo={navigateTo}
-        />
+        <ErrorBoundary>
+          <CustomerView 
+            data={data} 
+            refreshData={loadData} 
+            notify={notify}
+            authUser={authUser}
+            onOpenLogin={handleOpenLogin}
+            onCloseLogin={handleCloseLogin}
+            isAuthModalOpen={isAuthModalOpen}
+            onLogout={handleLogout}
+            navigateTo={navigateTo}
+          />
+        </ErrorBoundary>
       )}
 
       {currentPath === '/vendor' && (
@@ -2906,15 +2909,17 @@ function CustomerView({
       />
 
       {/* Order Confirmation Success Modal */}
-      <OrderConfirmationModal
-        order={orderConfirmation}
-        onClose={handleCloseOrderConfirmation}
-        onTrackOrder={() => {
-          handleCloseOrderConfirmation();
-          handleOpenMyOrders();
-        }}
-        notify={notify}
-      />
+      <ErrorBoundary>
+        <OrderConfirmationModal
+          order={orderConfirmation}
+          onClose={handleCloseOrderConfirmation}
+          onTrackOrder={() => {
+            handleCloseOrderConfirmation();
+            handleOpenMyOrders();
+          }}
+          notify={notify}
+        />
+      </ErrorBoundary>
 
       {/* Robust My Orders & Live Tracking Modal */}
       {isMyOrdersOpen && (

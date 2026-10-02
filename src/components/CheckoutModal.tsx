@@ -270,12 +270,13 @@ export default function CheckoutModal({
   };
 
   // Selected cart items or all cart items if non-selected
-  const activeItems = cart.filter(i => i.selected !== false);
-  const itemsToCheckout = activeItems.length > 0 ? activeItems : cart;
+  const validCart = Array.isArray(cart) ? cart.filter(i => i && i.product) : [];
+  const activeItems = validCart.filter(i => i.selected !== false);
+  const itemsToCheckout = activeItems.length > 0 ? activeItems : validCart;
 
   // Financial calculations
-  const rawSubtotal = itemsToCheckout.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const discountedSubtotal = itemsToCheckout.reduce((sum, item) => sum + ((item.product.discountPrice || item.product.price) * item.quantity), 0);
+  const rawSubtotal = itemsToCheckout.reduce((sum, item) => sum + (Number(item?.product?.price || 0) * Number(item?.quantity || 1)), 0);
+  const discountedSubtotal = itemsToCheckout.reduce((sum, item) => sum + (Number(item?.product?.discountPrice || item?.product?.price || 0) * Number(item?.quantity || 1)), 0);
 
   // Delivery Charge calculation based on selected district
   const isInsideDhaka = shippingInfo.district === 'Dhaka' || shippingInfo.district === 'ঢাকা';
@@ -980,29 +981,29 @@ export default function CheckoutModal({
 
             <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1 space-y-2">
               {itemsToCheckout.map((item, idx) => {
-                const img = Array.isArray(item.product.images) && item.product.images.length > 0
+                const img = Array.isArray(item?.product?.images) && item.product.images.length > 0
                   ? item.product.images[0]
-                  : (item.product.image || item.product.images || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200');
-                const price = item.product.discountPrice || item.product.price;
+                  : (item?.product?.image || item?.product?.images || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200');
+                const price = Number(item?.product?.discountPrice || item?.product?.price || 0);
 
                 return (
                   <div key={idx} className="pt-2 flex items-center gap-3">
                     <img 
                       src={img} 
-                      alt={item.product.title} 
+                      alt={item?.product?.title || 'Product'} 
                       className="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-50"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xs font-bold text-gray-800 truncate">
-                        {item.product.title}
+                        {item?.product?.title || 'পণ্য'}
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-                        <span>পরিমাণ: <strong className="text-slate-800">{item.quantity}</strong></span>
-                        {item.size && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.size}</span>}
-                        {item.color && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.color}</span>}
+                        <span>পরিমাণ: <strong className="text-slate-800">{item?.quantity || 1}</strong></span>
+                        {item?.size && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.size}</span>}
+                        {item?.color && <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[10px] font-semibold">{item.color}</span>}
                       </div>
                       <div className="text-xs font-black text-orange-600 mt-0.5">
-                        ৳{price * item.quantity}
+                        ৳{price * (item?.quantity || 1)}
                       </div>
                     </div>
                   </div>
