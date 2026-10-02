@@ -555,23 +555,16 @@ export default function CheckoutModal({
             </div>
 
             {!showShippingAddressBox ? (
-              <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-slate-600">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
-                  <span className="font-medium truncate">
-                    {shippingInfo.fullAddressDetails 
-                      ? `ঠিকানা: ${shippingInfo.fullAddressDetails}` 
-                      : 'শিপিং এড্রেস বক্স বন্ধ রাখা হয়েছে।'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowShippingAddressBox(true)}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg border border-blue-200 shrink-0 cursor-pointer"
-                >
-                  + ঠিকানা ফর্ম খুলুন
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowShippingAddressBox(true);
+                  setIsAddingNewAddress(true);
+                }}
+                className="w-full py-3.5 border border-blue-500 rounded-xl bg-white text-blue-500 hover:bg-blue-50 font-medium text-sm sm:text-base flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer group"
+              >
+                <span>+ Add Shipping Address</span>
+              </button>
             ) : (
               <>
                 {!isAddingNewAddress && !addressLoadedFromDb ? (
