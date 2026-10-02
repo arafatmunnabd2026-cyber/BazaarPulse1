@@ -2999,7 +2999,7 @@ function CustomerView({
       />
 
       {/* Order Confirmation Success Modal */}
-      <ErrorBoundary>
+      {orderConfirmation && (
         <OrderConfirmationModal
           order={orderConfirmation}
           onClose={handleCloseOrderConfirmation}
@@ -3009,7 +3009,7 @@ function CustomerView({
           }}
           notify={notify}
         />
-      </ErrorBoundary>
+      )}
 
       {/* Robust My Orders & Live Tracking Modal */}
       {isMyOrdersOpen && (
