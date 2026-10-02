@@ -4,6 +4,7 @@ import {GoogleOAuthProvider} from '@react-oauth/google';
 import {BrowserRouter} from 'react-router-dom';
 import {AuthProvider} from './context/AuthContext';
 import {PluginProvider} from './plugins/PluginContext';
+import {VisualEditorProvider} from './context/VisualEditorContext';
 import {ErrorBoundary} from './components/ErrorBoundary';
 import App from './App.tsx';
 import './index.css';
@@ -16,9 +17,11 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <PluginProvider>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
+            <VisualEditorProvider>
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </VisualEditorProvider>
           </PluginProvider>
         </AuthProvider>
       </BrowserRouter>

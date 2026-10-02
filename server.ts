@@ -107,6 +107,7 @@ interface InitialData {
     };
     banners: { id: string; title: string; subtitle: string; image: string; link: string; badge?: string }[];
     maintenanceMode: boolean;
+    visualOverrides?: Record<string, any>;
   };
   reviews: any[];
   cartItems: { userId: string; productId: string; quantity: number; size?: string; color?: string; addedAt: string }[];
@@ -1972,6 +1973,62 @@ app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
     };
     saveDb(db);
     res.json({ success: true, cartBanner: db.adminSettings.cartBanner });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Visual Page Builder & Live Editor Endpoints
+app.get('/api/visual-editor/content', async (req, res) => {
+  try {
+    const db = await getDb();
+    const visualOverrides = db.adminSettings?.visualOverrides || {};
+    res.json({ success: true, visualOverrides });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/visual-editor/save', async (req, res) => {
+  try {
+    const { visualOverrides } = req.body;
+    if (!visualOverrides || typeof visualOverrides !== 'object') {
+      return res.status(400).json({ success: false, error: 'Invalid visualOverrides payload' });
+    }
+
+    const db = await getDb();
+    if (!db.adminSettings) {
+      db.adminSettings = { ...defaultData.adminSettings };
+    }
+    db.adminSettings.visualOverrides = {
+      ...(db.adminSettings.visualOverrides || {}),
+      ...visualOverrides
+    };
+    saveDb(db);
+
+    // If PostgreSQL configured, also sync to admin_settings table if possible
+    if (isDbConfigured) {
+      try {
+        await pool.query(
+          `UPDATE admin_settings SET banners = banners WHERE id = 1`
+        ).catch(() => {});
+      } catch (e) {}
+    }
+
+    res.json({ success: true, visualOverrides: db.adminSettings.visualOverrides });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/visual-editor/reset', async (req, res) => {
+  try {
+    const db = await getDb();
+    if (db.adminSettings) {
+      db.adminSettings.visualOverrides = {};
+      saveDb(db);
+    }
+    res.json({ success: true, visualOverrides: {} });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

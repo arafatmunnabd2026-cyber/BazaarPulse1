@@ -34,6 +34,10 @@ import { NotificationDropdown } from './components/NotificationDropdown';
 import { AdvancedFilterSidebar, FilterState, DEFAULT_FILTER_STATE } from './components/AdvancedFilterSidebar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { sendInvoiceEmail } from './lib/invoiceService';
+import { EditableElement } from './components/VisualEditor/EditableElement';
+import { VisualEditorToolbar } from './components/VisualEditor/VisualEditorToolbar';
+import { VisualEditDrawer } from './components/VisualEditor/VisualEditDrawer';
+import { useVisualEditor } from './context/VisualEditorContext';
 import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
@@ -2141,6 +2145,10 @@ function CustomerView({
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20">
+      {/* Visual Page Builder Toolbar & Live Edit Drawer */}
+      <VisualEditorToolbar isAdmin={authUser?.role === 'admin' || authUser?.email === 'arafatmunna.bd2026@gmail.com' || localStorage.getItem('bazaarpulse_admin_token') !== null} />
+      <VisualEditDrawer />
+
       {/* 2. Main Header & Search Bar */}
       <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
         <header className="bg-white border-b border-gray-100">
@@ -2154,7 +2162,14 @@ function CustomerView({
               </button>
               <div className="text-[#f85606] font-black text-xl sm:text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => handleCategoryChange('all')}>
                 <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
-                <h1 className="text-xl sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+                <EditableElement
+                  id="storefront_brand_name"
+                  label="স্টোরের নাম (Store Name)"
+                  type="heading"
+                  defaultText="BazaarPulse"
+                  as="h1"
+                  className="text-xl sm:text-2xl font-black m-0 p-0 inline text-[#f85606]"
+                />
               </div>
             </div>
 
@@ -2344,24 +2359,44 @@ function CustomerView({
           }}
           className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
         >
-          <div className="flex items-center gap-2.5">
-            <span className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0">
-              {data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
-            </span>
-            <span className="font-bold text-xs sm:text-sm">
-              {data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'} — <span className="font-normal opacity-90">{data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}</span>
-            </span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <EditableElement
+              id="campaign_strip_badge"
+              label="ক্যাম্পেইন অফার ব্যাজ"
+              type="badge"
+              defaultText={data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
+              className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0"
+            />
+            <div className="font-bold text-xs sm:text-sm flex items-center gap-1 flex-wrap">
+              <EditableElement
+                id="campaign_strip_title"
+                label="ক্যাম্পেইন অফার টাইটেল"
+                type="text"
+                defaultText={data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
+              />
+              <span className="font-normal opacity-90">—</span>
+              <EditableElement
+                id="campaign_strip_subtitle"
+                label="ক্যাম্পেইন অফার সাবটাইটেল"
+                type="text"
+                defaultText={data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}
+                className="font-normal opacity-90"
+              />
+            </div>
           </div>
-          <a 
-            href={data.adminSettings.campaignBanner?.linkText || '#products-section'} 
+          <EditableElement
+            id="campaign_strip_btn"
+            label="ক্যাম্পেইন অ্যাকশন বাটন"
+            type="button"
+            defaultText={data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'}
+            defaultHref={data.adminSettings.campaignBanner?.linkText || '#products-section'}
+            as="a"
             style={{ 
               backgroundColor: data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff',
               color: data.adminSettings.campaignBanner?.buttonTextColor || '#111827'
             }}
             className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
-          >
-            {data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'} <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          />
         </div>
       </div>
 
@@ -2369,10 +2404,15 @@ function CustomerView({
       <div id="products-section" className="max-w-7xl mx-auto px-4 mt-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {selectedCategory === 'all' ? 'Just For You' : 'Category Products'}
-            </h3>
-            <span className="text-xs text-gray-500">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
+            <EditableElement
+              id="products_section_heading"
+              label="পণ্য সেকশন শিরোনাম"
+              type="heading"
+              defaultText={selectedCategory === 'all' ? 'Just For You' : 'Category Products'}
+              as="h3"
+              className="text-2xl font-bold text-gray-900 inline-block"
+            />
+            <span className="text-xs text-gray-500 block mt-0.5">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -3031,6 +3071,92 @@ function CustomerView({
           </>
         )}
       </AnimatePresence>
+
+      {/* 5. Comprehensive Storefront Footer with Live Visual Editable Elements */}
+      <footer className="bg-slate-900 text-slate-300 mt-16 pt-12 pb-8 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-6 h-6 text-orange-500" />
+              <EditableElement
+                id="footer_brand_title"
+                label="ফুটার স্টোর নাম"
+                type="heading"
+                defaultText="BazaarPulse"
+                className="text-xl font-black text-white"
+              />
+            </div>
+            <EditableElement
+              id="footer_slogan"
+              label="ফুটার স্লোগান / বর্ণনা"
+              type="text"
+              defaultText="বাংলাদেশের বিশ্বস্ত অনলাইন শপিং প্ল্যাটফর্ম। দ্রুততম ডেলিভারি ও ১০০% জেনুইন পণ্যের নিশ্চয়তা।"
+              className="text-xs text-slate-400 leading-relaxed block"
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">কাস্টমার কেয়ার (Customer Care)</h4>
+            <div className="text-xs space-y-1.5 text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <span>📞 হেল্পলাইন:</span>
+                <EditableElement
+                  id="footer_hotline"
+                  label="হেল্পলাইন মোবাইল নম্বর"
+                  type="text"
+                  defaultText="+880 1756-482001"
+                  className="text-orange-400 font-bold font-mono"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>✉️ ইমেইল:</span>
+                <EditableElement
+                  id="footer_email"
+                  label="সাপোর্ট ইমেইল"
+                  type="text"
+                  defaultText="support@bazaarpulse.com"
+                  className="text-white font-medium"
+                />
+              </div>
+              <p>সকাল ৯টা থেকে রাত ১০টা (সপ্তাহে ৭ দিন)</p>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">পেমেন্ট ও ডেলিভারি</h4>
+            <EditableElement
+              id="footer_delivery_info"
+              label="ডেলিভারি তথ্য"
+              type="text"
+              defaultText="বিকাশ, নগদ, রকেট ও ক্যাশ অন ডেলিভারি (COD) সমর্থিত।"
+              className="text-xs text-slate-400 leading-relaxed block"
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">সিকিউর শপিং</h4>
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+              <EditableElement
+                id="footer_trust_badge"
+                label="ট্রাস্ট ব্যাজ টেক্সট"
+                type="text"
+                defaultText="১০০% ভেরিফাইড বিক্রেতা ও নিরাপদ পেমেন্ট"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <EditableElement
+            id="footer_copyright"
+            label="কপিরাইট টেক্সট"
+            type="text"
+            defaultText="© 2026 BazaarPulse - সর্বস্বত্ব সংরক্ষিত।"
+          />
+          <span>Built with React, Next.js & Tailwind CSS</span>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -3061,6 +3187,7 @@ function AdminControlCenter({
   const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
   const [inspectingVendorNid, setInspectingVendorNid] = useState<any | null>(null);
   const [inspectingSide, setInspectingSide] = useState<'front' | 'back' | 'both'>('both');
+  const { setIsVisualEditMode } = useVisualEditor();
   
   // Custom Supabase Client Connection Settings for Admin Tab
   const [dbUrl, setDbUrl] = useState(() => localStorage.getItem('custom_supabase_url') || '');
@@ -3472,8 +3599,19 @@ function AdminControlCenter({
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <button
+              type="button"
+              onClick={() => {
+                setIsVisualEditMode(true);
+                navigateTo && navigateTo('/');
+              }}
+              className="text-xs bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold px-4 py-2 rounded-xl transition-all shadow-lg flex items-center gap-1.5 cursor-pointer ring-2 ring-white/20"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              <span>🎨 Launch Visual Page Builder</span>
+            </button>
+            <button
               onClick={() => navigateTo && navigateTo('/admin-dashboard')}
-              className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-white font-extrabold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer border border-slate-700"
             >
               <span>📦</span>
               <span>Open AdminDashboard.tsx View</span>

@@ -172,5 +172,14 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
     defaultEnabled: true,
     version: '1.0.0',
     author: 'BazaarPulse Core'
+  },
+  {
+    key: 'visual-page-builder',
+    name: 'Visual Page Builder & Live Click-to-Edit',
+    description: 'Enables real-time no-code visual editing of all website titles, buttons, announcements, badges, colors, and content directly on the live storefront.',
+    category: 'Storefront',
+    defaultEnabled: true,
+    version: '2.0.0',
+    author: 'BazaarPulse Studio'
   }
 ];
