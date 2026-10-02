@@ -45,8 +45,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   if (!isOpen || !order) return null;
 
-  const orderId = order.id || order.orderId || 'ORD-' + Date.now();
-  const invoiceNumber = `INV-${orderId.toString().replace(/[^a-zA-Z0-9]/g, '').slice(-8).toUpperCase()}`;
+  const orderId = String(order.id || order.orderId || 'ORD-' + Date.now());
+  const invoiceNumber = `INV-${orderId.replace(/[^a-zA-Z0-9]/g, '').slice(-8).toUpperCase()}`;
   const dateStr = order.createdAt 
     ? new Date(order.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -54,11 +54,25 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     ? new Date(order.createdAt).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })
     : new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
 
-  const customerName = order.customerName || order.name || order.customer_name || 'সম্মানিত গ্রাহক';
-  const customerPhone = order.customerPhone || order.phone || order.customer_phone || 'N/A';
-  const customerEmail = order.customerEmail || order.email || order.customer_email || 'N/A';
-  const shippingAddress = order.shippingAddress || order.address || order.shipping_address || 'ঢাকা, বাংলাদেশ';
-  const paymentMethod = order.paymentMethod || 'ক্যাশ অন ডেলিভারি (Cash on Delivery)';
+  const customerName = typeof order.customerName === 'string' 
+    ? order.customerName 
+    : (typeof order.name === 'string' ? order.name : (typeof order.customer_name === 'string' ? order.customer_name : 'সম্মানিত গ্রাহক'));
+  const customerPhone = typeof order.customerPhone === 'string' 
+    ? order.customerPhone 
+    : (typeof order.phone === 'string' ? order.phone : (typeof order.customer_phone === 'string' ? order.customer_phone : 'N/A'));
+  const customerEmail = typeof order.customerEmail === 'string' 
+    ? order.customerEmail 
+    : (typeof order.email === 'string' ? order.email : (typeof order.customer_email === 'string' ? order.customer_email : 'N/A'));
+  
+  const rawAddress = order.shippingAddress || order.address || order.shipping_address;
+  const shippingAddress = typeof rawAddress === 'string' 
+    ? rawAddress 
+    : (rawAddress && typeof rawAddress === 'object' 
+        ? [rawAddress.addressDetails || rawAddress.address, rawAddress.thana, rawAddress.district, rawAddress.country].filter(Boolean).join(', ') 
+        : 'ঢাকা, বাংলাদেশ');
+
+  const rawPaymentMethod = order.paymentMethod;
+  const paymentMethod = typeof rawPaymentMethod === 'string' ? rawPaymentMethod : 'ক্যাশ অন ডেলিভারি (Cash on Delivery)';
   const paymentStatus = order.paymentStatus === 'paid' ? 'পরিশোধিত (Paid)' : 'বাকি (Unpaid - COD)';
 
   const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : [

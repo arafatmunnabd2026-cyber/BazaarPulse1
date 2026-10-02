@@ -28,19 +28,37 @@ export default function OrderConfirmationModal({
 
   if (!order) return null;
 
-  const orderNumber = order.id || order.orderId || '17168902806931';
-  const customerName = order.customerName || order.name || order.customer_name || 'Customer';
-  const phone = order.customerPhone || order.phone || order.customer_phone || '';
-  const customerEmail = order.customerEmail || order.email || '';
-  const address = order.shippingAddress || order.address || order.shipping_address || 'ঢাকা, বাংলাদেশ';
-  const paymentMethod = (order.paymentMethod === 'cod' || order.paymentMethod === 'Cash on Delivery') 
-    ? 'Cash On Delivery' 
-    : (order.paymentMethod || 'Cash On Delivery');
+  const orderNumber = String(order.id || order.orderId || '17168902806931');
+  const customerName = typeof order.customerName === 'string' 
+    ? order.customerName 
+    : (typeof order.name === 'string' 
+        ? order.name 
+        : (typeof order.customer_name === 'string' ? order.customer_name : 'Customer'));
+  const phone = typeof order.customerPhone === 'string' 
+    ? order.customerPhone 
+    : (typeof order.phone === 'string' 
+        ? order.phone 
+        : (typeof order.customer_phone === 'string' ? order.customer_phone : ''));
+  const customerEmail = typeof order.customerEmail === 'string' 
+    ? order.customerEmail 
+    : (typeof order.email === 'string' ? order.email : '');
   
-  const subtotal = order.subtotal || (order.totalAmount - (order.deliveryFee || 80));
-  const deliveryFee = order.deliveryFee || 80;
-  const payableTotal = order.totalAmount || 935;
-  const pointsEarned = order.pointsEarned || Math.floor(payableTotal / 12) || 72;
+  const rawAddress = order.shippingAddress || order.address || order.shipping_address;
+  const address = typeof rawAddress === 'string' 
+    ? rawAddress 
+    : (rawAddress && typeof rawAddress === 'object' 
+        ? [rawAddress.addressDetails || rawAddress.address, rawAddress.thana, rawAddress.district, rawAddress.country].filter(Boolean).join(', ') 
+        : 'ঢাকা, বাংলাদেশ');
+
+  const rawPaymentMethod = order.paymentMethod;
+  const paymentMethod = typeof rawPaymentMethod === 'string'
+    ? ((rawPaymentMethod === 'cod' || rawPaymentMethod === 'Cash on Delivery') ? 'Cash On Delivery' : rawPaymentMethod)
+    : 'Cash On Delivery';
+  
+  const subtotal = Number(order.subtotal || (Number(order.totalAmount || 0) - Number(order.deliveryFee || 80))) || 0;
+  const deliveryFee = Number(order.deliveryFee || order.shippingFee || 80);
+  const payableTotal = Number(order.totalAmount || (subtotal + deliveryFee));
+  const pointsEarned = Number(order.pointsEarned || Math.floor(payableTotal / 12) || 72);
 
   // Auto trigger invoice email on successful checkout if configured
   useEffect(() => {

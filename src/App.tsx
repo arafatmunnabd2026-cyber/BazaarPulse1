@@ -1027,22 +1027,33 @@ function AdminLoginView({
 function HeroSlider({ banners }: { banners: any[] }) {
   const [current, setCurrent] = useState(0);
 
+  const validBanners = Array.isArray(banners) 
+    ? banners.filter(b => b && (typeof b === 'object' ? b.image : typeof b === 'string')) 
+    : [];
+
   useEffect(() => {
-    if (!banners || banners.length <= 1) return;
+    if (validBanners.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % banners.length);
+      setCurrent((prev) => (prev + 1) % validBanners.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [banners]);
+  }, [validBanners.length]);
 
-  if (!banners || banners.length === 0) return null;
+  if (validBanners.length === 0) return null;
+
+  const safeIndex = current % validBanners.length;
+  const currentBanner = validBanners[safeIndex];
+  if (!currentBanner) return null;
+
+  const bannerImg = typeof currentBanner === 'string' ? currentBanner : (currentBanner.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80');
+  const bannerLink = typeof currentBanner === 'object' ? (currentBanner.link || '#') : '#';
 
   return (
     <div className="max-w-7xl mx-auto px-4 mt-4">
       <div className="relative rounded-2xl overflow-hidden h-[190px] sm:h-[260px] md:h-[310px] lg:h-[350px] shadow-md bg-slate-100 group border border-slate-100">
         <AnimatePresence mode="wait">
           <motion.div
-            key={current}
+            key={safeIndex}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1051,11 +1062,11 @@ function HeroSlider({ banners }: { banners: any[] }) {
           >
             {/* Clickable Pure Image Banner - 100% Clear with No Dark Overlay */}
             <a 
-              href={banners[current].link || '#'} 
+              href={bannerLink} 
               className="w-full h-full block cursor-pointer"
             >
               <img 
-                src={banners[current].image} 
+                src={bannerImg} 
                 alt="Promotion Banner" 
                 className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]" 
                 onError={(e: any) => {
@@ -1067,13 +1078,13 @@ function HeroSlider({ banners }: { banners: any[] }) {
         </AnimatePresence>
 
         {/* Navigation Dots */}
-        {banners.length > 1 && (
+        {validBanners.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
-            {banners.map((_, i) => (
+            {validBanners.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-2 transition-all rounded-full ${current === i ? 'w-6 bg-[#f85606]' : 'w-2 bg-white/70 hover:bg-white'}`}
+                className={`h-2 transition-all rounded-full ${safeIndex === i ? 'w-6 bg-[#f85606]' : 'w-2 bg-white/70 hover:bg-white'}`}
                 aria-label={`Go to slide ${i + 1}`}
               />
             ))}
@@ -1081,12 +1092,12 @@ function HeroSlider({ banners }: { banners: any[] }) {
         )}
 
         {/* Arrows */}
-        {banners.length > 1 && (
+        {validBanners.length > 1 && (
           <>
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
+                setCurrent((prev) => (prev - 1 + validBanners.length) % validBanners.length);
               }}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
               aria-label="Previous Slide"
@@ -1096,7 +1107,7 @@ function HeroSlider({ banners }: { banners: any[] }) {
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                setCurrent((prev) => (prev + 1) % banners.length);
+                setCurrent((prev) => (prev + 1) % validBanners.length);
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
               aria-label="Next Slide"
@@ -2048,6 +2059,9 @@ function CustomerView({
         setOrderConfirmation(newOrder);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
+        if (location.pathname === '/checkout') {
+          navigate(getBaseStorefrontPath(), { replace: true });
+        }
 
         if (directCheckoutItem) {
           // Direct Buy Now checkout: only clear direct item, keep regular shopping cart intact
