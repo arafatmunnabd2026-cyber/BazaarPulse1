@@ -285,9 +285,20 @@ export default function CheckoutModal({
   const rawSubtotal = itemsToCheckout.reduce((sum, item) => sum + (Number(item?.product?.price || 0) * Number(item?.quantity || 1)), 0);
   const discountedSubtotal = itemsToCheckout.reduce((sum, item) => sum + (Number(item?.product?.discountPrice || item?.product?.price || 0) * Number(item?.quantity || 1)), 0);
 
-  // Delivery Charge calculation based on selected district
-  const isInsideDhaka = shippingInfo.district === 'Dhaka' || shippingInfo.district === 'ঢাকা';
-  const deliveryCharge = isInsideDhaka ? 80 : 150;
+  // Delivery Charge state for dynamic real-time sync
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(80);
+
+  // Sync delivery charge when district changes
+  useEffect(() => {
+    const distLower = (shippingInfo.district || '').toLowerCase().trim();
+    if (distLower === 'dhaka' || distLower === 'ঢাকা' || distLower.includes('dhaka') || distLower.includes('ঢাকা')) {
+      setDeliveryCharge(80);
+    } else if (distLower) {
+      setDeliveryCharge(150);
+    }
+  }, [shippingInfo.district]);
+
+  const isInsideDhaka = deliveryCharge === 80;
 
   // Promo handling
   const handleApplyPromo = () => {
@@ -747,6 +758,54 @@ export default function CheckoutModal({
                     }`}
                   >
                     🏢 Office (অফিস)
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 8.5: Select Shipping Method / Delivery Charge Selector */}
+              <div className="space-y-2 pt-3.5 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-700">
+                  ডেলিভারি শিপিং অপশন (Shipping Method) <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeliveryCharge(80);
+                      setShippingInfo(prev => ({ ...prev, district: 'Dhaka' }));
+                    }}
+                    className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                      deliveryCharge === 80
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold block">ঢাকার ভেতরে ডেলিভারি</span>
+                      <span className="text-[10px] text-slate-500">ঢাকা সিটির সমস্ত এলাকা</span>
+                    </div>
+                    <span className="font-extrabold text-sm text-blue-600">৳৮০</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeliveryCharge(150);
+                      if (shippingInfo.district === 'Dhaka' || shippingInfo.district === 'ঢাকা') {
+                        setShippingInfo(prev => ({ ...prev, district: 'Chattogram' })); // Default to Chattogram if changing to outside Dhaka
+                      }
+                    }}
+                    className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                      deliveryCharge === 150
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold block">ঢাকার বাইরে ডেলিভারি</span>
+                      <span className="text-[10px] text-slate-500">ঢাকার বাইরের সমস্ত জেলা ও উপজেলা</span>
+                    </div>
+                    <span className="font-extrabold text-sm text-blue-600">৳১৫০</span>
                   </button>
                 </div>
               </div>
