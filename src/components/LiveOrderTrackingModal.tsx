@@ -295,7 +295,7 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                       <h4 className="text-base sm:text-lg font-black text-black capitalize">
-                        {rawStatus === 'pending' && 'অপেক্ষমাণ (Pending)'}
+                        {rawStatus === 'pending' && 'Pending'}
                         {rawStatus === 'processing' && 'প্রক্রিয়াধীন (Processing)'}
                         {rawStatus === 'shipped' && 'ডেলিভারির পথে (Shipped / Out for Delivery)'}
                         {rawStatus === 'delivered' && 'ডেলিভারি সম্পন্ন (Delivered)'}
