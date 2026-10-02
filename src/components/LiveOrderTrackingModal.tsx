@@ -251,17 +251,6 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => fetchLiveStatus(true)}
-                disabled={refreshing}
-                title="লাইভ স্ট্যাটাস রিফ্রেশ করুন"
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5 text-xs font-bold"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-orange-400' : ''}`} />
-                <span className="hidden sm:inline">রিফ্রেশ</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={onClose}
                 className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
