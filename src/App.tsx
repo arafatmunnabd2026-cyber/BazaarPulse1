@@ -1379,6 +1379,7 @@ function CustomerView({
   );
   const [trackOrderIdInput, setTrackOrderIdInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
+  const [shouldOpenTracker, setShouldOpenTracker] = useState(false);
 
   // Synchronize Tracked Order state with global data to ensure live status updates
   useEffect(() => {
@@ -1785,6 +1786,7 @@ function CustomerView({
   const handleCloseMyOrders = () => {
     setIsMyOrdersOpen(false);
     setTrackedOrder(null);
+    setShouldOpenTracker(false);
     setTrackOrderIdInput('');
     if (isOrdersRoute) {
       navigate(getBaseStorefrontPath());
@@ -3004,6 +3006,8 @@ function CustomerView({
           order={orderConfirmation}
           onClose={handleCloseOrderConfirmation}
           onTrackOrder={() => {
+            setTrackedOrder(orderConfirmation);
+            setShouldOpenTracker(true);
             handleCloseOrderConfirmation();
             handleOpenMyOrders();
           }}
@@ -3034,6 +3038,8 @@ function CustomerView({
                 productsCatalog={data.products}
                 onSelectTrackOrder={setTrackedOrder}
                 currentTrackedOrder={trackedOrder}
+                initialOpenTracker={shouldOpenTracker}
+                onClearOpenTracker={() => setShouldOpenTracker(false)}
               />
             </div>
           </motion.div>

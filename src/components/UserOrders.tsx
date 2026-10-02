@@ -41,19 +41,37 @@ interface UserOrdersProps {
   productsCatalog?: any[];
   onSelectTrackOrder?: (order: any) => void;
   currentTrackedOrder?: any;
+  initialOpenTracker?: boolean;
+  onClearOpenTracker?: () => void;
 }
 
-export default function UserOrders({ userId, authToken, notify, productsCatalog = [], onSelectTrackOrder, currentTrackedOrder }: UserOrdersProps) {
+export default function UserOrders({ 
+  userId, 
+  authToken, 
+  notify, 
+  productsCatalog = [], 
+  onSelectTrackOrder, 
+  currentTrackedOrder,
+  initialOpenTracker,
+  onClearOpenTracker
+}: UserOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
   const [cancellingOrderId, setSubmittingCancelId] = useState<string | null>(null);
   const [invoiceModalOrder, setInvoiceModalOrder] = useState<Order | null>(null);
-  const [liveTrackingOrder, setLiveTrackingOrder] = useState<Order | null>(currentTrackedOrder || null);
+  const [liveTrackingOrder, setLiveTrackingOrder] = useState<Order | null>(null);
   const { isPluginActive } = usePlugins();
 
   useEffect(() => {
-    if (currentTrackedOrder) {
+    if (initialOpenTracker && currentTrackedOrder) {
+      setLiveTrackingOrder(currentTrackedOrder);
+      if (onClearOpenTracker) onClearOpenTracker();
+    }
+  }, [initialOpenTracker, currentTrackedOrder]);
+
+  useEffect(() => {
+    if (currentTrackedOrder && liveTrackingOrder) {
       setLiveTrackingOrder(currentTrackedOrder);
     }
   }, [currentTrackedOrder]);
