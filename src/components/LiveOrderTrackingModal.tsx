@@ -106,12 +106,6 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
       setLoading(true);
       fetchLiveStatus();
     }
-
-    const interval = setInterval(() => {
-      fetchLiveStatus(false);
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, [initialOrder, propOrderId, isOpen]);
 
   // Listen to live broadcast updates
@@ -188,21 +182,21 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
       subtitle: 'Processing & Quality Check',
       desc: 'পণ্যগুলোর কোয়ালিটি যাচাই করে ইকো-ফ্রেন্ডলি বক্সে সিল করা হচ্ছে।',
       icon: Package,
-      time: activeStep >= 1 ? 'সম্পন্ন' : 'প্রক্রিয়াধীন'
+      time: activeStep >= 1 ? 'সম্পন্ন' : ''
     },
     {
       title: 'ডেলিভারির পথে (কুরিয়ার)',
       subtitle: 'Shipped & Out for Delivery',
       desc: 'Steadfast / Pathao Express কুরিয়ার এজেন্টের কাছে হস্তান্তর করা হয়েছে।',
       icon: Truck,
-      time: activeStep >= 2 ? 'ডেলিভারির পথে' : 'অপেক্ষমাণ'
+      time: activeStep >= 2 ? 'ডেলিভারির পথে' : ''
     },
     {
       title: 'ডেলিভারি সম্পন্ন',
       subtitle: 'Delivered to Destination',
       desc: 'পণ্য নিরাপদে আপনার ঠিকানায় হস্তান্তর করা হয়েছে।',
       icon: ShieldCheck,
-      time: activeStep >= 3 ? 'ডেলিভারি সম্পন্ন' : 'শিগগিরই'
+      time: activeStep >= 3 ? 'ডেলিভারি সম্পন্ন' : ''
     }
   ];
 
