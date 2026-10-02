@@ -22,11 +22,17 @@ export default function OrderConfirmationModal({
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [autoEmailSent, setAutoEmailSent] = useState(false);
-  const { isPluginActive } = usePlugins();
+  let isInvoiceActive = true;
+  try {
+    const pluginCtx = usePlugins();
+    if (pluginCtx && typeof pluginCtx.isPluginActive === 'function') {
+      isInvoiceActive = pluginCtx.isPluginActive('automated-invoice');
+    }
+  } catch (e) {
+    console.warn('Plugin context safe catch:', e);
+  }
 
-  const isInvoiceActive = isPluginActive('automated-invoice');
-
-  if (!order) return null;
+  if (!order || typeof order !== 'object') return null;
 
   const orderNumber = String(order.id || order.orderId || '17168902806931');
   const customerName = typeof order.customerName === 'string' 
