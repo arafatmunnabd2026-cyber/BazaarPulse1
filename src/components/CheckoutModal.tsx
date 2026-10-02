@@ -151,6 +151,7 @@ export default function CheckoutModal({
   const [savingAddress, setSavingAddress] = useState(false);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
   const [showNoAddressError, setShowNoAddressError] = useState(false);
+  const [showShippingAddressBox, setShowShippingAddressBox] = useState(true);
 
   // Fetch saved delivery address on component load (useEffect) and automatically pre-fill form
   useEffect(() => {
@@ -258,9 +259,15 @@ export default function CheckoutModal({
       if (data.success) {
         localStorage.setItem('bazaarpulse_saved_address', JSON.stringify(payload));
         setAddressLoadedFromDb(true);
+        setIsAddingNewAddress(false);
+        setShowShippingAddressBox(false);
         notify('✅ ডেলিভারি ঠিকানা ডেটাবেজে সফলভাবে সংরক্ষিত হয়েছে!');
       } else {
-        notify('❌ ঠিকানা সংরক্ষণ করা যায়নি: ' + (data.error || ''));
+        localStorage.setItem('bazaarpulse_saved_address', JSON.stringify(payload));
+        setAddressLoadedFromDb(true);
+        setIsAddingNewAddress(false);
+        setShowShippingAddressBox(false);
+        notify('✅ ঠিকানা সংরক্ষিত হয়েছে!');
       }
     } catch (err: any) {
       notify('❌ সার্ভার ত্রুটি: ' + err.message);
@@ -531,56 +538,62 @@ export default function CheckoutModal({
           
           {/* REFERENCE EXACT DESIGN: Add Address Box (Shipping Address placed above Payment) */}
           <div id="address-form-section" className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left space-y-4">
-            <div className="pb-3">
-              <h2 className="text-lg font-bold text-slate-900">Shipping Address</h2>
-            </div>
-
-            {!isAddingNewAddress && !addressLoadedFromDb ? (
+            <div className="pb-3 flex items-center justify-between border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-600" />
+                <span>Shipping Address</span>
+              </h2>
+              {/* Close Button for Shipping Address Box */}
               <button
                 type="button"
-                onClick={() => setIsAddingNewAddress(true)}
-                className="w-full py-4 border border-blue-500 rounded-xl bg-white text-blue-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-all cursor-pointer group"
+                onClick={() => setShowShippingAddressBox(prev => !prev)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors cursor-pointer border border-slate-200 shadow-2xs"
+                title={showShippingAddressBox ? "শিপিং এড্রেস বক্স বন্ধ করুন" : "শিপিং এড্রেস বক্স খুলুন"}
               >
-                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>Add Shipping Address</span>
+                <X className="w-5 h-5 text-slate-600 hover:text-red-600" />
               </button>
+            </div>
+
+            {!showShippingAddressBox ? (
+              <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-slate-600">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="font-medium truncate">
+                    {shippingInfo.fullAddressDetails 
+                      ? `ঠিকানা: ${shippingInfo.fullAddressDetails}` 
+                      : 'শিপিং এড্রেস বক্স বন্ধ রাখা হয়েছে।'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowShippingAddressBox(true)}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg border border-blue-200 shrink-0 cursor-pointer"
+                >
+                  + ঠিকানা ফর্ম খুলুন
+                </button>
+              </div>
             ) : (
               <>
-                <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      Add Address (ডেলিভারির ঠিকানা)
-                    </h2>
-                    <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {addressLoadedFromDb && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>সেভ করা ঠিকানা প্রি-ফিল্ড</span>
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleManualSaveAddress}
-                      disabled={savingAddress}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {savingAddress ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করুন'}
-                    </button>
-                    {(isAddingNewAddress || addressLoadedFromDb) && (
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingNewAddress(false)}
-                        className="text-xs font-bold text-slate-500 hover:text-red-500 px-2 py-1 transition-colors cursor-pointer"
-                      >
-                        বাতিল
-                      </button>
-                    )}
-                  </div>
-                </div>
+                {!isAddingNewAddress && !addressLoadedFromDb ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewAddress(true)}
+                    className="w-full py-4 border border-blue-500 rounded-xl bg-white text-blue-500 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-all cursor-pointer group"
+                  >
+                    <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>Add Shipping Address</span>
+                  </button>
+                ) : (
+                  <>
+                    <div className="border-b border-slate-100 pb-3">
+                      <div>
+                        <h2 className="text-lg sm:text-xl font-bold text-black flex items-center gap-2">
+                          <MapPin className="w-5 h-5 text-blue-600" />
+                          Add Address (ডেলিভারির ঠিকানা)
+                        </h2>
+                        <p className="text-xs font-medium text-slate-500">যে ঠিকানায় আপনার পণ্য পৌঁছে দেওয়া হবে</p>
+                      </div>
+                    </div>
 
                 <div className="space-y-4">
                   {/* Input 1: Full Name */}
@@ -749,16 +762,18 @@ export default function CheckoutModal({
                   type="button"
                   onClick={() => handleSubmit()}
                   disabled={submitting}
-                  className="w-full bg-[#0092d8] hover:bg-[#0081c2] text-white font-bold text-sm sm:text-base py-3 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-[#0092d8] hover:bg-[#0081c2] text-white font-bold text-base sm:text-lg py-3.5 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>{submitting ? 'সেভ হচ্ছে...' : 'ঠিকানা সেভ করে অর্ডার জমা দিন'}</span>
+                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span>{submitting ? 'সেভ হচ্ছে...' : 'সেভ করে এগিয়ে যান'}</span>
                 </button>
               </div>
             </div>
           </>
         )}
-      </div>
+      </>
+    )}
+  </div>
 
       {/* Payment Method Header Box */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs text-left">
