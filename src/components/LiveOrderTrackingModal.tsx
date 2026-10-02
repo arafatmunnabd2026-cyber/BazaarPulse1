@@ -297,10 +297,10 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
               <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">বর্তমান স্ট্যাটাস</span>
+                    <span className="text-xs sm:text-sm font-black text-black uppercase tracking-wider">বর্তমান স্ট্যাটাস</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                      <h4 className="text-lg font-black text-slate-900 capitalize">
+                      <h4 className="text-base sm:text-lg font-black text-black capitalize">
                         {rawStatus === 'pending' && 'অপেক্ষমাণ (Pending)'}
                         {rawStatus === 'processing' && 'প্রক্রিয়াধীন (Processing)'}
                         {rawStatus === 'shipped' && 'ডেলিভারির পথে (Shipped / Out for Delivery)'}
@@ -312,7 +312,7 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
 
                   <div className="bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
                     <Clock className="w-4 h-4 text-orange-600" />
-                    <span className="text-xs font-bold text-orange-950">
+                    <span className="text-xs sm:text-sm font-bold text-black">
                       আনুমানিক ডেলিভারি: ২৪-৪৮ ঘণ্টার মধ্যে
                     </span>
                   </div>
@@ -358,29 +358,27 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                           {/* Step Text Container with proper break-words & margins */}
                           <div className="w-full max-w-full flex flex-col items-center space-y-1 px-1">
                             <h5 
-                              className={`text-xs font-bold leading-tight break-words max-w-full text-center ${
+                              className={`text-sm sm:text-base font-bold leading-tight break-words max-w-full text-center ${
                                 isCurrent 
-                                  ? 'text-orange-600 font-extrabold' 
-                                  : isCompleted 
-                                  ? 'text-slate-900' 
-                                  : 'text-slate-500'
+                                  ? 'text-orange-600 font-black' 
+                                  : 'text-black'
                               }`}
                             >
                               {step.title}
                             </h5>
                             
-                            <p className="text-[10px] text-slate-500 leading-snug break-words max-w-full text-center">
+                            <p className="text-xs sm:text-sm font-medium text-black leading-snug break-words max-w-full text-center mt-0.5">
                               {step.subtitle}
                             </p>
 
                             <div className="pt-1 w-full flex justify-center">
                               <span 
-                                className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border leading-tight break-words shadow-2xs ${
+                                className={`inline-block text-xs font-bold px-2 py-0.5 rounded-md border leading-tight break-words shadow-2xs ${
                                   isCurrent
                                     ? 'bg-orange-50 text-orange-700 border-orange-200 animate-pulse'
                                     : isCompleted
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-slate-50 text-slate-400 border-slate-200'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-slate-50 text-black border-slate-200'
                                 }`}
                               >
                                 {step.time}
@@ -427,34 +425,32 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                           <div className="min-w-0 flex-1 space-y-1">
                             <div className="flex items-center justify-between gap-2">
                               <h5 
-                                className={`text-xs font-bold leading-tight break-words ${
+                                className={`text-sm sm:text-base font-bold leading-tight break-words ${
                                   isCurrent 
-                                    ? 'text-orange-600 font-extrabold' 
-                                    : isCompleted 
-                                    ? 'text-slate-900' 
-                                    : 'text-slate-500'
+                                    ? 'text-orange-600 font-black' 
+                                    : 'text-black'
                                 }`}
                               >
                                 {step.title}
                               </h5>
                               <span 
-                                className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md border leading-tight ${
+                                className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-md border leading-tight ${
                                   isCurrent
                                     ? 'bg-orange-100 text-orange-800 border-orange-300'
                                     : isCompleted
                                     ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                                    : 'bg-slate-100 text-black border-slate-200'
                                 }`}
                               >
                                 {step.time}
                               </span>
                             </div>
 
-                            <p className="text-[11px] text-slate-600 leading-snug break-words">
+                            <p className="text-xs sm:text-sm font-medium text-black leading-snug break-words">
                               {step.subtitle}
                             </p>
                             
-                            <p className="text-[10px] text-slate-400 leading-relaxed break-words pt-0.5">
+                            <p className="text-xs font-medium text-black/80 leading-relaxed break-words pt-0.5">
                               {step.desc}
                             </p>
                           </div>
@@ -465,19 +461,19 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                 </div>
 
                 {/* Delivery Logistics Badge */}
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                       <Truck className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="font-bold text-slate-800">কুরিয়ার পার্টনার: Steadfast Express</span>
-                      <p className="text-[11px] text-slate-500">ট্র্যাকিং কোড: <span className="font-mono font-bold text-slate-700">BP-TRK-{String(orderNumber).slice(-6)}</span></p>
+                      <span className="font-bold text-black text-sm sm:text-base">কুরিয়ার পার্টনার: Steadfast Express</span>
+                      <p className="text-xs sm:text-sm text-black">ট্র্যাকিং কোড: <span className="font-mono font-bold text-black">BP-TRK-{String(orderNumber).slice(-6)}</span></p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-700 font-bold bg-emerald-100 px-2.5 py-1 rounded-xl">
+                    <span className="text-black font-bold bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-xl text-xs sm:text-sm">
                       ✓ এক্সপ্রেস ডেলিভারি সক্রিয়
                     </span>
                   </div>
@@ -491,28 +487,28 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
               {/* Customer & Delivery Address Card */}
               <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3.5">
                 <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <h4 className="text-sm sm:text-base font-black uppercase tracking-wider text-black flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-orange-600" />
                     ডেলিভারি ঠিকানা ও গ্রাহক তথ্য
                   </h4>
                 </div>
 
-                <div className="space-y-2 text-xs text-slate-700">
+                <div className="space-y-2 text-sm text-black">
                   <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>গ্রাহকের নাম: <strong className="text-slate-900">{customerName}</strong></span>
+                    <User className="w-4 h-4 text-black shrink-0" />
+                    <span>গ্রাহকের নাম: <strong className="text-black font-bold">{customerName}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>মোবাইল: <strong className="text-slate-900">{phone}</strong></span>
+                    <Phone className="w-4 h-4 text-black shrink-0" />
+                    <span>মোবাইল: <strong className="text-black font-bold">{phone}</strong></span>
                   </div>
                   <div className="flex items-start gap-2 pt-1 border-t border-slate-100">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">সম্পূর্ণ ঠিকানা: <strong className="text-slate-900">{address}</strong></span>
+                    <MapPin className="w-4 h-4 text-black shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">সম্পূর্ণ ঠিকানা: <strong className="text-black font-bold">{address}</strong></span>
                   </div>
                   <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-slate-500">পেমেন্ট মেথড:</span>
-                    <span className="font-bold text-slate-900">{order.paymentMethod || 'Cash on Delivery'}</span>
+                    <span className="text-black font-medium">পেমেন্ট মেথড:</span>
+                    <span className="font-bold text-black">{order.paymentMethod || 'Cash on Delivery'}</span>
                   </div>
                 </div>
               </div>
@@ -520,11 +516,11 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
               {/* Items in this Order */}
               <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3.5">
                 <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <h4 className="text-sm sm:text-base font-black uppercase tracking-wider text-black flex items-center gap-2">
                     <Package className="w-4 h-4 text-orange-600" />
                     অর্ডারকৃত পণ্যসমূহ ({items.length})
                   </h4>
-                  <span className="text-xs font-extrabold text-orange-600">
+                  <span className="text-sm font-black text-black">
                     মোট: ৳{order.totalAmount}
                   </span>
                 </div>
@@ -537,15 +533,15 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
                         alt={it.title}
                         className="w-11 h-11 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-50"
                       />
-                      <div className="flex-1 min-w-0 text-xs">
-                        <p className="font-bold text-slate-800 truncate">{it.title}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
+                      <div className="flex-1 min-w-0 text-xs sm:text-sm">
+                        <p className="font-bold text-black truncate">{it.title}</p>
+                        <p className="text-xs text-black mt-0.5">
                           ৳{it.price} × {it.quantity}টি
-                          {it.size && <span className="ml-1 bg-slate-100 px-1 py-0.5 rounded text-[10px]">সাইজ: {it.size}</span>}
-                          {it.color && <span className="ml-1 bg-slate-100 px-1 py-0.5 rounded text-[10px]">কালার: {it.color}</span>}
+                          {it.size && <span className="ml-1 bg-slate-100 px-1.5 py-0.5 rounded text-xs text-black font-bold">সাইজ: {it.size}</span>}
+                          {it.color && <span className="ml-1 bg-slate-100 px-1.5 py-0.5 rounded text-xs text-black font-bold">কালার: {it.color}</span>}
                         </p>
                       </div>
-                      <div className="text-right font-bold text-xs text-slate-900">
+                      <div className="text-right font-bold text-xs sm:text-sm text-black">
                         ৳{it.price * it.quantity}
                       </div>
                     </div>
@@ -559,9 +555,9 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
 
           {/* Modal Footer Actions */}
           <div className="bg-white border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-black">
               <Sparkles className="w-4 h-4 text-orange-500" />
-              <span>যেকোনো সহায়তায় হেল্পলাইন: <strong>+880 1756-482001</strong></span>
+              <span>যেকোনো সহায়তায় হেল্পলাইন: <strong className="text-black font-bold">+880 1756-482001</strong></span>
             </div>
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
