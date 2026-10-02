@@ -42,10 +42,10 @@ export const EditableElement: React.FC<EditableElementProps> = ({
   } = useVisualEditor();
 
   const override = visualOverrides[id] || {};
-  const isHidden = !!override.hidden;
+  const isHidden = !!override.hidden || !!override.deleted;
   const displayText = override.text !== undefined ? override.text : (defaultText || (typeof children === 'string' ? children : ''));
 
-  // If edit mode is OFF (or in preview mode) and element is marked hidden, do not render at all
+  // If edit mode is OFF (or in preview mode) and element is marked hidden/deleted, do not render at all
   if ((!isVisualEditMode || isPreviewMode) && isHidden) {
     return null;
   }
@@ -88,14 +88,23 @@ export const EditableElement: React.FC<EditableElementProps> = ({
     toggleElementVisibility(id);
   };
 
+  const renderContent = () => {
+    if (type === 'section' && children) {
+      if (override.text) return override.text;
+      return children;
+    }
+    return displayText !== '' ? displayText : children;
+  };
+
   // When Visual Edit Mode is active and not in preview: render with interactive visual builder controls
   if (isVisualEditMode && !isPreviewMode) {
+    const isSection = type === 'section';
     return (
       <div 
-        className={`relative group/visual-editable transition-all duration-200 inline-block ${
+        className={`relative group/visual-editable transition-all duration-200 ${isSection ? 'w-full block' : 'inline-block'} ${
           isHidden 
-            ? 'opacity-40 grayscale border-2 border-dashed border-red-400 bg-red-50/20 p-1 rounded-xl' 
-            : 'hover:outline-2 hover:outline-dashed hover:outline-orange-500 hover:bg-orange-500/10 cursor-pointer rounded-lg'
+            ? 'opacity-40 grayscale border-2 border-dashed border-red-500 bg-red-50/20 p-1.5 rounded-2xl' 
+            : 'hover:outline-2 hover:outline-dashed hover:outline-orange-500 hover:bg-orange-500/10 cursor-pointer rounded-xl'
         }`}
         onClick={handleEditClick}
         title={`Click to edit "${label}" visually`}
@@ -103,11 +112,11 @@ export const EditableElement: React.FC<EditableElementProps> = ({
         {/* Floating Quick Action Badge */}
         <div className="absolute -top-3.5 -right-2 z-30 hidden group-hover/visual-editable:flex items-center gap-1 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-slate-700 animate-in fade-in duration-150 pointer-events-auto">
           <Edit3 className="w-2.5 h-2.5 text-orange-400" />
-          <span className="truncate max-w-[90px]">{label}</span>
+          <span className="truncate max-w-[120px]">{label}</span>
           <button
             type="button"
             onClick={handleToggleHide}
-            title={isHidden ? 'Show Element' : 'Hide / Delete from View'}
+            title={isHidden ? 'Show Element' : 'Delete / Hide from View'}
             className="ml-1 p-0.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white"
           >
             {isHidden ? <Eye className="w-3 h-3 text-emerald-400" /> : <EyeOff className="w-3 h-3 text-red-400" />}
@@ -116,9 +125,9 @@ export const EditableElement: React.FC<EditableElementProps> = ({
 
         {/* Hidden Label Pill if hidden */}
         {isHidden && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-2xs rounded-lg pointer-events-none z-20">
-            <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
-              <EyeOff className="w-2.5 h-2.5" /> Hidden (মুছে ফেলা/অদৃশ্য)
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-2xs rounded-xl pointer-events-none z-20">
+            <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+              <EyeOff className="w-3 h-3" /> Hidden (ডিলিট/অদৃশ্য করা হয়েছে)
             </span>
           </div>
         )}
@@ -130,7 +139,7 @@ export const EditableElement: React.FC<EditableElementProps> = ({
           {...(type === 'button' && override.href ? { href: override.href } : {})}
           {...rest}
         >
-          {displayText !== '' ? displayText : children}
+          {renderContent()}
         </Component>
       </div>
     );
@@ -145,7 +154,7 @@ export const EditableElement: React.FC<EditableElementProps> = ({
       {...(type === 'button' && override.href ? { href: override.href } : {})}
       {...rest}
     >
-      {displayText !== '' ? displayText : children}
+      {renderContent()}
     </Component>
   );
 };

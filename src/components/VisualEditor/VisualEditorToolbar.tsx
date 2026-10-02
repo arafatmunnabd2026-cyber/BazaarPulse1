@@ -31,26 +31,9 @@ export const VisualEditorToolbar: React.FC<VisualEditorToolbarProps> = ({ isAdmi
     setIsPreviewMode
   } = useVisualEditor();
 
-  // If edit mode is OFF, render floating toggle button for Admin
+  // If edit mode is OFF, do not render floating button on storefront
   if (!isVisualEditMode) {
-    if (!isAdmin) return null;
-    return (
-      <div className="fixed bottom-6 right-6 z-[100]">
-        <motion.button
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={toggleVisualEditMode}
-          className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 text-white font-bold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-2xl hover:shadow-orange-500/30 flex items-center gap-2 border border-white/20 backdrop-blur-md cursor-pointer group"
-          title="ভিজ্যুয়াল পেজ বিল্ডার ও লাইভ এডিটর অন করুন"
-        >
-          <Sparkles className="w-4 h-4 text-yellow-300 animate-spin" style={{ animationDuration: '4s' }} />
-          <span>🎨 Visual Page Builder</span>
-          <span className="bg-white/20 text-white text-[10px] px-1.5 py-0.5 rounded-md uppercase font-mono">Admin</span>
-        </motion.button>
-      </div>
-    );
+    return null;
   }
 
   return (

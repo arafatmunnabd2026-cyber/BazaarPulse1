@@ -91,7 +91,7 @@ export const VisualEditDrawer: React.FC = () => {
   };
 
   const handlePermanentDelete = () => {
-    updateOverride(activeElement.id, { hidden: true });
+    updateOverride(activeElement.id, { hidden: true, deleted: true });
     setActiveElement(null);
   };
 

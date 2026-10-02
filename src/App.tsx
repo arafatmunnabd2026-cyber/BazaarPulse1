@@ -2345,60 +2345,66 @@ function CustomerView({
       ) : (
         <>
           {/* 3. Hero Banner Slider Section */}
-          <HeroSlider banners={data.adminSettings.banners} />
+          <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
+            <HeroSlider banners={data.adminSettings.banners} />
+          </EditableElement>
 
           {/* Flash Sale Countdown Timer & Dynamic Banner Widget */}
-          <FlashSaleWidget />
+          <EditableElement id="flash_sale_section" label="ফ্ল্যাশ সেল উইজেট সেকশন" type="section">
+            <FlashSaleWidget />
+          </EditableElement>
 
       {/* 4. Promotional Campaign Strip */}
-      <div className="max-w-7xl mx-auto px-4 mt-4">
-        <div 
-          style={{ 
-            backgroundColor: data.adminSettings.campaignBanner?.bgColor || '#f85606',
-            color: data.adminSettings.campaignBanner?.textColor || '#ffffff'
-          }}
-          className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
-        >
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <EditableElement
-              id="campaign_strip_badge"
-              label="ক্যাম্পেইন অফার ব্যাজ"
-              type="badge"
-              defaultText={data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
-              className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0"
-            />
-            <div className="font-bold text-xs sm:text-sm flex items-center gap-1 flex-wrap">
-              <EditableElement
-                id="campaign_strip_title"
-                label="ক্যাম্পেইন অফার টাইটেল"
-                type="text"
-                defaultText={data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
-              />
-              <span className="font-normal opacity-90">—</span>
-              <EditableElement
-                id="campaign_strip_subtitle"
-                label="ক্যাম্পেইন অফার সাবটাইটেল"
-                type="text"
-                defaultText={data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}
-                className="font-normal opacity-90"
-              />
-            </div>
-          </div>
-          <EditableElement
-            id="campaign_strip_btn"
-            label="ক্যাম্পেইন অ্যাকশন বাটন"
-            type="button"
-            defaultText={data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'}
-            defaultHref={data.adminSettings.campaignBanner?.linkText || '#products-section'}
-            as="a"
+      <EditableElement id="campaign_strip_section" label="ক্যাম্পেইন স্ট্রিপ সেকশন" type="section">
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <div 
             style={{ 
-              backgroundColor: data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff',
-              color: data.adminSettings.campaignBanner?.buttonTextColor || '#111827'
+              backgroundColor: data.adminSettings.campaignBanner?.bgColor || '#f85606',
+              color: data.adminSettings.campaignBanner?.textColor || '#ffffff'
             }}
-            className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
-          />
+            className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
+          >
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <EditableElement
+                id="campaign_strip_badge"
+                label="ক্যাম্পেইন অফার ব্যাজ"
+                type="badge"
+                defaultText={data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
+                className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0"
+              />
+              <div className="font-bold text-xs sm:text-sm flex items-center gap-1 flex-wrap">
+                <EditableElement
+                  id="campaign_strip_title"
+                  label="ক্যাম্পেইন অফার টাইটেল"
+                  type="text"
+                  defaultText={data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
+                />
+                <span className="font-normal opacity-90">—</span>
+                <EditableElement
+                  id="campaign_strip_subtitle"
+                  label="ক্যাম্পেইন অফার সাবটাইটেল"
+                  type="text"
+                  defaultText={data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}
+                  className="font-normal opacity-90"
+                />
+              </div>
+            </div>
+            <EditableElement
+              id="campaign_strip_btn"
+              label="ক্যাম্পেইন অ্যাকশন বাটন"
+              type="button"
+              defaultText={data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'}
+              defaultHref={data.adminSettings.campaignBanner?.linkText || '#products-section'}
+              as="a"
+              style={{ 
+                backgroundColor: data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff',
+                color: data.adminSettings.campaignBanner?.buttonTextColor || '#111827'
+              }}
+              className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
+            />
+          </div>
         </div>
-      </div>
+      </EditableElement>
 
       {/* Products Grid Section with Advanced Filter Sidebar */}
       <div id="products-section" className="max-w-7xl mx-auto px-4 mt-10">
@@ -3072,91 +3078,7 @@ function CustomerView({
         )}
       </AnimatePresence>
 
-      {/* 5. Comprehensive Storefront Footer with Live Visual Editable Elements */}
-      <footer className="bg-slate-900 text-slate-300 mt-16 pt-12 pb-8 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-6 h-6 text-orange-500" />
-              <EditableElement
-                id="footer_brand_title"
-                label="ফুটার স্টোর নাম"
-                type="heading"
-                defaultText="BazaarPulse"
-                className="text-xl font-black text-white"
-              />
-            </div>
-            <EditableElement
-              id="footer_slogan"
-              label="ফুটার স্লোগান / বর্ণনা"
-              type="text"
-              defaultText="বাংলাদেশের বিশ্বস্ত অনলাইন শপিং প্ল্যাটফর্ম। দ্রুততম ডেলিভারি ও ১০০% জেনুইন পণ্যের নিশ্চয়তা।"
-              className="text-xs text-slate-400 leading-relaxed block"
-            />
-          </div>
 
-          <div className="space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">কাস্টমার কেয়ার (Customer Care)</h4>
-            <div className="text-xs space-y-1.5 text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <span>📞 হেল্পলাইন:</span>
-                <EditableElement
-                  id="footer_hotline"
-                  label="হেল্পলাইন মোবাইল নম্বর"
-                  type="text"
-                  defaultText="+880 1756-482001"
-                  className="text-orange-400 font-bold font-mono"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>✉️ ইমেইল:</span>
-                <EditableElement
-                  id="footer_email"
-                  label="সাপোর্ট ইমেইল"
-                  type="text"
-                  defaultText="support@bazaarpulse.com"
-                  className="text-white font-medium"
-                />
-              </div>
-              <p>সকাল ৯টা থেকে রাত ১০টা (সপ্তাহে ৭ দিন)</p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">পেমেন্ট ও ডেলিভারি</h4>
-            <EditableElement
-              id="footer_delivery_info"
-              label="ডেলিভারি তথ্য"
-              type="text"
-              defaultText="বিকাশ, নগদ, রকেট ও ক্যাশ অন ডেলিভারি (COD) সমর্থিত।"
-              className="text-xs text-slate-400 leading-relaxed block"
-            />
-          </div>
-
-          <div className="space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">সিকিউর শপিং</h4>
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-              <EditableElement
-                id="footer_trust_badge"
-                label="ট্রাস্ট ব্যাজ টেক্সট"
-                type="text"
-                defaultText="১০০% ভেরিফাইড বিক্রেতা ও নিরাপদ পেমেন্ট"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <EditableElement
-            id="footer_copyright"
-            label="কপিরাইট টেক্সট"
-            type="text"
-            defaultText="© 2026 BazaarPulse - সর্বস্বত্ব সংরক্ষিত।"
-          />
-          <span>Built with React, Next.js & Tailwind CSS</span>
-        </div>
-      </footer>
     </div>
   );
 }

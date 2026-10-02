@@ -2000,10 +2000,7 @@ app.post('/api/visual-editor/save', async (req, res) => {
     if (!db.adminSettings) {
       db.adminSettings = { ...defaultData.adminSettings };
     }
-    db.adminSettings.visualOverrides = {
-      ...(db.adminSettings.visualOverrides || {}),
-      ...visualOverrides
-    };
+    db.adminSettings.visualOverrides = visualOverrides;
     saveDb(db);
 
     // If PostgreSQL configured, also sync to admin_settings table if possible

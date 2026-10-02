@@ -7,6 +7,7 @@ export interface VisualOverride {
   fontSize?: string;
   fontWeight?: string;
   hidden?: boolean;
+  deleted?: boolean;
   href?: string;
   padding?: string;
   borderRadius?: string;
@@ -122,6 +123,14 @@ export const VisualEditorProvider: React.FC<{ children: React.ReactNode; notify?
     });
   };
 
+  const syncBackend = (updated: Record<string, VisualOverride>) => {
+    fetch('/api/visual-editor/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visualOverrides: updated })
+    }).catch(err => console.warn('Auto-save visual editor content error:', err));
+  };
+
   const updateOverride = (id: string, override: Partial<VisualOverride>) => {
     setVisualOverrides(prev => {
       const current = prev[id] || {};
@@ -136,6 +145,7 @@ export const VisualEditorProvider: React.FC<{ children: React.ReactNode; notify?
         localStorage.setItem('bazaarpulse_visual_overrides', JSON.stringify(updated));
       } catch (e) {}
       setHasUnsavedChanges(true);
+      syncBackend(updated);
       return updated;
     });
   };
@@ -148,6 +158,7 @@ export const VisualEditorProvider: React.FC<{ children: React.ReactNode; notify?
         localStorage.setItem('bazaarpulse_visual_overrides', JSON.stringify(updated));
       } catch (e) {}
       setHasUnsavedChanges(true);
+      syncBackend(updated);
       return updated;
     });
     notify(`↩️ "${id}" এর কাস্টমাইজেশন রিসেট করা হয়েছে`);
@@ -156,19 +167,21 @@ export const VisualEditorProvider: React.FC<{ children: React.ReactNode; notify?
   const toggleElementVisibility = (id: string) => {
     setVisualOverrides(prev => {
       const current = prev[id] || {};
-      const isCurrentlyHidden = !!current.hidden;
+      const isCurrentlyHidden = !!(current.hidden || current.deleted);
       const updated = {
         ...prev,
         [id]: {
           ...current,
-          hidden: !isCurrentlyHidden
+          hidden: !isCurrentlyHidden,
+          deleted: !isCurrentlyHidden
         }
       };
       try {
         localStorage.setItem('bazaarpulse_visual_overrides', JSON.stringify(updated));
       } catch (e) {}
       setHasUnsavedChanges(true);
-      notify(isCurrentlyHidden ? `👁️ "${id}" পুনরায় প্রদর্শিত করা হলো` : `🙈 "${id}" চোখের আড়ালে (Hide) করা হলো`);
+      syncBackend(updated);
+      notify(isCurrentlyHidden ? `👁️ "${id}" পুনরায় প্রদর্শিত করা হলো` : `🙈 "${id}" চোখের আড়ালে (Hide/Delete) করা হলো`);
       return updated;
     });
   };
