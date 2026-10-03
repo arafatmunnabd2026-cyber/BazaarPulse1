@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
 import { 
   X, 
   Truck, 
@@ -108,18 +109,48 @@ export const LiveOrderTrackingModal: React.FC<LiveOrderTrackingModalProps> = ({
     }
   }, [initialOrder, propOrderId, isOpen]);
 
-  // Listen to live broadcast updates
+  // Listen to live broadcast updates & Supabase Realtime updates
   useEffect(() => {
+    if (!effectiveOrderId) return;
+
     const handleStatusBroadcast = (e: any) => {
       if (e.detail?.orderId && String(e.detail.orderId) === String(effectiveOrderId)) {
         fetchLiveStatus(true);
       }
     };
     window.addEventListener('bazaarpulse-order-status-updated', handleStatusBroadcast);
+
+    // 1. Supabase Realtime Subscription for this specific order
+    let channel: any = null;
+    if (supabase) {
+      channel = supabase
+        .channel(`live-track-${effectiveOrderId}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'orders',
+            filter: `id=eq.${effectiveOrderId}`
+          },
+          (payload) => {
+            console.log('📦 Realtime order update received:', payload);
+            if (payload.new && (payload.new as any).status) {
+              // Directly update local state if payload is complete, otherwise fetch
+              fetchLiveStatus(true);
+            }
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       window.removeEventListener('bazaarpulse-order-status-updated', handleStatusBroadcast);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [effectiveOrderId]);
+  }, [effectiveOrderId, supabase]);
 
   if (!isOpen) return null;
 
