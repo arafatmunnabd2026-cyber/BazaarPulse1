@@ -151,10 +151,12 @@ export function createInvoiceHtmlElement(order: any, config: InvoiceConfig): HTM
     }
   ];
 
-  const subtotal = Number(order.subtotal || items.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0));
-  const deliveryFee = Number(order.deliveryFee || order.shippingFee || 80);
+  const discountAmount = Number(order.discountAmount || order.discount_amount || 0);
+  const deliveryFee = typeof order.deliveryFee !== 'undefined' && order.deliveryFee !== null ? Number(order.deliveryFee) : (typeof order.shippingFee !== 'undefined' && order.shippingFee !== null ? Number(order.shippingFee) : 80);
+  const calculatedItemsSubtotal = items.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  const subtotal = Number(order.subtotal || calculatedItemsSubtotal) || 0;
   const taxAmount = config.taxRatePercentage > 0 ? Math.round(subtotal * (config.taxRatePercentage / 100)) : 0;
-  const grandTotal = Number(order.totalAmount || (subtotal + deliveryFee + taxAmount));
+  const grandTotal = Number(order.totalAmount || order.total_amount || (subtotal + deliveryFee + taxAmount - discountAmount));
 
   container.innerHTML = `
     <div style="border-bottom: 2px solid #f97316; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -283,6 +285,12 @@ export function createInvoiceHtmlElement(order: any, config: InvoiceConfig): HTM
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
             <span>ভ্যাট / ট্যাক্স (${config.taxRatePercentage}%):</span>
             <span style="font-weight: 600; color: #0f172a;">৳${taxAmount.toLocaleString('bn-BD')}</span>
+          </div>
+        ` : ''}
+        ${discountAmount > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #10b981; font-weight: bold;">
+            <span>ভাউচার ডিসকাউন্ট (Discount):</span>
+            <span>-৳${discountAmount.toLocaleString('bn-BD')}</span>
           </div>
         ` : ''}
         <div style="border-top: 2px solid #e2e8f0; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">

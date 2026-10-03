@@ -34,7 +34,8 @@ export default function AdminDashboard() {
     imageUrl: '',
     galleryImages: [] as string[],
     sizes: [] as string[],
-    colors: [] as string[]
+    colors: [] as string[],
+    description: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -179,7 +180,7 @@ export default function AdminDashboard() {
   };
 
   // Standard input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -225,6 +226,7 @@ export default function AdminDashboard() {
       galleryImages: formData.galleryImages,
       sizes: formData.sizes,
       colors: formData.colors,
+      description: formData.description || '',
       status: 'active',
       vendor_id: 'v1',
       vendorName: 'Platform Administrator',
@@ -255,6 +257,7 @@ export default function AdminDashboard() {
               gallery_images: productPayload.gallery_images,
               sizes: productPayload.sizes,
               colors: productPayload.colors,
+              description: productPayload.description,
               status: 'active',
               vendor_id: 'v1',
               vendor_name: 'Platform Administrator'
@@ -304,7 +307,8 @@ export default function AdminDashboard() {
         imageUrl: '',
         galleryImages: [],
         sizes: [],
-        colors: []
+        colors: [],
+        description: ''
       });
       if (mainImageInputRef.current) mainImageInputRef.current.value = '';
       if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -572,6 +576,22 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Product Description */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+              Product Description *
+            </label>
+            <textarea 
+              name="description" 
+              value={formData.description} 
+              onChange={handleChange} 
+              required 
+              rows={4}
+              placeholder="Write detailed specifications or descriptions about this product..." 
+              style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', resize: 'vertical' }} 
+            />
           </div>
 
           {/* Submit Button */}

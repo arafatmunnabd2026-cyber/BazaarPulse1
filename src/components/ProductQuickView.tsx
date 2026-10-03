@@ -132,6 +132,7 @@ export const ProductQuickView = ({
   const [selectedColor, setSelectedColor] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(!!propIsWishlisted);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
   const pdpCategoryScrollRef = React.useRef<HTMLDivElement>(null);
 
   const availableColors = useMemo(() => normalizeList(selectedProduct?.colors), [selectedProduct?.colors]);
@@ -147,6 +148,7 @@ export const ProductQuickView = ({
       setSelectedSize(sizes.length > 0 ? sizes[0] : '');
       setActiveImageIdx(0);
       setIsWishlisted(!!propIsWishlisted);
+      setIsDescExpanded(false);
       // Set scroll lock
       document.body.style.overflow = 'hidden';
     } else {
@@ -646,6 +648,25 @@ export const ProductQuickView = ({
                   </span>
                 </button>
               </div>
+
+              {/* Product Collapsible Description Box */}
+              {(() => {
+                const descriptionText = selectedProduct.description || `${selectedProduct.title} - এটি একটি প্রিমিয়াম কোয়ালিটিসম্পন্ন এবং দীর্ঘস্থায়ী পণ্য। আমাদের বিশেষ কালেকশন থেকে এটি আকর্ষণীয় মূল্যে সংগ্রহ করতে পারেন। এটি আপনার দৈনন্দিন জীবনে আরামদায়ক অভিজ্ঞতা ও আভিজাত্য এনে দেবে। আজই অর্ডার করুন বাজার প্লাস থেকে এবং উপভোগ করুন দ্রুততম ক্যাশ অন ডেলিভারি সুবিধা!`;
+                return (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className={`text-base text-black transition-all leading-relaxed ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                      {descriptionText}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="mt-1.5 text-blue-600 hover:text-blue-800 font-bold text-sm cursor-pointer select-none focus:outline-none flex items-center gap-1"
+                    >
+                      {isDescExpanded ? 'See less' : 'See more...'}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

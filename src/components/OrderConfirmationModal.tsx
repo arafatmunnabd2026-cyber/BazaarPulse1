@@ -61,9 +61,10 @@ export default function OrderConfirmationModal({
     ? ((rawPaymentMethod === 'cod' || rawPaymentMethod === 'Cash on Delivery') ? 'Cash On Delivery' : rawPaymentMethod)
     : 'Cash On Delivery';
   
-  const subtotal = Number(order.subtotal || (Number(order.totalAmount || 0) - Number(order.deliveryFee || 80))) || 0;
-  const deliveryFee = Number(order.deliveryFee || order.shippingFee || 80);
-  const payableTotal = Number(order.totalAmount || (subtotal + deliveryFee));
+  const discountAmount = Number(order.discountAmount || order.discount_amount || 0);
+  const deliveryFee = typeof order.deliveryFee !== 'undefined' && order.deliveryFee !== null ? Number(order.deliveryFee) : (typeof order.shippingFee !== 'undefined' && order.shippingFee !== null ? Number(order.shippingFee) : 80);
+  const payableTotal = Number(order.totalAmount || order.total_amount || 0);
+  const subtotal = Number(order.subtotal || (payableTotal + discountAmount - deliveryFee)) || 0;
   const pointsEarned = Number(order.pointsEarned || Math.floor(payableTotal / 12) || 72);
 
   // Auto trigger invoice email on successful checkout if configured
@@ -286,6 +287,13 @@ export default function OrderConfirmationModal({
                     <span className="font-medium">Delivery and Website Service Charge</span>
                     <span className="font-bold text-black">৳{deliveryFee}</span>
                   </div>
+
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center text-emerald-600 font-bold">
+                      <span className="font-medium">Voucher Discount</span>
+                      <span>-৳{discountAmount}</span>
+                    </div>
+                  )}
 
                   <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-black text-sm sm:text-base">
                     <span className="font-bold">Payable Total</span>

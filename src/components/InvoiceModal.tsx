@@ -85,10 +85,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     }
   ];
 
-  const subtotal = Number(order.subtotal || items.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0));
-  const deliveryFee = Number(order.deliveryFee || order.shippingFee || 80);
+  const discountAmount = Number(order.discountAmount || order.discount_amount || 0);
+  const deliveryFee = typeof order.deliveryFee !== 'undefined' && order.deliveryFee !== null ? Number(order.deliveryFee) : (typeof order.shippingFee !== 'undefined' && order.shippingFee !== null ? Number(order.shippingFee) : 80);
+  const calculatedItemsSubtotal = items.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  const subtotal = Number(order.subtotal || calculatedItemsSubtotal) || 0;
   const taxAmount = config.taxRatePercentage > 0 ? Math.round(subtotal * (config.taxRatePercentage / 100)) : 0;
-  const grandTotal = Number(order.totalAmount || (subtotal + deliveryFee + taxAmount));
+  const grandTotal = Number(order.totalAmount || order.total_amount || (subtotal + deliveryFee + taxAmount - discountAmount));
 
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
@@ -383,6 +385,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   <div className="flex justify-between text-slate-600">
                     <span>ভ্যাট / ট্যাক্স ({config.taxRatePercentage}%):</span>
                     <span className="font-semibold text-slate-900">৳{taxAmount.toLocaleString('bn-BD')}</span>
+                  </div>
+                )}
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>ভাউচার ডিসকাউন্ট (Discount):</span>
+                    <span>-৳{discountAmount.toLocaleString('bn-BD')}</span>
                   </div>
                 )}
                 <div className="border-t-2 border-slate-300 pt-2 flex justify-between items-center text-slate-900">
