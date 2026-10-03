@@ -2358,7 +2358,7 @@ function CustomerView({
         <>
           {/* 3. Hero Banner Slider Section */}
           <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
-            <HeroSlider banners={data.adminSettings.banners} />
+            <HeroSlider banners={data?.adminSettings?.banners || []} />
           </EditableElement>
 
           {/* Flash Sale Countdown Timer & Dynamic Banner Widget */}
@@ -2371,8 +2371,8 @@ function CustomerView({
         <div className="max-w-7xl mx-auto px-4 mt-4">
           <div 
             style={{ 
-              backgroundColor: data.adminSettings.campaignBanner?.bgColor || '#f85606',
-              color: data.adminSettings.campaignBanner?.textColor || '#ffffff'
+              backgroundColor: data?.adminSettings?.campaignBanner?.bgColor || '#f85606',
+              color: data?.adminSettings?.campaignBanner?.textColor || '#ffffff'
             }}
             className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
           >
@@ -2381,7 +2381,7 @@ function CustomerView({
                 id="campaign_strip_badge"
                 label="ক্যাম্পেইন অফার ব্যাজ"
                 type="badge"
-                defaultText={data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
+                defaultText={data?.adminSettings?.campaignBanner?.badge || 'PAYDAY SALE'}
                 className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0"
               />
               <div className="font-bold text-xs sm:text-sm flex items-center gap-1 flex-wrap">
@@ -2389,14 +2389,14 @@ function CustomerView({
                   id="campaign_strip_title"
                   label="ক্যাম্পেইন অফার টাইটেল"
                   type="text"
-                  defaultText={data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
+                  defaultText={data?.adminSettings?.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
                 />
                 <span className="font-normal opacity-90">—</span>
                 <EditableElement
                   id="campaign_strip_subtitle"
                   label="ক্যাম্পেইন অফার সাবটাইটেল"
                   type="text"
-                  defaultText={data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}
+                  defaultText={data?.adminSettings?.campaignBanner?.subtitle || 'Grab top deals across all categories'}
                   className="font-normal opacity-90"
                 />
               </div>
@@ -2405,12 +2405,12 @@ function CustomerView({
               id="campaign_strip_btn"
               label="ক্যাম্পেইন অ্যাকশন বাটন"
               type="button"
-              defaultText={data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'}
-              defaultHref={data.adminSettings.campaignBanner?.linkText || '#products-section'}
+              defaultText={data?.adminSettings?.campaignBanner?.buttonText || 'Grab Deals'}
+              defaultHref={data?.adminSettings?.campaignBanner?.linkText || '#products-section'}
               as="a"
               style={{ 
-                backgroundColor: data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff',
-                color: data.adminSettings.campaignBanner?.buttonTextColor || '#111827'
+                backgroundColor: data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff',
+                color: data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'
               }}
               className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
             />
@@ -3136,7 +3136,7 @@ function AdminControlCenter({
 
   useEffect(() => {
     if (data?.adminSettings?.cartBanner?.isActive !== undefined) {
-      setIsBannerActive(Boolean(data.adminSettings.cartBanner.isActive));
+      setIsBannerActive(Boolean(data?.adminSettings?.cartBanner?.isActive));
     }
   }, [data?.adminSettings?.cartBanner?.isActive]);
   
@@ -3555,7 +3555,7 @@ function AdminControlCenter({
               <span>Open AdminDashboard.tsx View</span>
             </button>
             <div className="text-xs bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-700 self-start sm:self-auto shadow-inner">
-              Commission Rate: <span className="font-extrabold text-orange-400 text-sm ml-1">{data.adminSettings.globalCommissionRate}%</span>
+              Commission Rate: <span className="font-extrabold text-orange-400 text-sm ml-1">{data?.adminSettings?.globalCommissionRate || 10}%</span>
             </div>
           </div>
         </div>
@@ -4726,7 +4726,7 @@ function AdminControlCenter({
               <div className="space-y-6">
                 {/* List of existing banners */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {(data.adminSettings.banners || []).map((banner: any, idx: number) => (
+                  {(data?.adminSettings?.banners || []).map((banner: any, idx: number) => (
                     <div key={banner.id} className="relative p-4 rounded-xl border border-slate-200 bg-slate-50 group overflow-hidden shadow-sm">
                       <img src={banner.image} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none" />
                       <div className="relative z-10">
@@ -4735,7 +4735,7 @@ function AdminControlCenter({
                           <button 
                             onClick={async () => {
                               if (!confirm('Remove this banner from homepage?')) return;
-                              const updatedBanners = (data.adminSettings.banners || []).filter((b: any) => b.id !== banner.id);
+                              const updatedBanners = (data?.adminSettings?.banners || []).filter((b: any) => b.id !== banner.id);
                               try {
                                 const res = await fetch('/api/admin/settings', {
                                   method: 'PUT',
@@ -4767,7 +4767,7 @@ function AdminControlCenter({
                 </div>
 
                 {/* Add New Banner Form */}
-                {(data.adminSettings.banners || []).length < 10 && (
+                {(data?.adminSettings?.banners || []).length < 10 && (
                   <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-sm">
@@ -4788,7 +4788,7 @@ function AdminControlCenter({
                         link: linkInput?.value?.trim() || '#',
                       };
                       
-                      const updatedBanners = [...(data.adminSettings.banners || []), newBanner];
+                      const updatedBanners = [...(data?.adminSettings?.banners || []), newBanner];
 
                       try {
                         const res = await fetch('/api/admin/settings', {
@@ -4853,7 +4853,7 @@ function AdminControlCenter({
                   <input
                     name="commissionRate"
                     type="number"
-                    defaultValue={data.adminSettings.globalCommissionRate}
+                    defaultValue={data?.adminSettings?.globalCommissionRate || 10}
                     className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                   />
                 </div>
@@ -4909,7 +4909,7 @@ function AdminControlCenter({
                   <input
                     name="badge"
                     type="text"
-                    defaultValue={data.adminSettings.campaignBanner?.badge || 'PAYDAY SALE'}
+                    defaultValue={data?.adminSettings?.campaignBanner?.badge || 'PAYDAY SALE'}
                     className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
                     required
                   />
@@ -4920,7 +4920,7 @@ function AdminControlCenter({
                   <input
                     name="title"
                     type="text"
-                    defaultValue={data.adminSettings.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
+                    defaultValue={data?.adminSettings?.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
                     className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
                     required
                   />
@@ -4931,7 +4931,7 @@ function AdminControlCenter({
                   <input
                     name="subtitle"
                     type="text"
-                    defaultValue={data.adminSettings.campaignBanner?.subtitle || 'Grab top deals across all categories'}
+                    defaultValue={data?.adminSettings?.campaignBanner?.subtitle || 'Grab top deals across all categories'}
                     className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
                   />
                 </div>
@@ -4943,7 +4943,7 @@ function AdminControlCenter({
                       <input
                         name="bgColor"
                         type="color"
-                        defaultValue={data.adminSettings.campaignBanner?.bgColor || '#f85606'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.bgColor || '#f85606'}
                         onChange={(e) => {
                           const textInput = e.currentTarget.form?.elements.namedItem('bgColorText') as HTMLInputElement;
                           if (textInput) textInput.value = e.target.value;
@@ -4953,7 +4953,7 @@ function AdminControlCenter({
                       <input
                         name="bgColorText"
                         type="text"
-                        defaultValue={data.adminSettings.campaignBanner?.bgColor || '#f85606'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.bgColor || '#f85606'}
                         onChange={(e) => {
                           const input = e.currentTarget.form?.elements.namedItem('bgColor') as HTMLInputElement;
                           if (input) input.value = e.target.value;
@@ -4968,7 +4968,7 @@ function AdminControlCenter({
                       <input
                         name="textColor"
                         type="color"
-                        defaultValue={data.adminSettings.campaignBanner?.textColor || '#ffffff'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.textColor || '#ffffff'}
                         onChange={(e) => {
                           const textInput = e.currentTarget.form?.elements.namedItem('textColorText') as HTMLInputElement;
                           if (textInput) textInput.value = e.target.value;
@@ -4978,7 +4978,7 @@ function AdminControlCenter({
                       <input
                         name="textColorText"
                         type="text"
-                        defaultValue={data.adminSettings.campaignBanner?.textColor || '#ffffff'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.textColor || '#ffffff'}
                         onChange={(e) => {
                           const input = e.currentTarget.form?.elements.namedItem('textColor') as HTMLInputElement;
                           if (input) input.value = e.target.value;
@@ -4993,7 +4993,7 @@ function AdminControlCenter({
                       <input
                         name="buttonBgColor"
                         type="color"
-                        defaultValue={data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff'}
                         onChange={(e) => {
                           const textInput = e.currentTarget.form?.elements.namedItem('buttonBgColorText') as HTMLInputElement;
                           if (textInput) textInput.value = e.target.value;
@@ -5003,7 +5003,7 @@ function AdminControlCenter({
                       <input
                         name="buttonBgColorText"
                         type="text"
-                        defaultValue={data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff'}
                         onChange={(e) => {
                           const input = e.currentTarget.form?.elements.namedItem('buttonBgColor') as HTMLInputElement;
                           if (input) input.value = e.target.value;
@@ -5018,7 +5018,7 @@ function AdminControlCenter({
                       <input
                         name="buttonTextColor"
                         type="color"
-                        defaultValue={data.adminSettings.campaignBanner?.buttonTextColor || '#111827'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'}
                         onChange={(e) => {
                           const textInput = e.currentTarget.form?.elements.namedItem('buttonTextColorText') as HTMLInputElement;
                           if (textInput) textInput.value = e.target.value;
@@ -5028,7 +5028,7 @@ function AdminControlCenter({
                       <input
                         name="buttonTextColorText"
                         type="text"
-                        defaultValue={data.adminSettings.campaignBanner?.buttonTextColor || '#111827'}
+                        defaultValue={data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'}
                         onChange={(e) => {
                           const input = e.currentTarget.form?.elements.namedItem('buttonTextColor') as HTMLInputElement;
                           if (input) input.value = e.target.value;
@@ -5045,7 +5045,7 @@ function AdminControlCenter({
                     <input
                       name="buttonText"
                       type="text"
-                      defaultValue={data.adminSettings.campaignBanner?.buttonText || 'Grab Deals'}
+                      defaultValue={data?.adminSettings?.campaignBanner?.buttonText || 'Grab Deals'}
                       className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
                       required
                     />
@@ -5055,7 +5055,7 @@ function AdminControlCenter({
                     <input
                       name="linkText"
                       type="text"
-                      defaultValue={data.adminSettings.campaignBanner?.linkText || '#products-section'}
+                      defaultValue={data?.adminSettings?.campaignBanner?.linkText || '#products-section'}
                       className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
                       required
                     />

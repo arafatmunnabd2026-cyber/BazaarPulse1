@@ -364,6 +364,7 @@ async function initDatabase() {
         campaign_banner JSONB DEFAULT '{}'::jsonb,
         banners JSONB DEFAULT '[]'::jsonb,
         cart_banner JSONB DEFAULT '{"isActive": true, "bannerText": "৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি", "termsText": "শর্ত প্রযোজ্য"}'::jsonb,
+        visual_overrides JSONB DEFAULT '{}'::jsonb,
         maintenance_mode BOOLEAN DEFAULT false,
         CONSTRAINT single_row CHECK (id = 1)
       );
@@ -1852,70 +1853,86 @@ app.get('/api/admin/stats', authMiddleware, verifyAdmin, async (req, res) => {
 // Update Admin Settings
 app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => {
   try {
-    const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode } = req.body;
+    const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode, campaignBanner } = req.body;
     
-    // 1. Always update database.json cache file first
-    let localAdminSettings: any = null;
-    try {
-      if (fs.existsSync(DB_FILE)) {
-        const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-        if (!raw.adminSettings) raw.adminSettings = { ...defaultData.adminSettings };
-        if (banners !== undefined) raw.adminSettings.banners = banners;
-        if (globalCommissionRate !== undefined) raw.adminSettings.globalCommissionRate = Number(globalCommissionRate);
-        if (platformName !== undefined) raw.adminSettings.platformName = platformName;
-        if (heroBannerTitle !== undefined) raw.adminSettings.heroBannerTitle = heroBannerTitle;
-        if (heroBannerSubtitle !== undefined) raw.adminSettings.heroBannerSubtitle = heroBannerSubtitle;
-        if (maintenanceMode !== undefined) raw.adminSettings.maintenanceMode = !!maintenanceMode;
-        fs.writeFileSync(DB_FILE, JSON.stringify(raw, null, 2));
-        localAdminSettings = raw.adminSettings;
-      }
-    } catch (fErr) {
-      console.error('Error writing DB_FILE for admin settings:', fErr);
-    }
-
+    // Strict Logic: If database is configured, prioritize Supabase and avoid local file as primary storage
     if (isDbConfigured) {
-      const currentRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
-      const curr = currentRes.rows[0] || {};
-      
-      const rate = globalCommissionRate !== undefined ? Number(globalCommissionRate) : Number(curr.global_commission_rate || 10);
-      const name = platformName !== undefined ? platformName : curr.platform_name || 'BazaarPulse';
-      const title = heroBannerTitle !== undefined ? heroBannerTitle : curr.hero_banner_title || '';
-      const subtitle = heroBannerSubtitle !== undefined ? heroBannerSubtitle : curr.hero_banner_subtitle || '';
-      // Improved banners handling for JSONB
-      const activeBanners = banners !== undefined ? banners : (curr.banners ? (typeof curr.banners === 'string' ? JSON.parse(curr.banners) : curr.banners) : []);
-      const maint = maintenanceMode !== undefined ? !!maintenanceMode : !!curr.maintenance_mode;
-      const campaign = curr.campaign_banner ? (typeof curr.campaign_banner === 'string' ? JSON.parse(curr.campaign_banner) : curr.campaign_banner) : {};
-
-      const result = await pool.query(
-        `INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, banners, maintenance_mode, campaign_banner)
-         VALUES (1, $1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (id) DO UPDATE SET
-         global_commission_rate = EXCLUDED.global_commission_rate,
-         platform_name = EXCLUDED.platform_name,
-         hero_banner_title = EXCLUDED.hero_banner_title,
-         hero_banner_subtitle = EXCLUDED.hero_banner_subtitle,
-         banners = EXCLUDED.banners,
-         maintenance_mode = EXCLUDED.maintenance_mode,
-         campaign_banner = EXCLUDED.campaign_banner
-         RETURNING *`,
-        [rate, name, title, subtitle, JSON.stringify(activeBanners), maint, JSON.stringify(campaign)]
-      );
-
-      const s = result.rows[0];
-      console.log('🚀 Supabase database updated for admin settings');
-      return res.json({
-        success: true,
-        adminSettings: {
-          globalCommissionRate: Number(s.global_commission_rate),
-          platformName: s.platform_name,
-          heroBannerTitle: s.hero_banner_title,
-          heroBannerSubtitle: s.hero_banner_subtitle,
-          banners: typeof s.banners === 'string' ? JSON.parse(s.banners) : s.banners || [],
-          maintenanceMode: !!s.maintenance_mode,
-          campaignBanner: typeof s.campaign_banner === 'string' ? JSON.parse(s.campaign_banner) : s.campaign_banner || {}
+      try {
+        const currentRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
+        const curr = currentRes.rows[0] || {};
+        
+        const rate = globalCommissionRate !== undefined ? Number(globalCommissionRate) : Number(curr.global_commission_rate || 10);
+        const name = platformName !== undefined ? platformName : curr.platform_name || 'BazaarPulse';
+        const title = heroBannerTitle !== undefined ? heroBannerTitle : curr.hero_banner_title || '';
+        const subtitle = heroBannerSubtitle !== undefined ? heroBannerSubtitle : curr.hero_banner_subtitle || '';
+        const maint = maintenanceMode !== undefined ? !!maintenanceMode : !!curr.maintenance_mode;
+        
+        // Handle banners strictly - ensure it's an array
+        let activeBanners = [];
+        if (banners !== undefined) {
+          activeBanners = Array.isArray(banners) ? banners : [];
+        } else {
+          activeBanners = curr.banners ? (typeof curr.banners === 'string' ? JSON.parse(curr.banners) : curr.banners) : [];
         }
-      });
+
+        // Handle campaignBanner strictly
+        const campaign = campaignBanner !== undefined ? campaignBanner : (curr.campaign_banner ? (typeof curr.campaign_banner === 'string' ? JSON.parse(curr.campaign_banner) : curr.campaign_banner) : {});
+
+        const result = await pool.query(
+          `INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, banners, maintenance_mode, campaign_banner)
+           VALUES (1, $1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id) DO UPDATE SET
+           global_commission_rate = EXCLUDED.global_commission_rate,
+           platform_name = EXCLUDED.platform_name,
+           hero_banner_title = EXCLUDED.hero_banner_title,
+           hero_banner_subtitle = EXCLUDED.hero_banner_subtitle,
+           banners = EXCLUDED.banners,
+           maintenance_mode = EXCLUDED.maintenance_mode,
+           campaign_banner = EXCLUDED.campaign_banner
+           RETURNING *`,
+          [rate, name, title, subtitle, JSON.stringify(activeBanners), maint, JSON.stringify(campaign)]
+        );
+
+        const s = result.rows[0];
+        
+        // Sync to local cache ONLY after successful database update
+        try {
+          if (fs.existsSync(DB_FILE)) {
+            const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+            raw.adminSettings = {
+              globalCommissionRate: Number(s.global_commission_rate),
+              platformName: s.platform_name,
+              heroBannerTitle: s.hero_banner_title,
+              heroBannerSubtitle: s.hero_banner_subtitle,
+              banners: activeBanners,
+              maintenanceMode: !!s.maintenance_mode,
+              campaignBanner: campaign
+            };
+            fs.writeFileSync(DB_FILE, JSON.stringify(raw, null, 2));
+          }
+        } catch (cacheErr) {
+          console.error('Non-critical cache sync error:', cacheErr);
+        }
+
+        console.log('🚀 Supabase database strictly updated for admin settings');
+        return res.json({
+          success: true,
+          adminSettings: {
+            globalCommissionRate: Number(s.global_commission_rate),
+            platformName: s.platform_name,
+            heroBannerTitle: s.hero_banner_title,
+            heroBannerSubtitle: s.hero_banner_subtitle,
+            banners: typeof s.banners === 'string' ? JSON.parse(s.banners) : s.banners || [],
+            maintenanceMode: !!s.maintenance_mode,
+            campaignBanner: typeof s.campaign_banner === 'string' ? JSON.parse(s.campaign_banner) : s.campaign_banner || {}
+          }
+        });
+      } catch (dbError: any) {
+        console.error('Database Error during admin settings save:', dbError);
+        return res.status(500).json({ success: false, error: 'Database persistence failed: ' + dbError.message });
+      }
     } else {
+      // Fallback for non-Postgres environments
       const db = await getDb();
       if (banners !== undefined) db.adminSettings.banners = banners;
       if (globalCommissionRate !== undefined) db.adminSettings.globalCommissionRate = Number(globalCommissionRate);
@@ -2053,8 +2070,9 @@ app.post('/api/visual-editor/save', async (req, res) => {
     if (isDbConfigured) {
       try {
         await pool.query(
-          `UPDATE admin_settings SET banners = banners WHERE id = 1`
-        ).catch(() => {});
+          `UPDATE admin_settings SET visual_overrides = $1 WHERE id = 1`,
+          [JSON.stringify(visualOverrides)]
+        ).catch((e) => console.error('Visual editor sync error:', e));
       } catch (e) {}
     }
 
