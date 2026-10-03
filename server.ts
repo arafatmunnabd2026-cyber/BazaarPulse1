@@ -154,7 +154,7 @@ const defaultData: InitialData = {
 };
 
 // 2. PostgreSQL Connection Pool Setup
-const isDbConfigured = !!process.env.DATABASE_URL;
+let isDbConfigured = !!process.env.DATABASE_URL;
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -170,8 +170,9 @@ async function initDatabase() {
   }
   
   try {
+    console.log('Attempting to connect to PostgreSQL...');
     const client = await pool.connect();
-    console.log('Connected to PostgreSQL. Initializing database schema...');
+    console.log('Connected to PostgreSQL successfully. Initializing database schema...');
     
     // Create necessary relational database tables
     await client.query(`
@@ -433,15 +434,61 @@ async function initDatabase() {
     }
     
     client.release();
-  } catch (err) {
-    console.error('Error during PostgreSQL schema generation:', err);
+  } catch (err: any) {
+    console.error('❌ Database Connection Error:', err.message);
+    const isConnError = 
+      err.message.includes('authentication failed') || 
+      err.message.includes('password authentication') ||
+      err.message.includes('ECONNREFUSED') ||
+      err.message.includes('ETIMEDOUT') ||
+      err.message.includes('ENOTFOUND');
+
+    if (isConnError) {
+      console.warn('⚠️ Connection failed or authentication refused. Disabling PostgreSQL mode and falling back to local storage.');
+      isDbConfigured = false;
+    } else {
+      console.error('Error during PostgreSQL schema generation:', err);
+    }
   }
 }
 
 // Execute DB schema generation
 initDatabase();
 
-// 3. Test Database Connection Route
+// 3. Health Check & Diagnostics Route
+app.get('/api/health', async (req, res) => {
+  const diagnostics: any = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      configured: isDbConfigured,
+      connected: false,
+      error: null
+    },
+    system: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    }
+  };
+
+  if (isDbConfigured) {
+    try {
+      const client = await pool.connect();
+      const result = await client.query('SELECT NOW() as now');
+      client.release();
+      diagnostics.database.connected = true;
+      diagnostics.database.latency = Date.now() - new Date(result.rows[0].now).getTime();
+    } catch (err: any) {
+      diagnostics.status = 'error';
+      diagnostics.database.error = err.message;
+    }
+  }
+
+  res.status(diagnostics.status === 'ok' ? 200 : 500).json(diagnostics);
+});
+
+// Test Database Connection Route (Legacy support)
 app.get('/api/test-db', async (req, res) => {
   if (!isDbConfigured) {
     return res.status(400).json({
@@ -964,8 +1011,12 @@ async function getDb(): Promise<InitialData> {
       cartItems,
       adminSettings
     };
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to query PostgreSQL, falling back to local file:', err);
+    if (err.message.includes('ECONNREFUSED') || err.message.includes('closed') || err.message.includes('timeout')) {
+      console.warn('⚠️ Critical database connection error during runtime. Disabling PostgreSQL mode for this session.');
+      isDbConfigured = false;
+    }
     let localData: any = defaultData;
     if (fs.existsSync(DB_FILE)) {
       try {
@@ -4359,7 +4410,39 @@ if (isDev) {
   });
 }
 
-// 6. Proper error handling and server startup listening on process.env.PORT or port 3000
+// 6. Global Error Handler and Server Initialization
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[Global Server Error]:', err);
+  
+  // If headers already sent, delegate to default express handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const statusCode = err.status || 500;
+  
+  // Return JSON for API requests
+  if (req.path.startsWith('/api')) {
+    return res.status(statusCode).json({
+      success: false,
+      error: process.env.NODE_ENV === 'production' ? 'An internal server error occurred' : err.message,
+      stack: process.env.NODE_ENV === 'production' ? null : err.stack
+    });
+  }
+
+  // Return a simple HTML error page for browser requests
+  res.status(statusCode).send(`
+    <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+      <h1 style="color: #f85606;">সাময়িক ত্রুটি হয়েছে (500)</h1>
+      <p style="color: #64748b;">দুঃখিত, আমাদের সার্ভারে একটি সমস্যা হয়েছে। আমরা এটি সমাধানের কাজ করছি।</p>
+      <button onclick="window.location.reload()" style="background: #f85606; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">পুনরায় চেষ্টা করুন</button>
+      <div style="margin-top: 20px;">
+        <a href="/" style="color: #94a3b8; text-decoration: none; font-size: 0.8rem;">হোমপেজে ফিরে যান</a>
+      </div>
+    </div>
+  `);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

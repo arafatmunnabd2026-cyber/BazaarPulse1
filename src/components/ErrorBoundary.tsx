@@ -23,13 +23,18 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[BazaarPulse ErrorBoundary Intercepted Error]:', error, errorInfo);
+    console.error('[BazaarPulse Critical UI Failure]:', error, errorInfo);
+    // In a real app, you might send this to Sentry or another logging service
   }
 
   private handleReset = () => {
+    // Clear potentially corrupted local state if needed
+    // localStorage.removeItem('bazaarpulse_some_state');
     this.setState({ hasError: false, error: null });
     if (this.props.onReset) {
       this.props.onReset();
+    } else {
+      window.location.reload();
     }
   };
 
@@ -40,31 +45,48 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-[400px] p-6 max-w-2xl mx-auto flex flex-col items-center justify-center text-center my-8 bg-white border border-slate-200 rounded-3xl shadow-sm space-y-4">
-          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-slate-900">সাময়িক ত্রুটি হয়েছে</h3>
-            <p className="text-xs text-slate-500 max-w-md">
-              আমরা বিষয়টি ঠিক করার চেষ্টা করছি। অনুগ্রহ করে পেজটি রিফ্রেশ করুন বা হোমপেজে ফিরে যান।
+        <div className="min-h-screen p-6 flex items-center justify-center bg-slate-50">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-8 text-center space-y-6">
+            <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
+              <AlertTriangle className="w-10 h-10" />
+            </div>
+            
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">সাময়িক ত্রুটি হয়েছে</h1>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                দুঃখিত, অ্যাপ্লিকেশনটি লোড করার সময় একটি সমস্যা হয়েছে। আমরা এটি সমাধানের চেষ্টা করছি।
+              </p>
+            </div>
+
+            {process.env.NODE_ENV !== 'production' && this.state.error && (
+              <div className="bg-red-50 p-4 rounded-xl text-left overflow-auto max-h-40">
+                <p className="text-[10px] font-mono text-red-700 whitespace-pre">
+                  {this.state.error.toString()}
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 pt-4">
+              <button
+                onClick={this.handleReset}
+                className="w-full flex items-center justify-center gap-2 bg-[#f85606] hover:bg-[#e04d05] text-white font-black text-sm px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-orange-200 cursor-pointer active:scale-95"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>পুনরায় চেষ্টা করুন (Retry)</span>
+              </button>
+              
+              <button
+                onClick={() => window.location.href = '/'}
+                className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-6 py-3 rounded-2xl transition-all cursor-pointer"
+              >
+                <Home className="w-4 h-4" />
+                <span>হোমপেজে ফিরে যান</span>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-slate-400">
+              Error ID: {Math.random().toString(36).substring(7).toUpperCase()} • {new Date().toLocaleTimeString()}
             </p>
-          </div>
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={this.handleReset}
-              className="inline-flex items-center gap-2 bg-[#f85606] hover:bg-[#e04d05] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-xs"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>পুনরায় চেষ্টা করুন</span>
-            </button>
-            <button
-              onClick={() => window.location.href = '/'}
-              className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer"
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>হোমে ফিরুন</span>
-            </button>
           </div>
         </div>
       );

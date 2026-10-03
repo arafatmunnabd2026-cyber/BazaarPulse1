@@ -781,53 +781,91 @@ export default function App() {
           onNavigateHome={() => navigateTo('/')}
           onOpenLogin={() => setIsAuthModalOpen(true)}
         >
-          <VendorDashboard 
-            data={data} 
-            currentVendorId={currentVendorId} 
-            setCurrentVendorId={setCurrentVendorId} 
-            refreshData={loadData} 
-            notify={notify} 
-            authToken={authToken}
-            authUser={authUser}
-            navigateTo={navigateTo}
-            onLogout={handleLogout}
-          />
+          <ErrorBoundary onReset={loadData}>
+            {!data ? (
+              <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-500 font-bold text-sm">Loading Vendor Panel...</p>
+                </div>
+              </div>
+            ) : (
+              <VendorDashboard 
+                data={data} 
+                currentVendorId={currentVendorId} 
+                setCurrentVendorId={setCurrentVendorId} 
+                refreshData={loadData} 
+                notify={notify} 
+                authToken={authToken}
+                authUser={authUser}
+                navigateTo={navigateTo}
+                onLogout={handleLogout}
+              />
+            )}
+          </ErrorBoundary>
         </ProtectedRoute>
       )}
 
       {currentPath === '/admin' && (
-        <AdminControlCenter 
-          data={data} 
-          refreshData={loadData} 
-          notify={notify} 
-          authToken={authToken}
+        <ProtectedRoute
+          requiredRole="admin"
           authUser={authUser}
-          navigateTo={navigateTo}
-          onLogout={handleLogout}
-        />
+          onNavigateHome={() => navigateTo('/')}
+          onOpenLogin={() => setIsAuthModalOpen(true)}
+        >
+          <ErrorBoundary onReset={loadData}>
+            {!data ? (
+              <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-500 font-bold text-sm">Loading Admin Control Center...</p>
+                </div>
+              </div>
+            ) : (
+              <AdminControlCenter 
+                data={data} 
+                refreshData={loadData} 
+                notify={notify} 
+                authToken={authToken}
+                authUser={authUser}
+                navigateTo={navigateTo}
+                onLogout={handleLogout}
+              />
+            )}
+          </ErrorBoundary>
+        </ProtectedRoute>
       )}
 
       {currentPath === '/admin-dashboard' && (
-        <div>
-          <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-            <button 
-              onClick={() => navigateTo('/')} 
-              className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              ← Back to Storefront
-            </button>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Direct Supabase Admin Mode</span>
-              <button 
-                onClick={() => navigateTo('/admin')} 
-                className="text-xs font-bold text-slate-700 hover:text-black bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-              >
-                Go to Admin Control Center →
-              </button>
+        <ProtectedRoute
+          requiredRole="admin"
+          authUser={authUser}
+          onNavigateHome={() => navigateTo('/')}
+          onOpenLogin={() => setIsAuthModalOpen(true)}
+        >
+          <ErrorBoundary onReset={loadData}>
+            <div>
+              <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+                <button 
+                  onClick={() => navigateTo('/')} 
+                  className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  ← Back to Storefront
+                </button>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Direct Supabase Admin Mode</span>
+                  <button 
+                    onClick={() => navigateTo('/admin')} 
+                    className="text-xs font-bold text-slate-700 hover:text-black bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Go to Admin Control Center →
+                  </button>
+                </div>
+              </div>
+              <AdminDashboard />
             </div>
-          </div>
-          <AdminDashboard />
-        </div>
+          </ErrorBoundary>
+        </ProtectedRoute>
       )}
 
       {currentPath === '/admin/login' && (
