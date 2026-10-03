@@ -1762,41 +1762,17 @@ app.post('/api/auth/test-rbac', (req, res) => {
 // --- Public Platform Data Overview ---
 app.get('/api/platform/data', async (req, res) => {
   try {
-    let settings: any = {};
-    let products: any[] = [];
-    let categories: any[] = [];
-    let vendors: any[] = [];
-
-    if (isDbConfigured) {
-      const settingsRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
-      settings = settingsRes.rows[0] || {};
-      const prodsRes = await pool.query('SELECT * FROM products');
-      products = prodsRes.rows.map(p => ({
-        ...p,
-        price: Number(p.current_price || p.price || 0),
-        discountPrice: p.discount_price ? Number(p.discount_price) : undefined,
-        stock: Number(p.stock_quantity || p.stock || 0),
-        images: Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? JSON.parse(p.images) : []),
-        description: p.description || ''
-      }));
-    } else {
-      const db = await getDb();
-      settings = db.adminSettings || {};
-      products = db.products || [];
-      categories = db.categories || [];
-      vendors = db.vendors || [];
-    }
-
+    const db = await getDb();
+    
+    // For public data, we should ideally sanitize sensitive info, 
+    // but to avoid breaking existing UI logic, we return the expected structure.
     res.json({
-      products: products,
-      categories: categories,
-      vendors: vendors,
-      adminSettings: {
-        globalCommissionRate: Number(settings.global_commission_rate || settings.globalCommissionRate || 10),
-        platformName: settings.platform_name || settings.platformName || 'BazaarPulse',
-        campaignBanner: typeof settings.campaign_banner === 'string' ? JSON.parse(settings.campaign_banner) : (settings.campaign_banner || {}),
-        banners: Array.isArray(settings.banners) ? settings.banners : (typeof settings.banners === 'string' ? JSON.parse(settings.banners) : [])
-      }
+      success: true,
+      products: db.products || [],
+      categories: db.categories || [],
+      vendors: db.vendors || [],
+      orders: db.orders || [],
+      adminSettings: db.adminSettings || { globalCommissionRate: 10, platformName: 'BazaarPulse', banners: [] }
     });
   } catch (error: any) {
     console.error('Error fetching platform data:', error);

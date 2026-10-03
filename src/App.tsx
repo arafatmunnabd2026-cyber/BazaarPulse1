@@ -378,9 +378,15 @@ export default function App() {
         }));
       }
 
-      // Permanent Hero Banner Retention: Reliant on backend database
+      // Ensure absolute data integrity for UI stability
+      if (!json.products) json.products = [];
+      if (!json.categories) json.categories = [];
+      if (!json.vendors) json.vendors = [];
+      if (!json.orders) json.orders = [];
+      if (!json.withdrawals) json.withdrawals = [];
+      if (!json.reviews) json.reviews = [];
       if (!json.adminSettings) {
-        json.adminSettings = { banners: [] };
+        json.adminSettings = { banners: [], globalCommissionRate: 10, platformName: 'BazaarPulse' };
       }
       
       setData(json);
@@ -3731,7 +3737,7 @@ function AdminControlCenter({
                       onChange={e => setNewAdminProduct({ ...newAdminProduct, categoryId: e.target.value })}
                       className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm focus:bg-white outline-none"
                     >
-                      {data.categories.map((c: any) => (
+                      {(data?.categories || []).map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -3944,9 +3950,9 @@ function AdminControlCenter({
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-lg mb-4">All Current Store Products ({data.products.length})</h3>
+              <h3 className="font-bold text-lg mb-4">All Current Store Products ({(data?.products || []).length})</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {data.products.map((p: any) => (
+                {(data?.products || []).map((p: any) => (
                   <div key={p.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
                     <div>
                       <img src={p.images?.[0] || p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} alt="" className="w-full h-32 object-cover rounded-lg mb-2" />
@@ -4048,7 +4054,7 @@ function AdminControlCenter({
                             onChange={e => setEditingProduct({ ...editingProduct, categoryId: e.target.value })}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
                           >
-                            {data.categories.map((c: any) => (
+                            {(data?.categories || []).map((c: any) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                           </select>
@@ -4120,7 +4126,7 @@ function AdminControlCenter({
               </div>
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="text-slate-500 text-xs font-bold uppercase">Total Orders</div>
-                <div className="text-3xl font-extrabold text-slate-900 mt-2">{data.orders.length}</div>
+                <div className="text-3xl font-extrabold text-slate-900 mt-2">{(data?.orders || []).length}</div>
                 <div className="text-xs text-slate-400 mt-1">Processed securely</div>
               </div>
             </div>
@@ -4129,7 +4135,7 @@ function AdminControlCenter({
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-lg mb-4">Recent Platform Orders</h3>
                 <div className="space-y-3">
-                  {data.orders.slice(0, 5).map((o: any) => (
+                  {(data?.orders || []).slice(0, 5).map((o: any) => (
                     <div key={o.id} className="p-3 bg-slate-50 rounded-xl border flex items-center justify-between text-sm">
                       <div>
                         <span className="font-bold">{o.id}</span> • {o.customerName}
@@ -4144,10 +4150,10 @@ function AdminControlCenter({
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-lg mb-4">Pending Vendor Applications</h3>
                 <div className="space-y-3">
-                  {data.vendors.filter((v: any) => v.status === 'pending').length === 0 ? (
+                  {(data?.vendors || []).filter((v: any) => v.status === 'pending').length === 0 ? (
                     <p className="text-slate-400 text-sm">No pending vendor applications.</p>
                   ) : (
-                    data.vendors.filter((v: any) => v.status === 'pending').map((v: any) => (
+                    (data?.vendors || []).filter((v: any) => v.status === 'pending').map((v: any) => (
                       <div key={v.id} className="p-4 bg-slate-50 rounded-xl border flex items-center justify-between">
                         <div>
                           <div className="font-bold">{v.storeName}</div>
@@ -4625,12 +4631,12 @@ function AdminControlCenter({
           <div className="mt-6 space-y-4">
             <h3 className="text-xl font-bold mb-4">Vendor Payout Requests</h3>
             <div className="space-y-4">
-              {data.withdrawals.length === 0 ? (
+              {(data?.withdrawals || []).length === 0 ? (
                 <div className="bg-white p-12 text-center rounded-2xl border text-slate-400">
                   No withdrawal requests found.
                 </div>
               ) : (
-                data.withdrawals.map((w: any) => (
+                (data?.withdrawals || []).map((w: any) => (
                   <div key={w.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-3">
