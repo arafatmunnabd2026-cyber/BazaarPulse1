@@ -1058,7 +1058,7 @@ function HeroSlider({ banners }: { banners: any[] }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 mt-4">
-      <div className="relative rounded-2xl overflow-hidden h-[190px] sm:h-[260px] md:h-[310px] lg:h-[350px] shadow-md bg-slate-100 group border border-slate-100">
+      <div className="relative rounded-2xl overflow-hidden h-[140px] sm:h-[200px] md:h-[240px] lg:h-[280px] shadow-md bg-slate-100 group border border-slate-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={safeIndex}
