@@ -361,11 +361,13 @@ async function initDatabase() {
         platform_name VARCHAR(255) DEFAULT 'BazaarPulse',
         hero_banner_title VARCHAR(255),
         hero_banner_subtitle TEXT,
-        campaign_banner JSONB,
-        banners JSONB,
+        campaign_banner JSONB DEFAULT '{}'::jsonb,
+        banners JSONB DEFAULT '[]'::jsonb,
+        cart_banner JSONB DEFAULT '{"isActive": true, "bannerText": "৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি", "termsText": "শর্ত প্রযোজ্য"}'::jsonb,
         maintenance_mode BOOLEAN DEFAULT false,
         CONSTRAINT single_row CHECK (id = 1)
       );
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS cart_banner JSONB;
     `);
     
     // Seed initial database state if users table is empty
@@ -938,6 +940,7 @@ async function getDb(): Promise<InitialData> {
       heroBannerSubtitle: rawSettings.hero_banner_subtitle || '',
       campaignBanner: typeof rawSettings.campaign_banner === 'string' ? JSON.parse(rawSettings.campaign_banner) : rawSettings.campaign_banner || {},
       banners: typeof rawSettings.banners === 'string' ? JSON.parse(rawSettings.banners) : rawSettings.banners || [],
+      cartBanner: typeof rawSettings.cart_banner === 'string' ? JSON.parse(rawSettings.cart_banner) : rawSettings.cart_banner || { isActive: true, bannerText: '', termsText: '' },
       maintenanceMode: !!rawSettings.maintenance_mode
     };
     
@@ -1847,7 +1850,7 @@ app.get('/api/admin/stats', authMiddleware, verifyAdmin, async (req, res) => {
 });
 
 // Update Admin Settings
-app.put('/api/admin/settings', async (req, res) => {
+app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode } = req.body;
     
@@ -1878,9 +1881,10 @@ app.put('/api/admin/settings', async (req, res) => {
       const name = platformName !== undefined ? platformName : curr.platform_name || 'BazaarPulse';
       const title = heroBannerTitle !== undefined ? heroBannerTitle : curr.hero_banner_title || '';
       const subtitle = heroBannerSubtitle !== undefined ? heroBannerSubtitle : curr.hero_banner_subtitle || '';
-      const activeBanners = banners !== undefined ? JSON.stringify(banners) : (curr.banners ? (typeof curr.banners === 'string' ? curr.banners : JSON.stringify(curr.banners)) : '[]');
+      // Improved banners handling for JSONB
+      const activeBanners = banners !== undefined ? banners : (curr.banners ? (typeof curr.banners === 'string' ? JSON.parse(curr.banners) : curr.banners) : []);
       const maint = maintenanceMode !== undefined ? !!maintenanceMode : !!curr.maintenance_mode;
-      const campaign = curr.campaign_banner ? (typeof curr.campaign_banner === 'string' ? curr.campaign_banner : JSON.stringify(curr.campaign_banner)) : '{}';
+      const campaign = curr.campaign_banner ? (typeof curr.campaign_banner === 'string' ? JSON.parse(curr.campaign_banner) : curr.campaign_banner) : {};
 
       const result = await pool.query(
         `INSERT INTO admin_settings (id, global_commission_rate, platform_name, hero_banner_title, hero_banner_subtitle, banners, maintenance_mode, campaign_banner)
@@ -1894,10 +1898,11 @@ app.put('/api/admin/settings', async (req, res) => {
          maintenance_mode = EXCLUDED.maintenance_mode,
          campaign_banner = EXCLUDED.campaign_banner
          RETURNING *`,
-        [rate, name, title, subtitle, activeBanners, maint, campaign]
+        [rate, name, title, subtitle, JSON.stringify(activeBanners), maint, JSON.stringify(campaign)]
       );
 
       const s = result.rows[0];
+      console.log('🚀 Supabase database updated for admin settings');
       return res.json({
         success: true,
         adminSettings: {
@@ -1976,6 +1981,10 @@ app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, r
 // Update Cart Promotional Banner
 app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
   try {
+    const { isActive, bannerText, termsText } = req.body;
+    const isAct = isActive === true || isActive === 'true';
+
+    // 1. Update database.json cache
     const db = await getDb();
     if (!db.adminSettings.cartBanner) {
       db.adminSettings.cartBanner = {
@@ -1984,15 +1993,33 @@ app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
         termsText: 'শর্ত প্রযোজ্য'
       };
     }
-    const isAct = req.body.isActive === true || req.body.isActive === 'true';
-    db.adminSettings.cartBanner = {
+    
+    const updatedCartBanner = {
       isActive: isAct,
-      bannerText: req.body.bannerText !== undefined ? req.body.bannerText : db.adminSettings.cartBanner.bannerText,
-      termsText: req.body.termsText !== undefined ? req.body.termsText : db.adminSettings.cartBanner.termsText
+      bannerText: bannerText !== undefined ? bannerText : db.adminSettings.cartBanner.bannerText,
+      termsText: termsText !== undefined ? termsText : db.adminSettings.cartBanner.termsText
     };
+    
+    db.adminSettings.cartBanner = updatedCartBanner;
     saveDb(db);
-    res.json({ success: true, cartBanner: db.adminSettings.cartBanner });
+
+    // 2. Update PostgreSQL database
+    if (isDbConfigured) {
+      const currentRes = await pool.query('SELECT cart_banner FROM admin_settings WHERE id = 1');
+      const result = await pool.query(
+        `INSERT INTO admin_settings (id, cart_banner)
+         VALUES (1, $1)
+         ON CONFLICT (id) DO UPDATE SET
+         cart_banner = EXCLUDED.cart_banner
+         RETURNING *`,
+        [JSON.stringify(updatedCartBanner)]
+      );
+      console.log('✅ Cart banner updated in Supabase');
+    }
+
+    res.json({ success: true, cartBanner: updatedCartBanner });
   } catch (error: any) {
+    console.error('❌ Cart banner update failed:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

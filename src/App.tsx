@@ -4739,7 +4739,10 @@ function AdminControlCenter({
                               try {
                                 const res = await fetch('/api/admin/settings', {
                                   method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': authToken ? `Bearer ${authToken}` : ''
+                                  },
                                   body: JSON.stringify({ banners: updatedBanners })
                                 });
                                 if (res.ok) { 
@@ -4786,7 +4789,6 @@ function AdminControlCenter({
                       };
                       
                       const updatedBanners = [...(data.adminSettings.banners || []), newBanner];
-                      localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(updatedBanners));
 
                       try {
                         const res = await fetch('/api/admin/settings', {
