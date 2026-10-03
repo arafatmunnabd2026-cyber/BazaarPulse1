@@ -439,6 +439,22 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Product Description */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+              Product Description *
+            </label>
+            <textarea 
+              name="description" 
+              value={formData.description} 
+              onChange={handleChange} 
+              required 
+              rows={4}
+              placeholder="Write detailed specifications or descriptions about this product..." 
+              style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', resize: 'vertical' }} 
+            />
+          </div>
+
           {/* Main Product Image */}
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#334155', marginBottom: '8px' }}>

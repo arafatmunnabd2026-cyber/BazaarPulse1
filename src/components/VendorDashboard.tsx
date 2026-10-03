@@ -1031,6 +1031,18 @@ export default function VendorDashboard({
               </div>
 
               <div>
+                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Product Description *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Write detailed specifications or descriptions about this product..."
+                  value={newProduct.description}
+                  onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                ></textarea>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Key Features (for AI Writer)</label>
                 <input
                   type="text"
@@ -1041,17 +1053,6 @@ export default function VendorDashboard({
                   onChange={e => setNewProduct({ ...newProduct, keyFeatures: e.target.value })}
                   className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={newProduct.description}
-                  onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm"
-                ></textarea>
               </div>
 
               <div className="pt-4 border-t border-slate-200 flex gap-3">
