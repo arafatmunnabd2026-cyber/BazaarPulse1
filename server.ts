@@ -1707,22 +1707,41 @@ app.post('/api/auth/test-rbac', (req, res) => {
 // --- Public Platform Data Overview ---
 app.get('/api/platform/data', async (req, res) => {
   try {
-    const db = await getDb();
-    const { orders, users, user_logins, ...publicData } = db || {};
+    let settings: any = {};
+    let products: any[] = [];
+    let categories: any[] = [];
+    let vendors: any[] = [];
+
+    if (isDbConfigured) {
+      const settingsRes = await pool.query('SELECT * FROM admin_settings WHERE id = 1');
+      settings = settingsRes.rows[0] || {};
+      const prodsRes = await pool.query('SELECT * FROM products');
+      products = prodsRes.rows.map(p => ({
+        ...p,
+        price: Number(p.current_price || p.price || 0),
+        discountPrice: p.discount_price ? Number(p.discount_price) : undefined,
+        stock: Number(p.stock_quantity || p.stock || 0),
+        images: Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? JSON.parse(p.images) : []),
+        description: p.description || ''
+      }));
+    } else {
+      const db = await getDb();
+      settings = db.adminSettings || {};
+      products = db.products || [];
+      categories = db.categories || [];
+      vendors = db.vendors || [];
+    }
+
     res.json({
-      ...publicData,
-      products: publicData.products || [],
-      categories: publicData.categories || [],
-      vendors: (publicData.vendors || []).map((v: any) => ({
-        id: v.id,
-        name: v.name,
-        shopName: v.shopName || v.name,
-        logo: v.logo,
-        rating: v.rating,
-        status: v.status
-      })),
-      orders: [], // Sanitized: Public endpoint never leaks global orders. User orders are fetched via /api/my-orders, admin via /api/admin/orders.
-      adminSettings: publicData.adminSettings || { globalCommissionRate: 10, platformName: 'BazaarPulse' }
+      products: products,
+      categories: categories,
+      vendors: vendors,
+      adminSettings: {
+        globalCommissionRate: Number(settings.global_commission_rate || settings.globalCommissionRate || 10),
+        platformName: settings.platform_name || settings.platformName || 'BazaarPulse',
+        campaignBanner: typeof settings.campaign_banner === 'string' ? JSON.parse(settings.campaign_banner) : (settings.campaign_banner || {}),
+        banners: Array.isArray(settings.banners) ? settings.banners : (typeof settings.banners === 'string' ? JSON.parse(settings.banners) : [])
+      }
     });
   } catch (error: any) {
     console.error('Error fetching platform data:', error);
@@ -1732,7 +1751,7 @@ app.get('/api/platform/data', async (req, res) => {
       categories: [],
       vendors: [],
       orders: [],
-      adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse' }
+      adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse', banners: [] }
     });
   }
 });

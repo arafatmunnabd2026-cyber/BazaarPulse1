@@ -148,8 +148,7 @@ export default function VendorDashboard({
     stock: '',
     categoryId: data.categories?.[0]?.id || '',
     images: [] as string[],
-    description: '',
-    keyFeatures: ''
+    description: ''
   });
   const [productImageUrlInput, setProductImageUrlInput] = useState('');
   const productImageFileInputRef = useRef<HTMLInputElement>(null);
@@ -209,7 +208,7 @@ export default function VendorDashboard({
       const res = await fetch('/api/ai/generate-description', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newProduct.title, categoryName: cat, keyFeatures: newProduct.keyFeatures })
+        body: JSON.stringify({ title: newProduct.title, categoryName: cat })
       });
       const json = await res.json();
       if (json.description) {
@@ -1040,19 +1039,6 @@ export default function VendorDashboard({
                   onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
                   className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Key Features (for AI Writer)</label>
-                <input
-                  type="text"
-                  placeholder=""
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={newProduct.keyFeatures}
-                  onChange={e => setNewProduct({ ...newProduct, keyFeatures: e.target.value })}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
               </div>
 
               <div className="pt-4 border-t border-slate-200 flex gap-3">

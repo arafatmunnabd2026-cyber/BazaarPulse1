@@ -378,33 +378,11 @@ export default function App() {
         }));
       }
 
-      // Permanent Hero Banner Retention: Guard against banner loss on refresh
+      // Permanent Hero Banner Retention: Reliant on backend database
       if (!json.adminSettings) {
         json.adminSettings = { banners: [] };
       }
       
-      const serverBanners = json?.adminSettings?.banners;
-      const cachedBannersRaw = localStorage.getItem('bazaarpulse_admin_banners');
-      
-      if (Array.isArray(serverBanners) && serverBanners.length > 0) {
-        // Server has live banners, update local cache
-        localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(serverBanners));
-      } else if (cachedBannersRaw) {
-        // If server returned empty, restore from persistent local cache so banners never disappear
-        try {
-          const parsedCache = JSON.parse(cachedBannersRaw);
-          if (Array.isArray(parsedCache) && parsedCache.length > 0) {
-            json.adminSettings.banners = parsedCache;
-            // Sync back to backend so server database is also refreshed
-            fetch('/api/admin/settings', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ banners: parsedCache })
-            }).catch(() => {});
-          }
-        } catch (e) {}
-      }
-
       setData(json);
       setLoading(false);
     } catch (err) {
@@ -4758,7 +4736,6 @@ function AdminControlCenter({
                             onClick={async () => {
                               if (!confirm('Remove this banner from homepage?')) return;
                               const updatedBanners = (data.adminSettings.banners || []).filter((b: any) => b.id !== banner.id);
-                              localStorage.setItem('bazaarpulse_admin_banners', JSON.stringify(updatedBanners));
                               try {
                                 const res = await fetch('/api/admin/settings', {
                                   method: 'PUT',
@@ -4814,7 +4791,10 @@ function AdminControlCenter({
                       try {
                         const res = await fetch('/api/admin/settings', {
                           method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': authToken ? `Bearer ${authToken}` : ''
+                          },
                           body: JSON.stringify({ banners: updatedBanners })
                         });
                         if (res.ok) { 
@@ -4962,6 +4942,10 @@ function AdminControlCenter({
                         name="bgColor"
                         type="color"
                         defaultValue={data.adminSettings.campaignBanner?.bgColor || '#f85606'}
+                        onChange={(e) => {
+                          const textInput = e.currentTarget.form?.elements.namedItem('bgColorText') as HTMLInputElement;
+                          if (textInput) textInput.value = e.target.value;
+                        }}
                         className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-1 bg-white"
                       />
                       <input
@@ -4983,6 +4967,10 @@ function AdminControlCenter({
                         name="textColor"
                         type="color"
                         defaultValue={data.adminSettings.campaignBanner?.textColor || '#ffffff'}
+                        onChange={(e) => {
+                          const textInput = e.currentTarget.form?.elements.namedItem('textColorText') as HTMLInputElement;
+                          if (textInput) textInput.value = e.target.value;
+                        }}
                         className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-1 bg-white"
                       />
                       <input
@@ -5004,6 +4992,10 @@ function AdminControlCenter({
                         name="buttonBgColor"
                         type="color"
                         defaultValue={data.adminSettings.campaignBanner?.buttonBgColor || '#ffffff'}
+                        onChange={(e) => {
+                          const textInput = e.currentTarget.form?.elements.namedItem('buttonBgColorText') as HTMLInputElement;
+                          if (textInput) textInput.value = e.target.value;
+                        }}
                         className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-1 bg-white"
                       />
                       <input
@@ -5025,6 +5017,10 @@ function AdminControlCenter({
                         name="buttonTextColor"
                         type="color"
                         defaultValue={data.adminSettings.campaignBanner?.buttonTextColor || '#111827'}
+                        onChange={(e) => {
+                          const textInput = e.currentTarget.form?.elements.namedItem('buttonTextColorText') as HTMLInputElement;
+                          if (textInput) textInput.value = e.target.value;
+                        }}
                         className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-1 bg-white"
                       />
                       <input
