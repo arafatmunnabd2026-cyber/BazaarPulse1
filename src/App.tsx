@@ -4895,6 +4895,10 @@ function AdminControlCenter({
                 const subtitle = (form.elements.namedItem('subtitle') as HTMLInputElement).value;
                 const buttonText = (form.elements.namedItem('buttonText') as HTMLInputElement).value;
                 const linkText = (form.elements.namedItem('linkText') as HTMLInputElement).value;
+                const bgColor = (form.elements.namedItem('bgColor') as HTMLInputElement).value;
+                const textColor = (form.elements.namedItem('textColor') as HTMLInputElement).value;
+                const buttonBgColor = (form.elements.namedItem('buttonBgColor') as HTMLInputElement).value;
+                const buttonTextColor = (form.elements.namedItem('buttonTextColor') as HTMLInputElement).value;
 
                 try {
                   const res = await fetch('/api/admin/campaign-banner', {
@@ -4903,7 +4907,7 @@ function AdminControlCenter({
                       'Content-Type': 'application/json',
                       'Authorization': authToken ? `Bearer ${authToken}` : ''
                     },
-                    body: JSON.stringify({ badge, title, subtitle, buttonText, linkText })
+                    body: JSON.stringify({ badge, title, subtitle, buttonText, linkText, bgColor, textColor, buttonBgColor, buttonTextColor })
                   });
                   const json = await res.json();
                   if (res.status === 403 || res.status === 401) {
@@ -4911,7 +4915,7 @@ function AdminControlCenter({
                     return;
                   }
                   if (json.success) {
-                    notify('✨ Campaign banner strip updated live!');
+                    notify('✨ Campaign banner colors & content updated live!');
                     refreshData();
                   }
                 } catch (err) {
@@ -5062,42 +5066,6 @@ function AdminControlCenter({
 
                 <button
                   type="submit"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    const form = e.currentTarget.form;
-                    if (!form) return;
-                    const badge = (form.elements.namedItem('badge') as HTMLInputElement).value;
-                    const title = (form.elements.namedItem('title') as HTMLInputElement).value;
-                    const subtitle = (form.elements.namedItem('subtitle') as HTMLInputElement).value;
-                    const buttonText = (form.elements.namedItem('buttonText') as HTMLInputElement).value;
-                    const linkText = (form.elements.namedItem('linkText') as HTMLInputElement).value;
-                    const bgColor = (form.elements.namedItem('bgColor') as HTMLInputElement).value;
-                    const textColor = (form.elements.namedItem('textColor') as HTMLInputElement).value;
-                    const buttonBgColor = (form.elements.namedItem('buttonBgColor') as HTMLInputElement).value;
-                    const buttonTextColor = (form.elements.namedItem('buttonTextColor') as HTMLInputElement).value;
-
-                    try {
-                      const res = await fetch('/api/admin/campaign-banner', {
-                        method: 'PUT',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Authorization': authToken ? `Bearer ${authToken}` : ''
-                        },
-                        body: JSON.stringify({ badge, title, subtitle, buttonText, linkText, bgColor, textColor, buttonBgColor, buttonTextColor })
-                      });
-                      const json = await res.json();
-                      if (res.status === 403 || res.status === 401) {
-                        notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
-                        return;
-                      }
-                      if (json.success) {
-                        notify('✨ Campaign banner colors & content updated live!');
-                        refreshData();
-                      }
-                    } catch (err) {
-                      notify('Failed to update campaign banner');
-                    }
-                  }}
                   className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3 rounded-xl shadow transition-all text-sm cursor-pointer"
                 >
                   Publish Campaign Banner Live
