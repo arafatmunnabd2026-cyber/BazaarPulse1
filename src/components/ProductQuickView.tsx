@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ShoppingBag, Search, ShoppingCart, Sparkles, Star, Package, Heart, Minus, Plus, Check, Menu, Bell, User, Layers, Cpu, Shirt, Home as HomeIcon, Trophy, ChevronLeft, ChevronRight, ChevronDown, LogOut, ShieldCheck, Store } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { ProductReviewWidget } from '../plugins/ProductReviewWidget';
 
@@ -232,28 +232,28 @@ export const ProductQuickView = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-white overflow-y-auto"
+        className="fixed inset-0 z-[100] bg-white overflow-y-auto overflow-x-hidden"
       >
         <div className="sticky top-0 z-[101] bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
           {/* Identical Sticky Header and Categories Navigation Bar */}
           <header className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenMenu && onOpenMenu();
                 }}
-                className="p-1.5 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+                className="p-1.5 -ml-1 sm:-ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
-              <div className="text-[#f85606] font-black text-xl sm:text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={(e) => {
+              <div className="text-[#f85606] font-black text-lg sm:text-2xl tracking-tighter flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={(e) => {
                 e.stopPropagation();
                 handleCategoryClick('all');
               }}>
-                <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
-                <h1 className="text-xl sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+                <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+                <h1 className="text-lg sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
               </div>
             </div>
 
@@ -261,7 +261,7 @@ export const ProductQuickView = ({
               <div className="w-full relative flex">
                 <input
                   type="text"
-                  placeholder="Search in BazaarPulse..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -274,7 +274,7 @@ export const ProductQuickView = ({
                       }, 100);
                     }
                   }}
-                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-3 text-xs sm:text-sm focus:outline-none focus:bg-white text-gray-900"
+                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-2.5 sm:px-3 text-[10px] sm:text-sm focus:outline-none focus:bg-white text-gray-900"
                 />
                 <button 
                   onClick={(e) => {
@@ -286,50 +286,30 @@ export const ProductQuickView = ({
                       if (section) section.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
                   }}
-                  className="bg-[#f85606] hover:bg-[#e04d05] text-white px-4 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
+                  className="bg-[#f85606] hover:bg-[#e04d05] text-white px-3 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
                 >
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110" />
+                  <Search className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenCart && onOpenCart();
                 }}
-                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
+                className="relative p-1.5 sm:p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
                 title="Shopping Cart"
               >
-                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                <ShoppingCart className="w-5 h-5 sm:w-7 sm:h-7" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center border-2 border-white shadow-sm">
+                  <span className="absolute -top-0.5 -right-0.5 bg-[#f85606] text-white text-[9px] font-black rounded-full h-4 sm:h-5 w-4 sm:w-5 flex items-center justify-center border-2 border-white shadow-sm">
                     {cartCount}
                   </span>
                 )}
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="w-6 h-6" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAiAdvisor && onOpenAiAdvisor();
-                }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">AI Advisor</span>
-              </button>
-
-              <div className="relative">
+              <div className="hidden sm:block relative">
                 {authUser ? (
                   <div>
                     <button
@@ -349,62 +329,6 @@ export const ProductQuickView = ({
                       </div>
                       <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
                     </button>
-
-                    <AnimatePresence>
-                      {isProfileDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)} />
-                          <motion.div
-                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                            className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
-                          >
-                            <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
-                              <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white flex items-center justify-center shrink-0">
-                                  {authUser.avatar ? <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-slate-500" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-sm font-black text-slate-900 truncate">{authUser.name}</h4>
-                                  <p className="text-xs text-slate-500 truncate">{authUser.email}</p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="p-2 space-y-1">
-                              <button onClick={() => { setIsProfileDropdownOpen(false); onOpenWishlist?.(); }} className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 hover:bg-pink-50 hover:text-pink-600 rounded-xl transition-colors text-left cursor-pointer group">
-                                <div className="flex items-center gap-2.5">
-                                  <Heart className={`w-4 h-4 text-pink-500 ${wishlistCount > 0 ? 'fill-pink-500' : ''}`} />
-                                  <span>আমার পছন্দের তালিকা</span>
-                                </div>
-                                {wishlistCount > 0 && <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full">{wishlistCount}</span>}
-                              </button>
-                              <button onClick={() => { setIsProfileDropdownOpen(false); onOpenMyOrders?.(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors text-left cursor-pointer">
-                                <Package className="w-4 h-4 text-orange-600" />
-                                <span>আমার অর্ডারসমূহ</span>
-                              </button>
-                              {authUser.role === 'admin' && (
-                                <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-colors text-left cursor-pointer">
-                                  <ShieldCheck className="w-4 h-4 text-purple-600" />
-                                  <span>অ্যাডমিন ড্যাশবোর্ড</span>
-                                </button>
-                              )}
-                              {authUser.role === 'vendor' && (
-                                <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/vendor'); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors text-left cursor-pointer">
-                                  <Store className="w-4 h-4 text-emerald-600" />
-                                  <span>ভেন্ডর ড্যাশবোর্ড</span>
-                                </button>
-                              )}
-                              <div className="border-t border-slate-100 my-1" />
-                              <button onClick={() => { setIsProfileDropdownOpen(false); onLogout?.(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer">
-                                <LogOut className="w-4 h-4 text-red-500" />
-                                <span>লগআউট</span>
-                              </button>
-                            </div>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
                   </div>
                 ) : (
                   <button
@@ -412,10 +336,9 @@ export const ProductQuickView = ({
                       e.stopPropagation();
                       onOpenLoginHandler();
                     }}
-                    className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 hover:scale-105 cursor-pointer"
+                    className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer"
                   >
                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
-                    <div className="hidden md:flex flex-col items-start leading-tight pr-2 text-left"><span className="text-sm font-semibold text-slate-600">Login / Sign Up</span></div>
                   </button>
                 )}
               </div>
@@ -429,7 +352,7 @@ export const ProductQuickView = ({
                 className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 cursor-pointer"
                 title="Close"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
           </div>
@@ -449,7 +372,7 @@ export const ProductQuickView = ({
           >
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
-          <div ref={pdpCategoryScrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+          <div ref={pdpCategoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
             {displayCategories.map((cat: any, index: number) => (
               <button
                 key={`pdp-${cat.id}-${index}`}
@@ -457,10 +380,10 @@ export const ProductQuickView = ({
                   e.stopPropagation();
                   handleCategoryClick(cat.id);
                 }}
-                className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === cat.id ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+                className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === cat.id ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
               >
-                {cat.id !== 'all' && <CategoryIcon categoryId={cat.id} className="w-4 h-4" />}
-                {cat.id === 'all' && <Layers className="w-4 h-4" />}
+                {cat.id !== 'all' && <CategoryIcon categoryId={cat.id} className="w-3.5 h-3.5 sm:w-4 h-4" />}
+                {cat.id === 'all' && <Layers className="w-3.5 h-3.5 sm:w-4 h-4" />}
                 <span>{cat.name}</span>
               </button>
             ))}
@@ -469,10 +392,10 @@ export const ProductQuickView = ({
       </div>
 
       {/* Modal Content */}
-        <div className="max-w-7xl mx-auto p-4 sm:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div className="max-w-7xl mx-auto p-4 sm:p-8 pb-32 sm:pb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-12">
             <div className="space-y-4">
-              <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative border border-gray-100">
+              <div className="aspect-square bg-gray-50 rounded-2xl overflow-hidden relative border border-gray-100 shadow-inner">
                 <img 
                   src={productImages[activeImageIdx] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} 
                   alt={selectedProduct.title} 
@@ -480,23 +403,23 @@ export const ProductQuickView = ({
                   onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'; }}
                 />
                 {discountPercent > 0 && (
-                  <div className="absolute top-4 left-4 z-10 bg-[#e53935] text-white rounded-2xl w-14 h-14 flex flex-col items-center justify-center shadow-md select-none border border-red-400/30">
-                    <span className="text-base font-black leading-none">
+                  <div className="absolute top-4 left-4 z-10 bg-[#e53935] text-white rounded-2xl w-12 h-12 sm:w-14 sm:h-14 flex flex-col items-center justify-center shadow-md select-none border border-red-400/30">
+                    <span className="text-sm sm:text-base font-black leading-none">
                       {discountPercent}%
                     </span>
-                    <span className="text-[11px] font-black tracking-wider uppercase mt-0.5 leading-none">
+                    <span className="text-[9px] sm:text-[11px] font-black tracking-wider uppercase mt-0.5 leading-none">
                       OFF
                     </span>
                   </div>
                 )}
               </div>
               {productImages.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                   {productImages.map((img: string, idx: number) => (
                     <button 
                       key={idx} 
                       onClick={() => setActiveImageIdx(idx)}
-                      className={`w-20 h-20 bg-gray-100 rounded-lg border-2 overflow-hidden shrink-0 transition-all ${activeImageIdx === idx ? 'border-[#f85606]' : 'border-transparent'}`}
+                      className={`w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl border-2 overflow-hidden shrink-0 transition-all ${activeImageIdx === idx ? 'border-[#f85606] shadow-sm' : 'border-transparent'}`}
                     >
                       <img src={img} alt="" className="w-full h-full object-cover" />
                     </button>
@@ -505,26 +428,26 @@ export const ProductQuickView = ({
               )}
             </div>
             
-            <div className="flex flex-col gap-3">
-              <h1 className="text-base sm:text-lg font-semibold text-black/90 tracking-tight leading-snug">
+            <div className="flex flex-col gap-2.5 sm:gap-3">
+              <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
                 {selectedProduct.title}
               </h1>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1 text-yellow-500"><Star className="w-4 h-4 fill-current" /> 4.8 (128 Reviews)</div>
-                <div className="text-gray-900 font-bold">Vendor: <span className="text-[#f85606] underline cursor-pointer">{selectedProduct.vendorName || 'Bazaar Store'}</span></div>
+              <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-500 font-medium">
+                <div className="flex items-center gap-1 text-yellow-500 font-bold"><Star className="w-3.5 h-3.5 fill-current" /> 4.8 (128 Reviews)</div>
+                <div className="text-gray-900 font-bold flex items-center gap-1.5"><Store className="w-3.5 h-3.5" /> <span className="text-[#f85606] underline cursor-pointer">{selectedProduct.vendorName || 'Bazaar Pulse Official'}</span></div>
               </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-4xl font-black text-[#f85606]">৳{currentPrice}</span>
+              <div className="flex items-center gap-3 flex-wrap pt-1">
+                <span className="text-3xl sm:text-4xl font-black text-[#f85606] tracking-tighter">৳{currentPrice}</span>
                 {originalPrice > currentPrice && (
-                  <span className="text-xl text-gray-400 line-through font-medium">৳{originalPrice}</span>
+                  <span className="text-lg sm:text-xl text-gray-400 line-through font-medium">৳{originalPrice}</span>
                 )}
                 {savings > 0 && (
-                  <span className="text-xs sm:text-sm text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-md border border-emerald-200 inline-flex items-center">
+                  <span className="text-[10px] sm:text-sm text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-flex items-center">
                     You Save ৳{savings}
                   </span>
                 )}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 pb-1">
                 {isOutOfStock ? (
                   <p className="text-red-500 font-bold text-sm flex items-center gap-1.5">
                     <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 text-[10px] font-bold">✕</span>
@@ -544,93 +467,104 @@ export const ProductQuickView = ({
                     <span className="w-4 h-4 rounded-full bg-[#22c55e] flex items-center justify-center text-white shrink-0 shadow-xs">
                       <Check className="w-2.5 h-2.5 stroke-[3.5]" />
                     </span>
-                    <span className="text-slate-900 font-bold">In Stock</span>
-                  </p>
-                )}
-                {!isOutOfStock && (
-                  <p className="text-xs text-black font-bold tracking-tight">
-                    * স্টক আউট হওয়ার আগেই অর্ডার করুন
+                    <span className="text-slate-900 font-bold text-xs sm:text-sm">In Stock - Ready to Ship</span>
                   </p>
                 )}
               </div>
               
-              {/* Color Selector - only displayed if Admin or Vendor has specified colors */}
-              {availableColors.length > 0 && (
-                <div className="space-y-2">
-                  <p className="font-bold text-sm">Color: <span className="text-gray-500 font-normal">{selectedColor}</span></p>
-                  <div className="flex gap-2 flex-wrap">
-                    {availableColors.map((color: string) => (
-                      <button 
-                        key={color} 
-                        onClick={() => setSelectedColor(color)}
-                        className={`px-4 py-2 border rounded-lg text-sm font-semibold transition-all ${selectedColor === color ? 'border-[#f85606] bg-orange-50 text-[#f85606]' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
-                      >
-                        {color}
-                      </button>
-                    ))}
+              {/* Variation Selectors */}
+              <div className="space-y-4 pt-2">
+                {availableColors.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="font-bold text-xs sm:text-sm text-slate-800 uppercase tracking-wider">Color: <span className="text-orange-600">{selectedColor}</span></p>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableColors.map((color: string) => (
+                        <button 
+                          key={color} 
+                          onClick={() => setSelectedColor(color)}
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 border-2 rounded-xl text-xs sm:text-sm font-black transition-all ${selectedColor === color ? 'border-[#f85606] bg-orange-50 text-[#f85606] shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'}`}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {availableSizes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="font-bold text-xs sm:text-sm text-slate-800 uppercase tracking-wider">Size: <span className="text-orange-600">{selectedSize}</span></p>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableSizes.map((size: string) => (
+                        <button 
+                          key={size} 
+                          onClick={() => setSelectedSize(size)}
+                          className={`min-w-[44px] sm:min-w-[50px] h-10 sm:h-11 border-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center ${selectedSize === size ? 'border-[#f85606] bg-orange-50 text-[#f85606] shadow-sm' : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'}`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quantity and Actions */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+                <div className="flex flex-col gap-2">
+                  <p className="font-bold text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest">Quantity:</p>
+                  <div className="inline-flex items-center border-2 border-gray-100 rounded-2xl overflow-hidden bg-gray-50 shadow-inner">
+                    <button 
+                      onClick={handleDecrement} 
+                      className="p-2.5 sm:p-3 hover:bg-white text-slate-600 transition-all disabled:opacity-40"
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="px-5 sm:px-6 font-black text-base sm:text-lg min-w-[3rem] text-center text-slate-900 select-none">{quantity}</span>
+                    <button 
+                      onClick={handleIncrement} 
+                      className="p-2.5 sm:p-3 hover:bg-white text-slate-600 transition-all disabled:opacity-40"
+                      disabled={quantity >= maxStock}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Size Selector - only displayed if Admin or Vendor has specified sizes */}
-              {availableSizes.length > 0 && (
-                <div className="space-y-2">
-                  <p className="font-bold text-sm">Size: <span className="text-gray-500 font-normal">{selectedSize}</span></p>
-                  <div className="flex gap-2 flex-wrap">
-                    {availableSizes.map((size: string) => (
-                      <button 
-                        key={size} 
-                        onClick={() => setSelectedSize(size)}
-                        className={`px-4 py-2 border rounded-lg text-sm font-semibold transition-all ${selectedSize === size ? 'border-[#f85606] bg-orange-50 text-[#f85606]' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quantity Selector - Separate Section */}
-              <div className="space-y-2 pt-1">
-                <p className="font-bold text-sm text-gray-700">Quantity:</p>
-                <div className="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className="hidden sm:flex flex-1 items-center gap-3 w-full self-end">
                   <button 
-                    onClick={handleDecrement} 
-                    className="p-2.5 px-3.5 hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40"
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
+                    onClick={handleBuyNow} 
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-orange-500/20 transition-all active:scale-95 cursor-pointer uppercase tracking-wider text-sm"
                   >
-                    <Minus className="w-4 h-4" />
+                    Buy Now
                   </button>
-                  <span className="px-5 font-bold text-base min-w-[2.5rem] text-center text-gray-900 select-none">{quantity}</span>
                   <button 
-                    onClick={handleIncrement} 
-                    className="p-2.5 px-3.5 hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40"
-                    disabled={quantity >= maxStock}
-                    aria-label="Increase quantity"
+                    onClick={handleAddToCartClick} 
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer uppercase tracking-wider text-sm"
                   >
-                    <Plus className="w-4 h-4" />
+                    <ShoppingCart className="w-5 h-5" /> Add to Cart
                   </button>
                 </div>
               </div>
 
-              {/* Action Buttons Row */}
-              <div className="flex items-center gap-3 pt-2">
+              {/* Mobile Sticky Actions */}
+              <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[110] bg-white border-t border-gray-100 p-4 flex gap-3 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+                <button 
+                  onClick={handleAddToCartClick} 
+                  className="flex-1 bg-white border-2 border-blue-600 text-blue-600 font-black py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider"
+                >
+                  <ShoppingCart className="w-4 h-4" /> Cart
+                </button>
                 <button 
                   onClick={handleBuyNow} 
-                  className="flex-1 bg-[#f8981d] hover:bg-[#e68a1a] text-white font-bold py-3.5 rounded-lg shadow-sm transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 cursor-pointer"
+                  className="flex-[1.5] bg-orange-500 text-white font-black py-3.5 rounded-xl active:scale-95 transition-all text-xs uppercase tracking-wider shadow-lg shadow-orange-500/25"
                 >
                   Buy Now
                 </button>
-                <button 
-                  onClick={handleAddToCartClick} 
-                  className="flex-1 bg-[#007bff] hover:bg-[#0069d9] text-white font-bold py-3.5 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 cursor-pointer"
-                >
-                  <ShoppingCart className="w-5 h-5" /> Add to Cart
-                </button>
               </div>
 
-              {/* Wishlist Button - Placed below Buy Now row matching reference image */}
+              {/* Wishlist Button */}
               <div className="pt-2">
                 <button 
                   onClick={() => {
@@ -639,44 +573,41 @@ export const ProductQuickView = ({
                       onToggleWishlist(selectedProduct);
                     }
                   }} 
-                  className="inline-flex items-center gap-2.5 py-2.5 px-4 text-slate-700 hover:text-red-600 transition-all duration-300 ease-out border border-transparent hover:border-red-100 hover:bg-red-50/40 rounded-xl hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 group cursor-pointer select-none"
-                  aria-label="Wishlist toggle"
+                  className="inline-flex items-center gap-2.5 py-2.5 px-4 text-slate-700 hover:text-red-600 transition-all duration-300 ease-out border border-slate-100 hover:border-red-100 bg-slate-50/50 hover:bg-red-50/40 rounded-xl hover:scale-105 active:scale-95 group cursor-pointer select-none"
                 >
                   <Heart className={`w-5 h-5 transition-transform duration-300 ease-out group-hover:scale-115 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
-                  <span className={`text-sm font-semibold transition-colors ${isWishlisted ? 'text-red-600 font-bold' : 'text-slate-800'}`}>
+                  <span className={`text-sm font-black transition-colors ${isWishlisted ? 'text-red-600' : 'text-slate-800'}`}>
                     {isWishlisted ? 'পছন্দের তালিকায় যুক্ত রয়েছে' : 'পছন্দের তালিকায় রাখুন'}
                   </span>
                 </button>
               </div>
 
-              {/* Product Collapsible Description Box */}
-              {(() => {
-                const descriptionText = selectedProduct.description || `${selectedProduct.title} - এটি একটি প্রিমিয়াম কোয়ালিটিসম্পন্ন এবং দীর্ঘস্থায়ী পণ্য। আমাদের বিশেষ কালেকশন থেকে এটি আকর্ষণীয় মূল্যে সংগ্রহ করতে পারেন। এটি আপনার দৈনন্দিন জীবনে আরামদায়ক অভিজ্ঞতা ও আভিজাত্য এনে দেবে। আজই অর্ডার করুন বাজার প্লাস থেকে এবং উপভোগ করুন দ্রুততম ক্যাশ অন ডেলিভারি সুবিধা!`;
-                return (
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <div className={`text-base text-black transition-all leading-relaxed ${isDescExpanded ? '' : 'line-clamp-3'}`}>
-                      {descriptionText}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsDescExpanded(!isDescExpanded)}
-                      className="mt-1.5 text-blue-600 hover:text-blue-800 font-bold text-sm cursor-pointer select-none focus:outline-none flex items-center gap-1"
-                    >
-                      {isDescExpanded ? 'See less' : 'See more...'}
-                    </button>
-                  </div>
-                );
-              })()}
+              {/* Description */}
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <h3 className="font-black text-sm text-slate-900 uppercase tracking-widest mb-2">Product Description</h3>
+                <div className={`text-[13px] sm:text-base text-slate-700 transition-all leading-relaxed ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                  {selectedProduct.description || `${selectedProduct.title} - এটি একটি প্রিমিয়াম কোয়ালিটিসম্পন্ন এবং দীর্ঘস্থায়ী পণ্য। আমাদের বিশেষ কালেকশন থেকে এটি আকর্ষণীয় মূল্যে সংগ্রহ করতে পারেন। এটি আপনার দৈনন্দিন জীবনে আরামদায়ক অভিজ্ঞতা ও আভিজাত্য এনে দেবে। আজই অর্ডার করুন বাজার প্লাস থেকে এবং উপভোগ করুন দ্রুততম ক্যাশ অন ডেলিভারি সুবিধা!`}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDescExpanded(!isDescExpanded)}
+                  className="mt-2 text-blue-600 hover:text-blue-800 font-black text-xs sm:text-sm cursor-pointer flex items-center gap-1"
+                >
+                  {isDescExpanded ? 'See less' : 'Read full description...'}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Product Reviews & Ratings Section */}
-          <ProductReviewWidget 
-            productId={selectedProduct.id} 
-            productTitle={selectedProduct.title} 
-            authUser={authUser} 
-            onOpenLogin={onOpenLogin} 
-          />
+          {/* Product Reviews Section */}
+          <div className="mt-12 sm:mt-16">
+            <ProductReviewWidget 
+              productId={selectedProduct.id} 
+              productTitle={selectedProduct.title} 
+              authUser={authUser} 
+              onOpenLogin={onOpenLogin} 
+            />
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>

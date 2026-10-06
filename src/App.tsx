@@ -2457,30 +2457,30 @@ function CustomerView({
               backgroundColor: data?.adminSettings?.campaignBanner?.bgColor || '#f85606',
               color: data?.adminSettings?.campaignBanner?.textColor || '#ffffff'
             }}
-            className="rounded-xl py-2.5 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
+            className="rounded-xl py-3 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
           >
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-start">
               <EditableElement
                 id="campaign_strip_badge"
                 label="ক্যাম্পেইন অফার ব্যাজ"
                 type="badge"
                 defaultText={data?.adminSettings?.campaignBanner?.badge || 'PAYDAY SALE'}
-                className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider shrink-0"
+                className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] uppercase tracking-wider shrink-0"
               />
-              <div className="font-bold text-xs sm:text-sm flex items-center gap-1 flex-wrap">
+              <div className="font-bold text-[11px] sm:text-sm flex items-center gap-1 flex-wrap justify-center sm:justify-start">
                 <EditableElement
                   id="campaign_strip_title"
                   label="ক্যাম্পেইন অফার টাইটেল"
                   type="text"
                   defaultText={data?.adminSettings?.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
                 />
-                <span className="font-normal opacity-90">—</span>
+                <span className="font-normal opacity-90 hidden sm:inline">—</span>
                 <EditableElement
                   id="campaign_strip_subtitle"
                   label="ক্যাম্পেইন অফার সাবটাইটেল"
                   type="text"
                   defaultText={data?.adminSettings?.campaignBanner?.subtitle || 'Grab top deals across all categories'}
-                  className="font-normal opacity-90"
+                  className="font-normal opacity-90 text-[10px] sm:text-xs"
                 />
               </div>
             </div>
@@ -2495,14 +2495,13 @@ function CustomerView({
                 backgroundColor: data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff',
                 color: data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'
               }}
-              className="font-bold px-3 py-1.5 rounded-md text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0"
+              className="font-bold px-4 py-2 rounded-lg text-[10px] sm:text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0 w-full sm:w-auto justify-center"
             />
           </div>
         </div>
       </EditableElement>
 
-      {/* Products Grid Section with Advanced Filter Sidebar */}
-      <div id="products-section" className="max-w-7xl mx-auto px-4 mt-10">
+      <div id="products-section" className="max-w-7xl mx-auto px-4 mt-8 sm:mt-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <EditableElement
@@ -2511,9 +2510,9 @@ function CustomerView({
               type="heading"
               defaultText={selectedCategory === 'all' ? 'Just For You' : 'Category Products'}
               as="h3"
-              className="text-2xl font-bold text-gray-900 inline-block"
+              className="text-xl sm:text-2xl font-black text-gray-900 inline-block tracking-tight"
             />
-            <span className="text-xs text-gray-500 block mt-0.5">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
+            <span className="text-[10px] sm:text-xs text-gray-500 block mt-0.5 font-bold uppercase tracking-wider">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
           </div>
 
           <div className="flex items-center gap-2.5">

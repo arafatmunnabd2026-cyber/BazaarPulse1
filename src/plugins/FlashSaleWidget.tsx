@@ -198,29 +198,29 @@ export const FlashSaleWidget: React.FC = () => {
                 </>
               )}
 
-              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2.5 sm:px-3 py-2 min-w-[50px] border border-white/20 shadow-xs">
-                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
+              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 min-w-[44px] sm:min-w-[50px] border border-white/20 shadow-xs">
+                <span className="text-lg sm:text-2xl font-black font-mono tracking-tight text-white">
                   {String(timeLeft.hours).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] uppercase font-bold text-white/75 mt-0.5">ঘন্টা</span>
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/75 mt-0.5">ঘন্টা</span>
               </div>
 
-              <span className="text-xl font-black text-white/60 -mt-3 animate-pulse">:</span>
+              <span className="text-lg sm:text-xl font-black text-white/60 -mt-3 animate-pulse">:</span>
 
-              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2.5 sm:px-3 py-2 min-w-[50px] border border-white/20 shadow-xs">
-                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-white">
+              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 min-w-[44px] sm:min-w-[50px] border border-white/20 shadow-xs">
+                <span className="text-lg sm:text-2xl font-black font-mono tracking-tight text-white">
                   {String(timeLeft.minutes).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] uppercase font-bold text-white/75 mt-0.5">মিনিট</span>
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/75 mt-0.5">মিনিট</span>
               </div>
 
-              <span className="text-xl font-black text-white/60 -mt-3 animate-pulse">:</span>
+              <span className="text-lg sm:text-xl font-black text-white/60 -mt-3 animate-pulse">:</span>
 
-              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2.5 sm:px-3 py-2 min-w-[50px] border border-white/20 shadow-xs">
-                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-yellow-300">
+              <div className="flex flex-col items-center bg-white/10 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 min-w-[44px] sm:min-w-[50px] border border-white/20 shadow-xs">
+                <span className="text-lg sm:text-2xl font-black font-mono tracking-tight text-yellow-300">
                   {String(timeLeft.seconds).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] uppercase font-bold text-white/75 mt-0.5">সেকেন্ড</span>
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-white/75 mt-0.5">সেকেন্ড</span>
               </div>
             </div>
 
