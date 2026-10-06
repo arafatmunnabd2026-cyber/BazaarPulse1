@@ -2239,7 +2239,7 @@ function CustomerView({
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden w-full max-w-full">
       {/* Visual Page Builder Toolbar & Live Edit Drawer */}
       <VisualEditorToolbar isAdmin={authUser?.role === 'admin' || authUser?.email === 'arafatmunna.bd2026@gmail.com' || localStorage.getItem('bazaarpulse_admin_token') !== null} />
       <VisualEditDrawer />
@@ -2427,7 +2427,7 @@ function CustomerView({
           <button onClick={() => categoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
-          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none no-scrollbar scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button 
               onClick={() => handleCategoryChange('all')} 
               className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
