@@ -167,15 +167,15 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer"
+        className="relative p-1.5 sm:p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0"
         aria-label="Notifications"
         title="নোটিফিকেশন (Notifications)"
       >
-        <Bell className={`w-6 h-6 transition-transform ${isOpen ? 'scale-110 text-[#f85606]' : ''}`} />
+        <Bell className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${isOpen ? 'scale-110 text-[#f85606]' : ''}`} />
         
         {/* Unread Counter Badge - Exactly like reference image */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-[#e61838] text-white text-[11px] min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center font-black shadow-[0_2px_5px_rgba(230,24,56,0.45)] border-[1.5px] border-white leading-none select-none">
+          <span className="absolute -top-1 -right-1 bg-[#e61838] text-white text-[10px] sm:text-[11px] min-w-[18px] sm:min-w-[20px] h-[18px] sm:h-[20px] px-1 rounded-full flex items-center justify-center font-black shadow-[0_2px_5px_rgba(230,24,56,0.45)] border-[1.5px] border-white leading-none select-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
