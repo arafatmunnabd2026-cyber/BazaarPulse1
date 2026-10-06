@@ -189,7 +189,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute right-0 sm:right-auto sm:-left-32 md:-left-40 mt-2 w-[340px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-left flex flex-col max-h-[85vh]"
+            className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-14 sm:top-full mt-1 sm:mt-2 w-auto sm:w-[380px] max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-left flex flex-col max-h-[80vh] sm:max-h-[85vh]"
           >
             {/* Header */}
             <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-orange-50/70 via-white to-amber-50/40 flex items-center justify-between shrink-0">

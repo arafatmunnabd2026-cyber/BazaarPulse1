@@ -2343,7 +2343,7 @@ function CustomerView({
                               initial={{ opacity: 0, y: 8, scale: 0.96 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                              className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
+                              className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-left"
                             >
                               <div className="p-4 bg-gradient-to-br from-orange-50/80 via-white to-slate-50 border-b border-slate-100">
                                 <div className="flex items-center gap-3">
