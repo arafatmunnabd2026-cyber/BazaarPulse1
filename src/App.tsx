@@ -2239,7 +2239,7 @@ function CustomerView({
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20">
+    <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden">
       {/* Visual Page Builder Toolbar & Live Edit Drawer */}
       <VisualEditorToolbar isAdmin={authUser?.role === 'admin' || authUser?.email === 'arafatmunna.bd2026@gmail.com' || localStorage.getItem('bazaarpulse_admin_token') !== null} />
       <VisualEditDrawer />
@@ -2247,51 +2247,51 @@ function CustomerView({
       {/* 2. Main Header & Search Bar */}
       <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
         <header className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-y-3 gap-x-1 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               <button 
                 onClick={() => setIsMenuOpen(true)}
-                className="p-1.5 -ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
+                className="p-1.5 -ml-1 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer shrink-0"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
-              <div className="text-[#f85606] font-black text-xl sm:text-2xl tracking-tighter flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={() => handleCategoryChange('all')}>
-                <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
+              <div className="text-[#f85606] font-black text-lg sm:text-2xl tracking-tighter flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group shrink-0" onClick={() => handleCategoryChange('all')}>
+                <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
                 <EditableElement
                   id="storefront_brand_name"
                   label="স্টোরের নাম (Store Name)"
                   type="heading"
                   defaultText="BazaarPulse"
                   as="h1"
-                  className="text-xl sm:text-2xl font-black m-0 p-0 inline text-[#f85606]"
+                  className="text-lg sm:text-2xl font-black m-0 p-0 inline text-[#f85606]"
                 />
               </div>
             </div>
 
-            <div className="flex-1 max-w-2xl flex items-center">
+            <div className="order-last w-full sm:order-none sm:flex-1 sm:max-w-2xl flex items-center px-0.5 sm:px-0">
               <div className="w-full relative flex">
                 <input
                   type="text"
                   placeholder="Search in BazaarPulse..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-3 text-xs sm:text-sm focus:outline-none focus:bg-white text-gray-900"
+                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-3 text-[11px] sm:text-sm focus:outline-none focus:bg-white text-gray-900"
                 />
-                <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-4 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
+                <button className="bg-[#f85606] hover:bg-[#e04d05] text-white px-3 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer">
                   <Search className="w-4 h-4 sm:w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <button
                 onClick={handleOpenCart}
                 className="relative p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
                 title="Shopping Cart"
               >
-                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                <ShoppingCart className="w-5 h-5 sm:w-7 sm:h-7" />
                 {cart.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white sm:border-0">
                     {cart.reduce((sum, i) => sum + i.quantity, 0)}
                   </span>
                 )}
@@ -2403,12 +2403,12 @@ function CustomerView({
           <button onClick={() => categoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
             <ChevronRight className="w-4 h-4 stroke-[2.5]" />
           </button>
-          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
+          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
             <button 
               onClick={() => handleCategoryChange('all')} 
-              className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+              className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5 sm:w-4 h-4" />
               <span>All</span>
             </button>
             {data?.categories?.map((cat: any) => {
@@ -2417,9 +2417,9 @@ function CustomerView({
                 <button 
                   key={`cat-${cat.id}`} 
                   onClick={() => handleCategoryChange(cat.id)} 
-                  className={`whitespace-nowrap px-5.5 py-2 rounded-full border text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${isSelected ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+                  className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${isSelected ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
                 >
-                  <CategoryIcon categoryId={cat.id} className="w-4 h-4" />
+                  <CategoryIcon categoryId={cat.id} className="w-3.5 h-3.5 sm:w-4 h-4" />
                   <span>{cat.name}</span>
                 </button>
               );
