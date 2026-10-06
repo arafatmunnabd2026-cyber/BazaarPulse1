@@ -157,8 +157,33 @@ const defaultData: InitialData = {
 let isDbConfigured = !!process.env.DATABASE_URL;
 const { Pool } = pg;
 
+/**
+ * Utility to repair and sanitize PostgreSQL connection strings.
+ * Handles common issues like special characters in passwords and missing SSL parameters.
+ */
+function getSanitizedDbUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    // If the URL contains @ in the password section and is not correctly encoded,
+    // we try to parse it safely.
+    const urlObj = new URL(url);
+    
+    // Ensure sslmode=no-verify or similar if we are in this environment
+    if (!urlObj.searchParams.has('sslmode')) {
+      urlObj.searchParams.set('sslmode', 'no-verify');
+    }
+    
+    return urlObj.toString();
+  } catch (e) {
+    console.warn('⚠️ Could not parse DATABASE_URL as a valid URL, using raw string.');
+    return url;
+  }
+}
+
+const connectionString = getSanitizedDbUrl(process.env.DATABASE_URL);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: isDbConfigured ? { rejectUnauthorized: false } : false
 });
 
@@ -170,7 +195,11 @@ async function initDatabase() {
   }
   
   try {
-    console.log('Attempting to connect to PostgreSQL...');
+    const urlObj = connectionString ? new URL(connectionString) : null;
+    const dbHost = urlObj ? urlObj.hostname : 'unknown';
+    const dbUser = urlObj ? urlObj.username : 'unknown';
+    
+    console.log(`Attempting to connect to PostgreSQL at ${dbHost} as user ${dbUser}...`);
     const client = await pool.connect();
     console.log('Connected to PostgreSQL successfully. Initializing database schema...');
     
@@ -443,7 +472,7 @@ async function initDatabase() {
       err.message.includes('ETIMEDOUT') ||
       err.message.includes('ENOTFOUND');
 
-    if (isConnError) {
+    if (isConnError || err.message.includes('password') || err.message.includes('terminating')) {
       console.warn('⚠️ Connection failed or authentication refused. Disabling PostgreSQL mode and falling back to local storage.');
       isDbConfigured = false;
     } else {
@@ -454,6 +483,34 @@ async function initDatabase() {
 
 // Execute DB schema generation
 initDatabase();
+
+app.get('/api/test-db', async (req, res) => {
+  const diagnostic = {
+    isDbConfigured,
+    databaseUrlSet: !!process.env.DATABASE_URL,
+    databaseUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.split(':')[0] : null,
+    supabaseUrlSet: !!process.env.VITE_SUPABASE_URL,
+    nodeEnv: process.env.NODE_ENV,
+    renderEnv: !!process.env.RENDER,
+    connectionStatus: 'unknown'
+  };
+
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    client.release();
+    diagnostic.connectionStatus = 'success';
+    res.json({ success: true, diagnostic, dbTime: result.rows[0].now });
+  } catch (err: any) {
+    diagnostic.connectionStatus = 'error';
+    res.status(500).json({ 
+      success: false, 
+      diagnostic, 
+      error: err.message,
+      tip: 'Check your DATABASE_URL password for special characters like @ or #. Ensure they are URL-encoded.'
+    });
+  }
+});
 
 // 3. Health Check & Diagnostics Route
 app.get('/api/health', async (req, res) => {
@@ -1013,7 +1070,7 @@ async function getDb(): Promise<InitialData> {
     };
   } catch (err: any) {
     console.error('Failed to query PostgreSQL, falling back to local file:', err);
-    if (err.message.includes('ECONNREFUSED') || err.message.includes('closed') || err.message.includes('timeout')) {
+    if (err.message.includes('ECONNREFUSED') || err.message.includes('closed') || err.message.includes('timeout') || err.message.includes('authentication') || err.message.includes('password')) {
       console.warn('⚠️ Critical database connection error during runtime. Disabling PostgreSQL mode for this session.');
       isDbConfigured = false;
     }
@@ -4396,22 +4453,30 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   }
 
   const statusCode = err.status || 500;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const errorId = Math.random().toString(36).substring(2, 8).toUpperCase();
   
   // Return JSON for API requests
   if (req.path.startsWith('/api')) {
     return res.status(statusCode).json({
       success: false,
-      error: process.env.NODE_ENV === 'production' ? 'An internal server error occurred' : err.message,
-      stack: process.env.NODE_ENV === 'production' ? null : err.stack
+      errorId,
+      error: isProduction ? 'An internal server error occurred' : err.message,
+      stack: isProduction ? null : err.stack
     });
   }
 
   // Return a simple HTML error page for browser requests
   res.status(statusCode).send(`
-    <div style="font-family: sans-serif; padding: 40px; text-align: center;">
-      <h1 style="color: #f85606;">সাময়িক ত্রুটি হয়েছে (500)</h1>
+    <div style="font-family: sans-serif; padding: 40px; text-align: center; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #f85606;">সাময়িক ত্রুটি হয়েছে (Error ${statusCode})</h1>
       <p style="color: #64748b;">দুঃখিত, আমাদের সার্ভারে একটি সমস্যা হয়েছে। আমরা এটি সমাধানের কাজ করছি।</p>
-      <button onclick="window.location.reload()" style="background: #f85606; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">পুনরায় চেষ্টা করুন</button>
+      <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 20px 0; font-family: monospace; font-size: 13px; color: #475569; text-align: left;">
+        <strong>Error ID:</strong> ${errorId}<br/>
+        <strong>Path:</strong> ${req.path}<br/>
+        ${!isProduction ? `<strong>Message:</strong> ${err.message}<br/><strong>Stack:</strong> ${err.stack}` : 'সার্ভার লগ চেক করার জন্য অ্যাডমিনকে অনুরোধ করুন।'}
+      </div>
+      <button onclick="window.location.reload()" style="background: #f85606; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;">পুনরায় চেষ্টা করুন</button>
       <div style="margin-top: 20px;">
         <a href="/" style="color: #94a3b8; text-decoration: none; font-size: 0.8rem;">হোমপেজে ফিরে যান</a>
       </div>

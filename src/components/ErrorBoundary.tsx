@@ -10,27 +10,30 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    error: null
+    error: null,
+    errorInfo: null
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[BazaarPulse Critical UI Failure]:', error, errorInfo);
+    this.setState({ errorInfo });
     // In a real app, you might send this to Sentry or another logging service
   }
 
   private handleReset = () => {
     // Clear potentially corrupted local state if needed
     // localStorage.removeItem('bazaarpulse_some_state');
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();
     } else {
@@ -58,11 +61,20 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
 
-            {process.env.NODE_ENV !== 'production' && this.state.error && (
-              <div className="bg-red-50 p-4 rounded-xl text-left overflow-auto max-h-40">
-                <p className="text-[10px] font-mono text-red-700 whitespace-pre">
+            {this.state.error && (
+              <div className="bg-red-50 p-4 rounded-xl text-left overflow-auto max-h-40 border border-red-100">
+                <p className="text-[10px] font-bold text-red-600 uppercase mb-1">Diagnostic Info:</p>
+                <p className="text-[10px] font-mono text-red-700 whitespace-pre-wrap break-words">
                   {this.state.error.toString()}
                 </p>
+                {this.state.errorInfo && (
+                  <details className="mt-2">
+                    <summary className="text-[9px] text-slate-400 cursor-pointer font-bold uppercase">View Stack Trace</summary>
+                    <pre className="text-[8px] text-slate-500 mt-1 leading-tight">
+                      {this.state.errorInfo.componentStack}
+                    </pre>
+                  </details>
+                )}
               </div>
             )}
 
