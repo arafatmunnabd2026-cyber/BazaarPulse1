@@ -1,10 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AVAILABLE_PLUGINS, PluginDefinition } from './registry';
-import { FacebookPixelWidget } from './FacebookPixelWidget';
-import { ExitIntentPopupWidget } from './ExitIntentPopupWidget';
-import { FloatingWhatsAppWidget } from './FloatingWhatsAppWidget';
-import { ReferralAffiliateTracker } from './ReferralAffiliateTracker';
-import { BrowserPushWidget } from './BrowserPushWidget';
 
 interface PluginContextType {
   plugins: Record<string, boolean>;
@@ -122,11 +117,6 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       definitions: AVAILABLE_PLUGINS
     }}>
       {children}
-      <FacebookPixelWidget />
-      <ExitIntentPopupWidget />
-      <FloatingWhatsAppWidget />
-      <ReferralAffiliateTracker />
-      <BrowserPushWidget />
     </PluginContext.Provider>
   );
 };
