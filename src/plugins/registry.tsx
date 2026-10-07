@@ -93,15 +93,6 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
     author: 'BazaarPulse Boosters'
   },
   {
-    key: 'abandoned-cart-recovery',
-    name: 'Abandoned Cart Recovery & Reminders',
-    description: 'Tracks uncompleted carts, triggers automatic reminder alerts, and presents special return coupons to boost conversions.',
-    category: 'Marketing',
-    defaultEnabled: true,
-    version: '1.0.0',
-    author: 'BazaarPulse Boosters'
-  },
-  {
     key: 'product-reviews',
     name: 'Product Reviews & Ratings',
     description: 'Authentic 1-5 star ratings, photo reviews, verified buyer badges, and admin moderation.',

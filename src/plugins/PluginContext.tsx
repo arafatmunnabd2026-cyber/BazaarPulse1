@@ -3,7 +3,6 @@ import { AVAILABLE_PLUGINS, PluginDefinition } from './registry';
 import { FacebookPixelWidget } from './FacebookPixelWidget';
 import { ExitIntentPopupWidget } from './ExitIntentPopupWidget';
 import { FloatingWhatsAppWidget } from './FloatingWhatsAppWidget';
-import { AbandonedCartRecoveryWidget } from './AbandonedCartRecoveryWidget';
 import { ReferralAffiliateTracker } from './ReferralAffiliateTracker';
 import { BrowserPushWidget } from './BrowserPushWidget';
 
@@ -126,7 +125,6 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       <FacebookPixelWidget />
       <ExitIntentPopupWidget />
       <FloatingWhatsAppWidget />
-      <AbandonedCartRecoveryWidget />
       <ReferralAffiliateTracker />
       <BrowserPushWidget />
     </PluginContext.Provider>
