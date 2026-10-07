@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { 
@@ -576,9 +576,15 @@ export default function App() {
       if (!json.withdrawals) json.withdrawals = [];
       if (!json.reviews) json.reviews = [];
       if (!json.adminSettings) {
-        json.adminSettings = { banners: DEFAULT_STORE_BANNERS, globalCommissionRate: 10, platformName: 'BazaarPulse' };
-      } else if (!Array.isArray(json.adminSettings.banners) || json.adminSettings.banners.length === 0) {
-        json.adminSettings.banners = DEFAULT_STORE_BANNERS;
+        json.adminSettings = { banners: [], globalCommissionRate: 10, platformName: 'BazaarPulse' };
+      } else {
+        if (!Array.isArray(json.adminSettings.banners)) {
+          try {
+            json.adminSettings.banners = typeof json.adminSettings.banners === 'string' ? JSON.parse(json.adminSettings.banners) : [];
+          } catch {
+            json.adminSettings.banners = [];
+          }
+        }
       }
       
       setData(json);
@@ -1251,10 +1257,10 @@ function AdminLoginView({
 function HeroSlider({ banners }: { banners: any[] }) {
   const [current, setCurrent] = useState(0);
 
-  const rawList = Array.isArray(banners) ? banners : [];
-  const effectiveBanners = rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
-
-  if (effectiveBanners.length === 0) return null;
+  const effectiveBanners = useMemo(() => {
+    const rawList = Array.isArray(banners) ? banners : [];
+    return rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
+  }, [banners]);
 
   useEffect(() => {
     if (effectiveBanners.length <= 1) return;
@@ -1263,6 +1269,8 @@ function HeroSlider({ banners }: { banners: any[] }) {
     }, 5000);
     return () => clearInterval(timer);
   }, [effectiveBanners.length]);
+
+  if (effectiveBanners.length === 0) return null;
 
   const safeIndex = current % effectiveBanners.length;
   const currentBanner = effectiveBanners[safeIndex] || effectiveBanners[0];
@@ -1305,7 +1313,7 @@ function HeroSlider({ banners }: { banners: any[] }) {
         {/* Navigation Dots */}
         {effectiveBanners.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
-            {effectiveBanners.map((_, i) => (
+            {effectiveBanners.map((_, i: number) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
