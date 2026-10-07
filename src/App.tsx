@@ -2674,7 +2674,7 @@ function CustomerView({
           )}
 
           {/* 4. Promotional Campaign Strip */}
-          {(isPluginActive('campaignBanner') !== false) && (
+          {(isPluginActive('campaignBanner') !== false && data?.adminSettings?.campaignBanner?.isActive !== false) && (
             <EditableElement id="campaign_strip_section" label="ক্যাম্পেইন স্ট্রিপ সেকশন" type="section">
               <div className="max-w-7xl mx-auto px-4 mt-4">
                 <div 
@@ -5193,7 +5193,60 @@ function AdminControlCenter({
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-lg mb-4">📢 Promotional Campaign Strip Control</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900">📢 Promotional Campaign Strip Control</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Toggle display on/off or customize colors and announcement messages</p>
+                </div>
+
+                {/* Dynamic On/Off Toggle Switch */}
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${data?.adminSettings?.campaignBanner?.isActive !== false ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                      {data?.adminSettings?.campaignBanner?.isActive !== false ? 'Visible (ON)' : 'Hidden (OFF)'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const currentActive = data?.adminSettings?.campaignBanner?.isActive !== false;
+                      const newActive = !currentActive;
+                      try {
+                        const res = await fetch('/api/admin/campaign-banner', {
+                          method: 'PUT',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': authToken ? `Bearer ${authToken}` : ''
+                          },
+                          body: JSON.stringify({ isActive: newActive })
+                        });
+                        const json = await res.json();
+                        if (res.status === 403 || res.status === 401) {
+                          notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
+                          return;
+                        }
+                        if (json.success) {
+                          notify(newActive ? '✅ Campaign Strip enabled and visible on storefront!' : '⏸️ Campaign Strip disabled and hidden from storefront!');
+                          refreshData();
+                        }
+                      } catch (err) {
+                        notify('Failed to update campaign banner toggle');
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      data?.adminSettings?.campaignBanner?.isActive !== false ? 'bg-[#f85606]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        data?.adminSettings?.campaignBanner?.isActive !== false ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
@@ -5214,7 +5267,18 @@ function AdminControlCenter({
                       'Content-Type': 'application/json',
                       'Authorization': authToken ? `Bearer ${authToken}` : ''
                     },
-                    body: JSON.stringify({ badge, title, subtitle, buttonText, linkText, bgColor, textColor, buttonBgColor, buttonTextColor })
+                    body: JSON.stringify({ 
+                      badge, 
+                      title, 
+                      subtitle, 
+                      buttonText, 
+                      linkText, 
+                      bgColor, 
+                      textColor, 
+                      buttonBgColor, 
+                      buttonTextColor,
+                      isActive: data?.adminSettings?.campaignBanner?.isActive !== false
+                    })
                   });
                   const json = await res.json();
                   if (res.status === 403 || res.status === 401) {
