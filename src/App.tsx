@@ -208,6 +208,175 @@ const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, 
 
 const storefrontCategoryScrollRef = { current: null as any };
 
+const DEFAULT_STORE_PRODUCTS = [
+  {
+    id: "p-1790997611124",
+    title: "JisuLife Handheld Fan Ultra2 – The Most Powerful and Versatile Handheld Cooling Solution",
+    slug: "jisulife-handheld-fan-ultra2",
+    price: 8500,
+    discountPrice: 4999,
+    stock: 15,
+    categoryId: "c1",
+    categoryName: "Gadgets",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/_JisuLife_Handheld_Fan_Ultra2__The_Most_-JISULIFE-8bb23-487205.png",
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"
+    ],
+    galleryImages: [],
+    description: "ভ্রমণ, অফিস বা যেকোনো আউটডোর ব্যবহারে এটি আপনার স্টাইল ও স্বাচ্ছন্দ্য বজায় রাখবে। ছোট কিন্তু অত্যন্ত শক্তিশালী এই ফ্যানটি পকেটে বা ব্যাগে সহজেই বহনযোগ্য।",
+    rating: 5.0,
+    reviewsCount: 12,
+    totalSold: 28,
+    isFlashSale: true,
+    status: "active",
+    sizes: [],
+    colors: ["Black", "White", "Navy"]
+  },
+  {
+    id: "p-1790996700786",
+    title: "Coteci Magic Crystal Mouse - Ultra Precision Wireless Gaming & Office Mouse",
+    slug: "coteci-magic-crystal-mouse",
+    price: 1590,
+    discountPrice: 1400,
+    stock: 25,
+    categoryId: "c1",
+    categoryName: "Gadgets",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png"
+    ],
+    galleryImages: [],
+    description: "স্মার্ট ব্যাটারি ও DPI ইন্ডিকেটর: এতে রয়েছে রিয়েল-টাইম ব্যাটারি লেভেল পার্সেন্টেজ ডিসপ্লে এবং সুবিধাজনক DPI অ্যাডজাস্টমেন্ট বাটন।",
+    rating: 4.9,
+    reviewsCount: 8,
+    totalSold: 45,
+    isFlashSale: false,
+    status: "active",
+    sizes: [],
+    colors: []
+  },
+  {
+    id: "p-1790600161282",
+    title: "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
+    slug: "ulanzi-mt-78-quick-release-tripod",
+    price: 3500,
+    discountPrice: 2350,
+    stock: 10,
+    categoryId: "c1",
+    categoryName: "Gadgets",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png"
+    ],
+    galleryImages: [],
+    description: "Professional tripod with ultra-durable carbon aluminum frame, 360 panoramic ball head, and smartphone/camera universal mount.",
+    rating: 4.8,
+    reviewsCount: 19,
+    totalSold: 54,
+    isFlashSale: true,
+    status: "active",
+    sizes: [],
+    colors: []
+  },
+  {
+    id: "p-1790486363194",
+    title: "Smart Fast Charger 1.2 Volt AA & AAA Battery Charger 4-Slot Multi-Port",
+    slug: "smart-fast-battery-charger-4-slot",
+    price: 650,
+    discountPrice: 420,
+    stock: 30,
+    categoryId: "c1",
+    categoryName: "Gadgets",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600"
+    ],
+    galleryImages: [],
+    description: "High speed intelligent multi-slot charger with auto-cutoff and LED charging indicators.",
+    rating: 4.7,
+    reviewsCount: 14,
+    totalSold: 88,
+    isFlashSale: false,
+    status: "active",
+    sizes: [],
+    colors: []
+  },
+  {
+    id: "p-1790486363195",
+    title: "Premium Men's Casual Slim-Fit Denim Shirt",
+    slug: "mens-casual-slim-fit-denim-shirt",
+    price: 1850,
+    discountPrice: 1250,
+    stock: 20,
+    categoryId: "c2",
+    categoryName: "Fashion & Apparel",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600"
+    ],
+    galleryImages: [],
+    description: "100% Breathable cotton denim fabric with tailored modern fit.",
+    rating: 4.9,
+    reviewsCount: 22,
+    totalSold: 65,
+    isFlashSale: true,
+    status: "active",
+    sizes: ["M", "L", "XL"],
+    colors: ["Blue", "Dark Navy"]
+  },
+  {
+    id: "p-1790486363196",
+    title: "Minimalist Modern Ceramic Table Vase & Home Decor",
+    slug: "minimalist-modern-ceramic-table-vase",
+    price: 1200,
+    discountPrice: 890,
+    stock: 14,
+    categoryId: "c3",
+    categoryName: "Home & Living",
+    vendorId: "v1",
+    vendorName: "BazaarPulse Official Store",
+    images: [
+      "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600"
+    ],
+    galleryImages: [],
+    description: "Handcrafted Scandinavian matte ceramic vase for living room and dining tabletop decor.",
+    rating: 4.8,
+    reviewsCount: 11,
+    totalSold: 37,
+    isFlashSale: false,
+    status: "active",
+    sizes: [],
+    colors: ["White", "Terracotta"]
+  }
+];
+
+const DEFAULT_STORE_BANNERS = [
+  {
+    id: 'b1',
+    title: 'গ্র্যান্ড সিজনাল মেগা ডিসকাউন্ট',
+    subtitle: 'শীর্ষ ব্র্যান্ডের গ্যাজেট ও ফ্যাশনে সর্বোচ্চ ৭০% পর্যন্ত মূল্যছাড়',
+    buttonText: 'এখনই কেনাকাটা করুন',
+    link: '#products-section',
+    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80',
+    bgColor: '#f85606'
+  },
+  {
+    id: 'b2',
+    title: 'লেটেস্ট স্মার্ট গ্যাজেটস ও এক্সেসরিজ',
+    subtitle: 'অফিসিয়াল ওয়ারেন্টি সহ ১০০% খাঁটি পণ্যের নিশ্চয়তা',
+    buttonText: 'অফারগুলো দেখুন',
+    link: '#products-section',
+    imageUrl: 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1600&auto=format&fit=crop&q=80',
+    bgColor: '#4f46e5'
+  }
+];
+
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -372,22 +541,42 @@ export default function App() {
       }
 
       // Ensure all products have normalized category IDs
-      if (Array.isArray(json?.products)) {
+      if (Array.isArray(json?.products) && json.products.length > 0) {
         json.products = json.products.map((p: any) => ({
+          ...p,
+          categoryId: normalizeCategoryId(p.categoryId, p.categoryName)
+        }));
+      } else {
+        json.products = DEFAULT_STORE_PRODUCTS.map((p: any) => ({
           ...p,
           categoryId: normalizeCategoryId(p.categoryId, p.categoryName)
         }));
       }
 
       // Ensure absolute data integrity for UI stability
-      if (!json.products) json.products = [];
-      if (!json.categories) json.categories = [];
-      if (!json.vendors) json.vendors = [];
+      if (!json.categories || json.categories.length === 0) {
+        json.categories = [
+          { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
+          { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
+          { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
+          { id: 'c4', name: 'Beauty', slug: 'beauty', icon: 'Sparkles' },
+          { id: 'c7', name: 'Health', slug: 'health', icon: 'Heart' },
+          { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
+          { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
+        ];
+      }
+      if (!json.vendors || json.vendors.length === 0) {
+        json.vendors = [
+          { id: 'v1', name: 'BazaarPulse Official Store', shopName: 'BazaarPulse Official Store', logo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100', rating: 4.9, status: 'approved' }
+        ];
+      }
       if (!json.orders) json.orders = [];
       if (!json.withdrawals) json.withdrawals = [];
       if (!json.reviews) json.reviews = [];
       if (!json.adminSettings) {
-        json.adminSettings = { banners: [], globalCommissionRate: 10, platformName: 'BazaarPulse' };
+        json.adminSettings = { banners: DEFAULT_STORE_BANNERS, globalCommissionRate: 10, platformName: 'BazaarPulse' };
+      } else if (!Array.isArray(json.adminSettings.banners) || json.adminSettings.banners.length === 0) {
+        json.adminSettings.banners = DEFAULT_STORE_BANNERS;
       }
       
       setData(json);
@@ -395,7 +584,7 @@ export default function App() {
     } catch (err) {
       console.warn('Note while loading platform data, ensuring fallback state:', err);
       setData((prev: any) => prev || {
-        products: [],
+        products: DEFAULT_STORE_PRODUCTS,
         categories: [
           { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
           { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
@@ -405,9 +594,11 @@ export default function App() {
           { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
           { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
         ],
-        vendors: [],
+        vendors: [
+          { id: 'v1', name: 'BazaarPulse Official Store', shopName: 'BazaarPulse Official Store', logo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100', rating: 4.9, status: 'approved' }
+        ],
         orders: [],
-        adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse', banners: [] }
+        adminSettings: { globalCommissionRate: 10, platformName: 'BazaarPulse', banners: DEFAULT_STORE_BANNERS }
       });
       setLoading(false);
     }
@@ -2428,7 +2619,7 @@ function CustomerView({
         </header>
 
         {/* Categories Bar */}
-        {isPluginActive('topCategories') && (
+        {(isPluginActive('topCategories') !== false) && (
           <div className="relative bg-white border-b border-gray-100 py-1.5 group/pbar">
             <button onClick={() => categoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
               <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
@@ -2474,7 +2665,7 @@ function CustomerView({
       ) : (
         <>
           {/* 3. Hero Banner Slider Section */}
-          {isPluginActive('heroBanner') && (
+          {(isPluginActive('heroBanner') !== false) && (
             <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
               <HeroSlider banners={data?.adminSettings?.banners || []} />
             </EditableElement>
@@ -2488,7 +2679,7 @@ function CustomerView({
           )}
 
           {/* 4. Promotional Campaign Strip */}
-          {isPluginActive('campaignBanner') && (
+          {(isPluginActive('campaignBanner') !== false) && (
             <EditableElement id="campaign_strip_section" label="ক্যাম্পেইন স্ট্রিপ সেকশন" type="section">
               <div className="max-w-7xl mx-auto px-4 mt-4">
                 <div 
@@ -2541,7 +2732,7 @@ function CustomerView({
             </EditableElement>
           )}
 
-          {isPluginActive('featuredProducts') && (
+          {(isPluginActive('featuredProducts') !== false) && (
             <div id="products-section" className="max-w-7xl mx-auto px-4 mt-8 sm:mt-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>

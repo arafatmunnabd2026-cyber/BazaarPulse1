@@ -28,11 +28,19 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        const merged: Record<string, boolean> = {};
-        AVAILABLE_PLUGINS.forEach(p => {
-          merged[p.key] = parsed[p.key] !== undefined ? !!parsed[p.key] : p.defaultEnabled;
-        });
-        return merged;
+        if (parsed && typeof parsed === 'object') {
+          const merged: Record<string, boolean> = {};
+          AVAILABLE_PLUGINS.forEach(p => {
+            merged[p.key] = parsed[p.key] !== undefined ? !!parsed[p.key] : (p.defaultEnabled !== false);
+          });
+          // Ensure core storefront features are always enabled by default
+          ['heroBanner', 'campaignBanner', 'topCategories', 'featuredProducts'].forEach(coreKey => {
+            if (merged[coreKey] === undefined) {
+              merged[coreKey] = true;
+            }
+          });
+          return merged;
+        }
       }
     } catch (e) {
       console.error('Failed to load plugin states:', e);
@@ -41,7 +49,7 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Default fallback
     const defaults: Record<string, boolean> = {};
     AVAILABLE_PLUGINS.forEach(p => {
-      defaults[p.key] = p.defaultEnabled;
+      defaults[p.key] = p.defaultEnabled !== false;
     });
     return defaults;
   });
@@ -61,7 +69,10 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
-          setPlugins(JSON.parse(e.newValue));
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') {
+            setPlugins(prev => ({ ...prev, ...parsed }));
+          }
         } catch (err) {
           console.error('Error parsing storage plugin update:', err);
         }
@@ -70,8 +81,8 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const handleCustomSync = (e: Event) => {
       const ce = e as CustomEvent;
-      if (ce.detail) {
-        setPlugins(ce.detail);
+      if (ce.detail && typeof ce.detail === 'object') {
+        setPlugins(prev => ({ ...prev, ...ce.detail }));
       }
     };
 
@@ -85,11 +96,15 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const isPluginActive = useCallback((key: string): boolean => {
+    // Core product catalog must always be visible on the storefront
+    if (key === 'featuredProducts') {
+      return plugins[key] !== false;
+    }
     if (plugins[key] !== undefined) {
-      return plugins[key];
+      return !!plugins[key];
     }
     const def = AVAILABLE_PLUGINS.find(p => p.key === key);
-    return def ? def.defaultEnabled : true;
+    return def ? def.defaultEnabled !== false : true;
   }, [plugins]);
 
   const togglePlugin = useCallback((key: string) => {
