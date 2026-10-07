@@ -1099,6 +1099,8 @@ function HeroSlider({ banners }: { banners: any[] }) {
               <img 
                 src={bannerImg} 
                 alt="Promotion Banner" 
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]" 
                 onError={(e: any) => {
                   e.target.src = 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80';
@@ -2241,8 +2243,12 @@ function CustomerView({
   return (
     <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden w-full max-w-full">
       {/* Visual Page Builder Toolbar & Live Edit Drawer */}
-      <VisualEditorToolbar isAdmin={authUser?.role === 'admin' || authUser?.email === 'arafatmunna.bd2026@gmail.com' || localStorage.getItem('bazaarpulse_admin_token') !== null} />
-      <VisualEditDrawer />
+      {isPluginActive('visual-page-builder') && (
+        <>
+          <VisualEditorToolbar isAdmin={authUser?.role === 'admin' || authUser?.email === 'arafatmunna.bd2026@gmail.com' || localStorage.getItem('bazaarpulse_admin_token') !== null} />
+          <VisualEditDrawer />
+        </>
+      )}
 
       {/* 2. Main Header & Search Bar */}
       <div className="sticky top-0 z-40 bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
@@ -2309,14 +2315,16 @@ function CustomerView({
                   notify={notify}
                 />
 
-                <button
-                  onClick={() => setIsAiOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0"
-                  title="AI Advisor"
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">AI Advisor</span>
-                </button>
+                {isPluginActive('aiAdvisorWidget') && (
+                  <button
+                    onClick={() => setIsAiOpen(true)}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0"
+                    title="AI Advisor"
+                  >
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span className="hidden sm:inline">AI Advisor</span>
+                  </button>
+                )}
 
                 <div className="relative shrink-0">
                   {authUser ? (
@@ -2420,36 +2428,38 @@ function CustomerView({
         </header>
 
         {/* Categories Bar */}
-        <div className="relative bg-white border-b border-gray-100 py-1.5 group/pbar">
-          <button onClick={() => categoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
-            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-          </button>
-          <button onClick={() => categoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
-            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-          </button>
-          <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none no-scrollbar scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <button 
-              onClick={() => handleCategoryChange('all')} 
-              className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
-            >
-              <Layers className="w-3.5 h-3.5 sm:w-4 h-4" />
-              <span>All</span>
+        {isPluginActive('topCategories') && (
+          <div className="relative bg-white border-b border-gray-100 py-1.5 group/pbar">
+            <button onClick={() => categoryScrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
             </button>
-            {data?.categories?.map((cat: any) => {
-              const isSelected = selectedCategory === cat.id;
-              return (
-                <button 
-                  key={`cat-${cat.id}`} 
-                  onClick={() => handleCategoryChange(cat.id)} 
-                  className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${isSelected ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
-                >
-                  <CategoryIcon categoryId={cat.id} className="w-3.5 h-3.5 sm:w-4 h-4" />
-                  <span>{cat.name}</span>
-                </button>
-              );
-            })}
+            <button onClick={() => categoryScrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-white/95 border border-slate-100 shadow-md text-slate-700 hover:text-[#f85606] transition-all opacity-0 group-hover/pbar:opacity-100 scale-90 hover:scale-105 active:scale-95 cursor-pointer">
+              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+            <div ref={categoryScrollRef} className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 sm:gap-4 overflow-x-auto py-1 scrollbar-none no-scrollbar scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <button 
+                onClick={() => handleCategoryChange('all')} 
+                className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${selectedCategory === 'all' ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+              >
+                <Layers className="w-3.5 h-3.5 sm:w-4 h-4" />
+                <span>All</span>
+              </button>
+              {data?.categories?.map((cat: any) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button 
+                    key={`cat-${cat.id}`} 
+                    onClick={() => handleCategoryChange(cat.id)} 
+                    className={`whitespace-nowrap px-4 sm:px-5.5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-300 ease-out inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${isSelected ? 'bg-[#f85606] text-white border-[#f85606] shadow-md shadow-orange-500/20 scale-105' : 'bg-white text-gray-700 border-gray-100 hover:border-[#f85606] hover:text-[#f85606]'}`}
+                  >
+                    <CategoryIcon categoryId={cat.id} className="w-3.5 h-3.5 sm:w-4 h-4" />
+                    <span>{cat.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {/* Conditionally Render Dedicated Checkout Single Page View OR Storefront Content */}
       {isCheckoutOpen ? (
@@ -2464,68 +2474,75 @@ function CustomerView({
       ) : (
         <>
           {/* 3. Hero Banner Slider Section */}
-          <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
-            <HeroSlider banners={data?.adminSettings?.banners || []} />
-          </EditableElement>
+          {isPluginActive('heroBanner') && (
+            <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
+              <HeroSlider banners={data?.adminSettings?.banners || []} />
+            </EditableElement>
+          )}
 
           {/* Flash Sale Countdown Timer & Dynamic Banner Widget */}
-          <EditableElement id="flash_sale_section" label="ফ্ল্যাশ সেল উইজেট সেকশন" type="section">
-            <FlashSaleWidget />
-          </EditableElement>
+          {(isPluginActive('flash-sale-timer') || isPluginActive('flashSale')) && (
+            <EditableElement id="flash_sale_section" label="ফ্ল্যাশ সেল উইজেট সেকশন" type="section">
+              <FlashSaleWidget />
+            </EditableElement>
+          )}
 
-      {/* 4. Promotional Campaign Strip */}
-      <EditableElement id="campaign_strip_section" label="ক্যাম্পেইন স্ট্রিপ সেকশন" type="section">
-        <div className="max-w-7xl mx-auto px-4 mt-4">
-          <div 
-            style={{ 
-              backgroundColor: data?.adminSettings?.campaignBanner?.bgColor || '#f85606',
-              color: data?.adminSettings?.campaignBanner?.textColor || '#ffffff'
-            }}
-            className="rounded-xl py-3 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
-          >
-            <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-start">
-              <EditableElement
-                id="campaign_strip_badge"
-                label="ক্যাম্পেইন অফার ব্যাজ"
-                type="badge"
-                defaultText={data?.adminSettings?.campaignBanner?.badge || 'PAYDAY SALE'}
-                className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] uppercase tracking-wider shrink-0"
-              />
-              <div className="font-bold text-[11px] sm:text-sm flex items-center gap-1 flex-wrap justify-center sm:justify-start">
-                <EditableElement
-                  id="campaign_strip_title"
-                  label="ক্যাম্পেইন অফার টাইটেল"
-                  type="text"
-                  defaultText={data?.adminSettings?.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
-                />
-                <span className="font-normal opacity-90 hidden sm:inline">—</span>
-                <EditableElement
-                  id="campaign_strip_subtitle"
-                  label="ক্যাম্পেইন অফার সাবটাইটেল"
-                  type="text"
-                  defaultText={data?.adminSettings?.campaignBanner?.subtitle || 'Grab top deals across all categories'}
-                  className="font-normal opacity-90 text-[10px] sm:text-xs"
-                />
+          {/* 4. Promotional Campaign Strip */}
+          {isPluginActive('campaignBanner') && (
+            <EditableElement id="campaign_strip_section" label="ক্যাম্পেইন স্ট্রিপ সেকশন" type="section">
+              <div className="max-w-7xl mx-auto px-4 mt-4">
+                <div 
+                  style={{ 
+                    backgroundColor: data?.adminSettings?.campaignBanner?.bgColor || '#f85606',
+                    color: data?.adminSettings?.campaignBanner?.textColor || '#ffffff'
+                  }}
+                  className="rounded-xl py-3 px-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300 ease-out hover:shadow-md"
+                >
+                  <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-start">
+                    <EditableElement
+                      id="campaign_strip_badge"
+                      label="ক্যাম্পেইন অফার ব্যাজ"
+                      type="badge"
+                      defaultText={data?.adminSettings?.campaignBanner?.badge || 'PAYDAY SALE'}
+                      className="bg-white text-[#f85606] font-black px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] uppercase tracking-wider shrink-0"
+                    />
+                    <div className="font-bold text-[11px] sm:text-sm flex items-center gap-1 flex-wrap justify-center sm:justify-start">
+                      <EditableElement
+                        id="campaign_strip_title"
+                        label="ক্যাম্পেইন অফার টাইটেল"
+                        type="text"
+                        defaultText={data?.adminSettings?.campaignBanner?.title || 'Mega Discounts up to 70% Off'}
+                      />
+                      <span className="font-normal opacity-90 hidden sm:inline">—</span>
+                      <EditableElement
+                        id="campaign_strip_subtitle"
+                        label="ক্যাম্পেইন অফার সাবটাইটেল"
+                        type="text"
+                        defaultText={data?.adminSettings?.campaignBanner?.subtitle || 'Grab top deals across all categories'}
+                        className="font-normal opacity-90 text-[10px] sm:text-xs"
+                      />
+                    </div>
+                  </div>
+                  <EditableElement
+                    id="campaign_strip_btn"
+                    label="ক্যাম্পেইন অ্যাকশন বাটন"
+                    type="button"
+                    defaultText={data?.adminSettings?.campaignBanner?.buttonText || 'Grab Deals'}
+                    defaultHref={data?.adminSettings?.campaignBanner?.linkText || '#products-section'}
+                    as="a"
+                    style={{ 
+                      backgroundColor: data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff',
+                      color: data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'
+                    }}
+                    className="font-bold px-4 py-2 rounded-lg text-[10px] sm:text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0 w-full sm:w-auto justify-center"
+                  />
+                </div>
               </div>
-            </div>
-            <EditableElement
-              id="campaign_strip_btn"
-              label="ক্যাম্পেইন অ্যাকশন বাটন"
-              type="button"
-              defaultText={data?.adminSettings?.campaignBanner?.buttonText || 'Grab Deals'}
-              defaultHref={data?.adminSettings?.campaignBanner?.linkText || '#products-section'}
-              as="a"
-              style={{ 
-                backgroundColor: data?.adminSettings?.campaignBanner?.buttonBgColor || '#ffffff',
-                color: data?.adminSettings?.campaignBanner?.buttonTextColor || '#111827'
-              }}
-              className="font-bold px-4 py-2 rounded-lg text-[10px] sm:text-[11px] shadow transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1 hover:opacity-95 shrink-0 w-full sm:w-auto justify-center"
-            />
-          </div>
-        </div>
-      </EditableElement>
+            </EditableElement>
+          )}
 
-      <div id="products-section" className="max-w-7xl mx-auto px-4 mt-8 sm:mt-10">
+          {isPluginActive('featuredProducts') && (
+            <div id="products-section" className="max-w-7xl mx-auto px-4 mt-8 sm:mt-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <EditableElement
@@ -2681,6 +2698,7 @@ function CustomerView({
                           alt={product.title} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                           loading="lazy"
+                          decoding="async"
                         />
                         {product.discountPrice && (
                           <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10 bg-[#f85606] text-white rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 flex flex-col items-center justify-center shadow-lg select-none">
@@ -2765,6 +2783,7 @@ function CustomerView({
           </div>
         </div>
       </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 

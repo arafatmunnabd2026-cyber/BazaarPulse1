@@ -28,7 +28,7 @@ const STORAGE_KEY = 'bazaarpulse_flash_sale_config';
 
 export const FlashSaleWidget: React.FC = () => {
   const { isPluginActive } = usePlugins();
-  const isActive = isPluginActive('flash-sale-timer');
+  const isActive = isPluginActive('flash-sale-timer') || isPluginActive('flashSale');
 
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [config, setConfig] = useState<FlashSaleConfig>(() => {
@@ -137,6 +137,8 @@ export const FlashSaleWidget: React.FC = () => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  if (!isMounted || !isActive) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 mt-6">

@@ -10,6 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 import { OAuth2Client } from 'google-auth-library';
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+import compression from 'compression';
 
 // --- Supabase Client Configuration ---
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://mhpmwsafqrjgsodnztll.supabase.co';
@@ -39,6 +40,9 @@ const googleClient = new OAuth2Client(
 );
 
 const app = express();
+
+// High-speed Gzip & Brotli HTTP payload compression for sub-second responses
+app.use(compression());
 
 // Security Headers Middleware
 app.use((req, res, next) => {
@@ -1820,6 +1824,9 @@ app.post('/api/auth/test-rbac', (req, res) => {
 app.get('/api/platform/data', async (req, res) => {
   try {
     const db = await getDb();
+    
+    // Performance: Fast cache response with stale-while-revalidate for instant repeat loads
+    res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
     
     // For public data, we should ideally sanitize sensitive info, 
     // but to avoid breaking existing UI logic, we return the expected structure.
@@ -4428,7 +4435,11 @@ if (isDev) {
     ? path.resolve(__dirname, 'dist')
     : path.resolve(process.cwd(), 'dist');
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: '1y',
+    immutable: true,
+    etag: true
+  }));
 
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
