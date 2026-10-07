@@ -237,27 +237,132 @@ export const ProductQuickView = ({
         <div className="sticky top-0 z-[101] bg-white shadow-xs hover:shadow-md transition-shadow duration-500">
           {/* Identical Sticky Header and Categories Navigation Bar */}
           <header className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-1.5 sm:gap-3">
-              <button 
-                onClick={(e) => {
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2">
+            {/* Top Single Row: Hamburger + Logo on Left, Search in Center (Desktop), Action Icons on Right */}
+            <div className="flex items-center justify-between gap-1 sm:gap-4 w-full">
+              <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenMenu && onOpenMenu();
+                  }}
+                  className="p-1.5 -ml-1 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+                <div className="text-[#f85606] font-black text-lg sm:text-2xl tracking-tighter flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group shrink-0" onClick={(e) => {
                   e.stopPropagation();
-                  onOpenMenu && onOpenMenu();
-                }}
-                className="p-1.5 -ml-1 sm:-ml-2 text-slate-700 hover:bg-orange-50 hover:text-[#f85606] rounded-full transition-all duration-300 ease-out hover:scale-110 active:scale-95 cursor-pointer"
-              >
-                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-              <div className="text-[#f85606] font-black text-lg sm:text-2xl tracking-tighter flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-300 ease-out hover:scale-105 active:scale-95 group" onClick={(e) => {
-                e.stopPropagation();
-                handleCategoryClick('all');
-              }}>
-                <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110" />
-                <h1 className="text-lg sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+                  handleCategoryClick('all');
+                }}>
+                  <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-[#f85606] transition-transform duration-300 ease-out group-hover:rotate-12 group-hover:scale-110 shrink-0" />
+                  <h1 className="text-base sm:text-2xl font-black m-0 p-0 inline text-[#f85606]">BazaarPulse</h1>
+                </div>
+              </div>
+
+              {/* Desktop Search Bar */}
+              <div className="hidden sm:flex flex-1 max-w-2xl items-center mx-2">
+                <div className="w-full relative flex">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setSelectedProduct(null);
+                        navigate('/');
+                        setTimeout(() => {
+                          const section = document.getElementById('products-section');
+                          if (section) section.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }
+                    }}
+                    className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-2 px-3 text-sm focus:outline-none focus:bg-white text-gray-900"
+                  />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProduct(null);
+                      navigate('/');
+                      setTimeout(() => {
+                        const section = document.getElementById('products-section');
+                        if (section) section.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="bg-[#f85606] hover:bg-[#e04d05] text-white px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
+                  >
+                    <Search className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Action Icons */}
+              <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenCart && onOpenCart();
+                  }}
+                  className="relative p-1.5 sm:p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer shrink-0"
+                  title="Shopping Cart"
+                >
+                  <ShoppingCart className="w-5 h-5 sm:w-7 sm:h-7" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#f85606] text-white text-[10px] w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center font-bold border-2 border-white sm:border-0">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+                <div className="relative shrink-0">
+                  {authUser ? (
+                    <div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsProfileDropdownOpen(prev => !prev);
+                        }}
+                        className="flex items-center gap-1 p-0.5 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all duration-300 ease-out shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 group cursor-pointer shrink-0"
+                        title={authUser.name}
+                      >
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
+                          {authUser.avatar ? (
+                            <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" />
+                          )}
+                        </div>
+                        <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenLoginHandler();
+                      }}
+                      className="flex items-center gap-1.5 hover:bg-orange-50/40 p-1 sm:p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer shrink-0"
+                    >
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" /></div>
+                    </button>
+                  )}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseModal();
+                  }}
+                  className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 cursor-pointer shrink-0"
+                  title="Close"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
               </div>
             </div>
 
-            <div className="flex-1 max-w-2xl flex items-center">
+            {/* Mobile Search Bar Row */}
+            <div className="sm:hidden w-full mt-2 pt-0.5 px-0.5">
               <div className="w-full relative flex">
                 <input
                   type="text"
@@ -274,7 +379,7 @@ export const ProductQuickView = ({
                       }, 100);
                     }
                   }}
-                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 sm:py-2 px-2.5 sm:px-3 text-[10px] sm:text-sm focus:outline-none focus:bg-white text-gray-900"
+                  className="w-full bg-gray-100 border border-r-0 border-gray-200 rounded-l-lg py-1.5 px-3 text-xs focus:outline-none focus:bg-white text-gray-900"
                 />
                 <button 
                   onClick={(e) => {
@@ -286,74 +391,11 @@ export const ProductQuickView = ({
                       if (section) section.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
                   }}
-                  className="bg-[#f85606] hover:bg-[#e04d05] text-white px-3 sm:px-6 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
+                  className="bg-[#f85606] hover:bg-[#e04d05] text-white px-3.5 rounded-r-lg flex items-center justify-center transition-all duration-300 ease-out active:scale-95 cursor-pointer"
                 >
-                  <Search className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110" />
+                  <Search className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-3">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCart && onOpenCart();
-                }}
-                className="relative p-1.5 sm:p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 rounded-full flex items-center justify-center cursor-pointer"
-                title="Shopping Cart"
-              >
-                <ShoppingCart className="w-5 h-5 sm:w-7 sm:h-7" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-[#f85606] text-white text-[9px] font-black rounded-full h-4 sm:h-5 w-4 sm:w-5 flex items-center justify-center border-2 border-white shadow-sm">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-              <div className="hidden sm:block relative">
-                {authUser ? (
-                  <div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsProfileDropdownOpen(prev => !prev);
-                      }}
-                      className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full border border-slate-200 hover:border-orange-500/50 bg-white hover:bg-orange-50/40 transition-all duration-300 ease-out shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 group cursor-pointer"
-                      title={authUser.name}
-                    >
-                      <div className="w-8 h-8 rounded-full overflow-hidden border border-orange-500/30 shadow-xs bg-slate-100 flex items-center justify-center">
-                        {authUser.avatar ? (
-                          <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-5 h-5 text-slate-500" />
-                        )}
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-orange-600 transition-transform duration-200 pr-0.5 ${isProfileDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenLoginHandler();
-                    }}
-                    className="flex items-center gap-2 hover:bg-orange-50/40 p-1.5 rounded-full transition-all duration-300 ease-out border border-slate-200 hover:border-orange-500/50 bg-white shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:scale-105 cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"><User className="w-5 h-5 text-slate-400" /></div>
-                  </button>
-                )}
-              </div>
-
-              {/* Close Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseModal();
-                }}
-                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 cursor-pointer"
-                title="Close"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
             </div>
           </div>
         </header>
