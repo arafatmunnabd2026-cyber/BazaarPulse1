@@ -355,26 +355,7 @@ const DEFAULT_STORE_PRODUCTS = [
   }
 ];
 
-const DEFAULT_STORE_BANNERS = [
-  {
-    id: 'b1',
-    title: 'গ্র্যান্ড সিজনাল মেগা ডিসকাউন্ট',
-    subtitle: 'শীর্ষ ব্র্যান্ডের গ্যাজেট ও ফ্যাশনে সর্বোচ্চ ৭০% পর্যন্ত মূল্যছাড়',
-    buttonText: 'এখনই কেনাকাটা করুন',
-    link: '#products-section',
-    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80',
-    bgColor: '#f85606'
-  },
-  {
-    id: 'b2',
-    title: 'লেটেস্ট স্মার্ট গ্যাজেটস ও এক্সেসরিজ',
-    subtitle: 'অফিসিয়াল ওয়ারেন্টি সহ ১০০% খাঁটি পণ্যের নিশ্চয়তা',
-    buttonText: 'অফারগুলো দেখুন',
-    link: '#products-section',
-    imageUrl: 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1600&auto=format&fit=crop&q=80',
-    bgColor: '#4f46e5'
-  }
-];
+const DEFAULT_STORE_BANNERS: any[] = [];
 
 export default function App() {
   const navigate = useNavigate();
@@ -1270,9 +1251,10 @@ function AdminLoginView({
 function HeroSlider({ banners }: { banners: any[] }) {
   const [current, setCurrent] = useState(0);
 
-  const rawList = Array.isArray(banners) && banners.length > 0 ? banners : DEFAULT_STORE_BANNERS;
-  const validBanners = rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
-  const effectiveBanners = validBanners.length > 0 ? validBanners : DEFAULT_STORE_BANNERS;
+  const rawList = Array.isArray(banners) ? banners : [];
+  const effectiveBanners = rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
+
+  if (effectiveBanners.length === 0) return null;
 
   useEffect(() => {
     if (effectiveBanners.length <= 1) return;
