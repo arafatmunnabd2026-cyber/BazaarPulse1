@@ -27,6 +27,9 @@ interface Order {
   phone: string;
   createdAt: string;
   items: OrderItem[];
+  consignmentId?: string | number;
+  trackingCode?: string;
+  courierStatus?: string;
 }
 
 export default function AdminOrders({ authToken, notify }: { authToken: string, notify: (m: string) => void }) {
@@ -36,6 +39,7 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [sendingSteadfastId, setSendingSteadfastId] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -152,6 +156,34 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
     }
   };
 
+  const sendToSteadfast = async (order: Order) => {
+    setSendingSteadfastId(order.id);
+    try {
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+      const res = await fetch(`/api/admin/orders/${order.id}/steadfast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': activeToken ? `Bearer ${activeToken}` : ''
+        },
+        body: JSON.stringify({
+          note: `Dispatch order ${order.id} via Steadfast Courier`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        notify(`🚚 Order ${order.id} sent to Steadfast! Consignment ID: ${data.consignment_id} | Tracking: ${data.tracking_code}`);
+        fetchOrders();
+      } else {
+        notify(`❌ Steadfast dispatch failed: ${data.error || 'API Error'}`);
+      }
+    } catch (err: any) {
+      notify(`❌ Steadfast error: ${err.message}`);
+    } finally {
+      setSendingSteadfastId(null);
+    }
+  };
+
   const filteredOrders = orders.filter(o => {
     const matchesFilter = filter === 'all' || o.status === filter;
     const matchesSearch = o.id.toLowerCase().includes(search.toLowerCase()) || 
@@ -242,6 +274,25 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+
+                  {order.consignmentId || order.trackingCode ? (
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-extrabold text-emerald-800 shadow-xs">
+                      <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>ID: #{order.consignmentId || 'SF-OK'}</span>
+                      <span className="text-emerald-300">•</span>
+                      <span className="font-mono text-[11px] text-emerald-700">{order.trackingCode}</span>
+                    </div>
+                  ) : (
+                    <button
+                      disabled={sendingSteadfastId === order.id}
+                      onClick={() => sendToSteadfast(order)}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Send Order to Steadfast Courier API"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>{sendingSteadfastId === order.id ? 'Sending...' : 'Send to Steadfast'}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setEditingOrder(order)}

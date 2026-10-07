@@ -355,7 +355,20 @@ const DEFAULT_STORE_PRODUCTS = [
   }
 ];
 
-const DEFAULT_STORE_BANNERS: any[] = [];
+const DEFAULT_STORE_BANNERS: any[] = [
+  {
+    id: 'b1',
+    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80',
+    title: 'Grand Mega Sale - Up to 70% Off',
+    link: '#products-section'
+  },
+  {
+    id: 'b2',
+    imageUrl: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=1600&auto=format&fit=crop&q=80',
+    title: 'New Season Electronics & Tech',
+    link: '#products-section'
+  }
+];
 
 export default function App() {
   const navigate = useNavigate();
@@ -1258,7 +1271,7 @@ function HeroSlider({ banners }: { banners: any[] }) {
   const [current, setCurrent] = useState(0);
 
   const effectiveBanners = useMemo(() => {
-    const rawList = Array.isArray(banners) ? banners : [];
+    const rawList = Array.isArray(banners) && banners.length > 0 ? banners : DEFAULT_STORE_BANNERS;
     return rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
   }, [banners]);
 
@@ -2154,7 +2167,8 @@ function CustomerView({
     } catch {}
   };
 
-  const filteredProducts = (data?.products || []).filter((p: any) => {
+  const rawProductsList = (Array.isArray(data?.products) && data.products.length > 0) ? data.products : DEFAULT_STORE_PRODUCTS;
+  const filteredProducts = rawProductsList.filter((p: any) => {
     const normP = normalizeCategoryId(p.categoryId, p.categoryName);
     const matchesCat = selectedCategory === 'all' || normP === selectedCategory || p.categoryId === selectedCategory;
     const cleanQuery = searchQuery.toLowerCase().replace(/[,/#!$%\^&\*;:{}=\-_`~()?]/g, ' ').trim();

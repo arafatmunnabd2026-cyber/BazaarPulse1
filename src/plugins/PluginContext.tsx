@@ -78,6 +78,10 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const isPluginActive = useCallback((key: string): boolean => {
+    // Core e-commerce storefront modules must ALWAYS remain active on home page
+    if (['heroBanner', 'campaignBanner', 'topCategories', 'featuredProducts'].includes(key)) {
+      return plugins[key] !== false;
+    }
     if (plugins[key] !== undefined) {
       return !!plugins[key];
     }
