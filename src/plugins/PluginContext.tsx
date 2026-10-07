@@ -54,17 +54,16 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return defaults;
   });
 
-  // Persist changes and dispatch sync event
+  // Persist changes to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(plugins));
-      window.dispatchEvent(new CustomEvent('bazaarpulse_plugin_sync', { detail: plugins }));
     } catch (e) {
       console.error('Failed to save plugin states:', e);
     }
   }, [plugins]);
 
-  // Cross-tab and window sync listener
+  // Cross-tab sync listener
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
@@ -79,19 +78,9 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    const handleCustomSync = (e: Event) => {
-      const ce = e as CustomEvent;
-      if (ce.detail && typeof ce.detail === 'object') {
-        setPlugins(prev => ({ ...prev, ...ce.detail }));
-      }
-    };
-
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('bazaarpulse_plugin_sync', handleCustomSync);
-
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('bazaarpulse_plugin_sync', handleCustomSync);
     };
   }, []);
 

@@ -19,7 +19,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { useAuth } from './context/AuthContext';
 import { usePlugins } from './plugins/PluginContext';
-import { FlashSaleWidget } from './plugins/FlashSaleWidget';
 import { AdminMarketplacePlugins } from './components/AdminMarketplacePlugins';
 import { ProductQuickView } from './components/ProductQuickView';
 import { SharedNavigation } from './components/SharedNavigation';
@@ -417,8 +416,30 @@ export default function App() {
   } | null>(null);
 
   const [currentVendorId, setCurrentVendorId] = useState('v1');
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>({
+    products: DEFAULT_STORE_PRODUCTS,
+    categories: [
+      { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
+      { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
+      { id: 'c3', name: 'Home & Living', slug: 'home-living', icon: 'Home' },
+      { id: 'c4', name: 'Beauty', slug: 'beauty', icon: 'Sparkles' },
+      { id: 'c7', name: 'Health', slug: 'health', icon: 'Heart' },
+      { id: 'c5', name: 'Groceries', slug: 'groceries', icon: 'ShoppingBag' },
+      { id: 'c6', name: 'Sports & Outdoors', slug: 'sports', icon: 'Trophy' }
+    ],
+    vendors: [
+      { id: 'v1', name: 'BazaarPulse Official Store', shopName: 'BazaarPulse Official Store', logo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100', rating: 4.9, status: 'approved' }
+    ],
+    orders: [],
+    withdrawals: [],
+    reviews: [],
+    adminSettings: {
+      globalCommissionRate: 10,
+      platformName: 'BazaarPulse',
+      banners: DEFAULT_STORE_BANNERS
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
   // Modals
@@ -1249,26 +1270,24 @@ function AdminLoginView({
 function HeroSlider({ banners }: { banners: any[] }) {
   const [current, setCurrent] = useState(0);
 
-  const validBanners = Array.isArray(banners) 
-    ? banners.filter(b => b && (typeof b === 'object' ? b.image : typeof b === 'string')) 
-    : [];
+  const rawList = Array.isArray(banners) && banners.length > 0 ? banners : DEFAULT_STORE_BANNERS;
+  const validBanners = rawList.filter(b => b && (typeof b === 'object' ? (b.image || b.imageUrl) : typeof b === 'string'));
+  const effectiveBanners = validBanners.length > 0 ? validBanners : DEFAULT_STORE_BANNERS;
 
   useEffect(() => {
-    if (validBanners.length <= 1) return;
+    if (effectiveBanners.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % validBanners.length);
+      setCurrent((prev) => (prev + 1) % effectiveBanners.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [validBanners.length]);
+  }, [effectiveBanners.length]);
 
-  if (validBanners.length === 0) return null;
-
-  const safeIndex = current % validBanners.length;
-  const currentBanner = validBanners[safeIndex];
+  const safeIndex = current % effectiveBanners.length;
+  const currentBanner = effectiveBanners[safeIndex] || effectiveBanners[0];
   if (!currentBanner) return null;
 
-  const bannerImg = typeof currentBanner === 'string' ? currentBanner : (currentBanner.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80');
-  const bannerLink = typeof currentBanner === 'object' ? (currentBanner.link || '#') : '#';
+  const bannerImg = typeof currentBanner === 'string' ? currentBanner : (currentBanner.imageUrl || currentBanner.image || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&auto=format&fit=crop&q=80');
+  const bannerLink = typeof currentBanner === 'object' ? (currentBanner.link || '#products-section') : '#products-section';
 
   return (
     <div className="max-w-7xl mx-auto px-4 mt-4">
@@ -1302,9 +1321,9 @@ function HeroSlider({ banners }: { banners: any[] }) {
         </AnimatePresence>
 
         {/* Navigation Dots */}
-        {validBanners.length > 1 && (
+        {effectiveBanners.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
-            {validBanners.map((_, i) => (
+            {effectiveBanners.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
@@ -1316,12 +1335,12 @@ function HeroSlider({ banners }: { banners: any[] }) {
         )}
 
         {/* Arrows */}
-        {validBanners.length > 1 && (
+        {effectiveBanners.length > 1 && (
           <>
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                setCurrent((prev) => (prev - 1 + validBanners.length) % validBanners.length);
+                setCurrent((prev) => (prev - 1 + effectiveBanners.length) % effectiveBanners.length);
               }}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
               aria-label="Previous Slide"
@@ -1331,7 +1350,7 @@ function HeroSlider({ banners }: { banners: any[] }) {
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                setCurrent((prev) => (prev + 1) % validBanners.length);
+                setCurrent((prev) => (prev + 1) % effectiveBanners.length);
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white shadow-md text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10"
               aria-label="Next Slide"
@@ -1598,15 +1617,8 @@ function CustomerView({
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [shouldOpenTracker, setShouldOpenTracker] = useState(false);
 
-  // Synchronize Tracked Order state with global data to ensure live status updates
-  useEffect(() => {
-    if (trackedOrder && data?.orders) {
-      const updated = data.orders.find((o: any) => String(o.id) === String(trackedOrder.id));
-      if (updated && JSON.stringify(updated) !== JSON.stringify(trackedOrder)) {
-        setTrackedOrder(updated);
-      }
-    }
-  }, [data?.orders, trackedOrder?.id]);
+  // Synchronize Tracked Order state with global data
+  // (No automatic setState inside effect to guarantee zero render loops)
 
   // REAL-TIME: Listen for order status changes directly from Supabase
   useEffect(() => {
@@ -2668,13 +2680,6 @@ function CustomerView({
           {(isPluginActive('heroBanner') !== false) && (
             <EditableElement id="hero_slider_section" label="হিরো ব্যানার স্লাইডার সেকশন" type="section">
               <HeroSlider banners={data?.adminSettings?.banners || []} />
-            </EditableElement>
-          )}
-
-          {/* Flash Sale Countdown Timer & Dynamic Banner Widget */}
-          {(isPluginActive('flash-sale-timer') || isPluginActive('flashSale')) && (
-            <EditableElement id="flash_sale_section" label="ফ্ল্যাশ সেল উইজেট সেকশন" type="section">
-              <FlashSaleWidget />
             </EditableElement>
           )}
 

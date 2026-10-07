@@ -45,8 +45,8 @@ export const EditableElement: React.FC<EditableElementProps> = ({
   const isHidden = !!override.hidden || !!override.deleted;
   const displayText = override.text !== undefined ? override.text : (defaultText || (typeof children === 'string' ? children : ''));
 
-  // If edit mode is OFF (or in preview mode) and element is marked hidden/deleted, do not render at all
-  if ((!isVisualEditMode || isPreviewMode) && isHidden) {
+  // If edit mode is OFF (or in preview mode) and element is marked hidden/deleted, only hide non-sections
+  if ((!isVisualEditMode || isPreviewMode) && isHidden && type !== 'section') {
     return null;
   }
 
@@ -89,8 +89,7 @@ export const EditableElement: React.FC<EditableElementProps> = ({
   };
 
   const renderContent = () => {
-    if (type === 'section' && children) {
-      if (override.text) return override.text;
+    if (type === 'section') {
       return children;
     }
     return displayText !== '' ? displayText : children;

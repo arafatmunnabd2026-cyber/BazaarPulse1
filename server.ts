@@ -468,7 +468,6 @@ async function initDatabase() {
     
     client.release();
   } catch (err: any) {
-    console.error('❌ Database Connection Error:', err.message);
     const isConnError = 
       err.message.includes('authentication failed') || 
       err.message.includes('password authentication') ||
@@ -477,9 +476,9 @@ async function initDatabase() {
       err.message.includes('ENOTFOUND');
 
     if (isConnError || err.message.includes('password') || err.message.includes('terminating')) {
-      console.warn('⚠️ Connection failed or authentication refused. Disabling PostgreSQL mode and falling back to local storage.');
       isDbConfigured = false;
     } else {
+      console.error('❌ Database Connection Error:', err.message);
       console.error('Error during PostgreSQL schema generation:', err);
     }
   }

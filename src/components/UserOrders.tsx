@@ -68,13 +68,7 @@ export default function UserOrders({
       setLiveTrackingOrder(currentTrackedOrder);
       if (onClearOpenTracker) onClearOpenTracker();
     }
-  }, [initialOpenTracker, currentTrackedOrder]);
-
-  useEffect(() => {
-    if (currentTrackedOrder && liveTrackingOrder) {
-      setLiveTrackingOrder(currentTrackedOrder);
-    }
-  }, [currentTrackedOrder]);
+  }, [initialOpenTracker]);
 
   const isInvoiceActive = isPluginActive('automated-invoice');
 

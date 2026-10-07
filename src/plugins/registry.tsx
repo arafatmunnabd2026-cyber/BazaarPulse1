@@ -39,15 +39,6 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
     author: 'BazaarPulse Core'
   },
   {
-    key: 'flashSale',
-    name: 'Flash Sale & Countdown',
-    description: 'Time-limited lightning deals widget with real-time countdown timer.',
-    category: 'Marketing',
-    defaultEnabled: true,
-    version: '2.0.0',
-    author: 'BazaarPulse Core'
-  },
-  {
     key: 'featuredProducts',
     name: 'Featured Products Grid',
     description: 'Main product grid showcasing popular items, discounts, and ratings.',
@@ -109,15 +100,6 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
     defaultEnabled: true,
     version: '1.2.0',
     author: 'BazaarPulse Boosters'
-  },
-  {
-    key: 'flash-sale-timer',
-    name: 'Flash Sale & Countdown Timer',
-    description: 'Dynamic countdown banner and promotional flash sale section with real-time timers and customizable theme colors.',
-    category: 'Marketing',
-    defaultEnabled: true,
-    version: '2.5.0',
-    author: 'BazaarPulse Core'
   },
   {
     key: 'abandoned-cart-recovery',
