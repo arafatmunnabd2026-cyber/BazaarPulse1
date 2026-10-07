@@ -85,10 +85,6 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const isPluginActive = useCallback((key: string): boolean => {
-    // Core store sections must ALWAYS be visible on the storefront to prevent blank screens
-    if (['featuredProducts', 'heroBanner', 'campaignBanner', 'topCategories'].includes(key)) {
-      return true;
-    }
     if (plugins[key] !== undefined) {
       return !!plugins[key];
     }
