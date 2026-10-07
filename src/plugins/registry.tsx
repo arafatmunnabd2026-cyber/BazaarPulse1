@@ -75,15 +75,6 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
     author: 'Meta Business'
   },
   {
-    key: 'urgencyFlashBanner',
-    name: 'Urgency & Flash Sale Banner',
-    description: 'Top or hero countdown timer and urgent discount announcement strip to drive fast conversions.',
-    category: 'Marketing',
-    defaultEnabled: true,
-    version: '1.1.0',
-    author: 'BazaarPulse Boosters'
-  },
-  {
     key: 'exitIntentPopup',
     name: 'Exit-Intent Lead Magnet Popup',
     description: 'Smart popup offering discount coupon or lead magnet when visitors show exit intent.',

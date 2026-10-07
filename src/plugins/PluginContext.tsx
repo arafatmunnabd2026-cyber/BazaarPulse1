@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AVAILABLE_PLUGINS, PluginDefinition } from './registry';
 import { FacebookPixelWidget } from './FacebookPixelWidget';
-import { UrgencyFlashBannerWidget } from './UrgencyFlashBannerWidget';
 import { ExitIntentPopupWidget } from './ExitIntentPopupWidget';
 import { FloatingWhatsAppWidget } from './FloatingWhatsAppWidget';
 import { AbandonedCartRecoveryWidget } from './AbandonedCartRecoveryWidget';
@@ -125,7 +124,6 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }}>
       {children}
       <FacebookPixelWidget />
-      <UrgencyFlashBannerWidget />
       <ExitIntentPopupWidget />
       <FloatingWhatsAppWidget />
       <AbandonedCartRecoveryWidget />
