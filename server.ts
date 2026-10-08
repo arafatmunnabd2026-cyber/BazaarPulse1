@@ -900,13 +900,24 @@ async function getDb(): Promise<InitialData> {
             const parsedCampaign = parseJsonSafe(supaSettings.campaign_banner, null);
             const parsedCart = parseJsonSafe(supaSettings.cart_banner, null);
 
+            let resolvedCampaign: any = db.adminSettings?.campaignBanner || {};
+            if (parsedCampaign && typeof parsedCampaign === 'object') {
+              resolvedCampaign = {
+                ...resolvedCampaign,
+                ...parsedCampaign
+              };
+              if (parsedCampaign.isActive !== undefined) {
+                resolvedCampaign.isActive = Boolean(parsedCampaign.isActive);
+              }
+            }
+
             db.adminSettings = {
               globalCommissionRate: Number(supaSettings.global_commission_rate || db.adminSettings?.globalCommissionRate || 10),
               platformName: supaSettings.platform_name || db.adminSettings?.platformName || 'BazaarPulse',
               heroBannerTitle: supaSettings.hero_banner_title || db.adminSettings?.heroBannerTitle || '',
               heroBannerSubtitle: supaSettings.hero_banner_subtitle || db.adminSettings?.heroBannerSubtitle || '',
               banners: Array.isArray(parsedBanners) ? parsedBanners : (Array.isArray(supaSettings.banners) ? supaSettings.banners : db.adminSettings?.banners || []),
-              campaignBanner: parsedCampaign || supaSettings.campaign_banner || db.adminSettings?.campaignBanner || {},
+              campaignBanner: resolvedCampaign,
               cartBanner: parsedCart || supaSettings.cart_banner || db.adminSettings?.cartBanner || {},
               maintenanceMode: !!supaSettings.maintenance_mode
             };
@@ -1827,8 +1838,8 @@ app.get('/api/platform/data', async (req, res) => {
   try {
     const db = await getDb();
     
-    // Performance: Fast cache response with stale-while-revalidate for instant repeat loads
-    res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
+    // Performance: Fresh load response for immediate toggle sync
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     
     // For public data, we should ideally sanitize sensitive info, 
     // but to avoid breaking existing UI logic, we return the expected structure.
@@ -2076,44 +2087,70 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
 // Update Campaign Banner Strip
 app.put('/api/admin/campaign-banner', authMiddleware, verifyAdmin, async (req, res) => {
   try {
-    if (isDbConfigured) {
-      const currentRes = await pool.query('SELECT campaign_banner FROM admin_settings WHERE id = 1');
-      const curr = currentRes.rows[0]?.campaign_banner 
-        ? (typeof currentRes.rows[0].campaign_banner === 'string' ? JSON.parse(currentRes.rows[0].campaign_banner) : currentRes.rows[0].campaign_banner)
-        : {
-            badge: 'PAYDAY SALE',
-            title: 'Mega Discounts up to 70% Off',
-            subtitle: 'Grab top deals across all categories with lightning fast delivery',
-            buttonText: 'Grab Deals Now',
-            linkText: '#flash-sale'
-          };
-      
-      const updatedCampaign = { ...curr, ...req.body };
-      
-      const result = await pool.query(
-        'UPDATE admin_settings SET campaign_banner = $1 WHERE id = 1 RETURNING *',
-        [JSON.stringify(updatedCampaign)]
-      );
-      
-      res.json({ success: true, campaignBanner: updatedCampaign });
-    } else {
-      const db = await getDb();
-      if (!db.adminSettings.campaignBanner) {
-        db.adminSettings.campaignBanner = {
-          badge: 'PAYDAY SALE',
-          title: 'Mega Discounts up to 70% Off',
-          subtitle: 'Grab top deals across all categories with lightning fast delivery',
-          buttonText: 'Grab Deals Now',
-          linkText: '#flash-sale'
-        };
-      }
+    const db = await getDb();
+    if (!db.adminSettings.campaignBanner) {
       db.adminSettings.campaignBanner = {
-        ...db.adminSettings.campaignBanner,
-        ...req.body
-      };
-      saveDb(db);
-      res.json({ success: true, campaignBanner: db.adminSettings.campaignBanner });
+        badge: 'PAYDAY SALE',
+        title: 'Mega Discounts up to 70% Off',
+        subtitle: 'Grab top deals across all categories with lightning fast delivery',
+        buttonText: 'Grab Deals Now',
+        linkText: '#flash-sale',
+        isActive: true
+      } as any;
     }
+
+    const updatedCampaign: any = {
+      ...db.adminSettings.campaignBanner,
+      ...req.body
+    };
+
+    if (req.body.isActive !== undefined) {
+      updatedCampaign.isActive = Boolean(req.body.isActive);
+    }
+
+    // 1. Save to local database.json cache
+    db.adminSettings.campaignBanner = updatedCampaign as any;
+    saveDb(db);
+
+    // 2. Save to PostgreSQL if configured
+    if (isDbConfigured) {
+      await pool.query(
+        'UPDATE admin_settings SET campaign_banner = $1 WHERE id = 1',
+        [JSON.stringify(updatedCampaign)]
+      ).catch((err: any) => console.warn('Postgres campaign banner update warning:', err.message));
+    }
+
+    // 3. Save permanently to Supabase admin_settings table so reload never resets state
+    if (supabase) {
+      try {
+        const { error: supaErr } = await supabase
+          .from('admin_settings')
+          .upsert({
+            id: 1,
+            campaign_banner: JSON.stringify(updatedCampaign)
+          }, { onConflict: 'id' });
+
+        if (supaErr) {
+          console.error('Supabase campaign_banner upsert note:', supaErr.message);
+        } else {
+          console.log(`✅ Campaign banner strip saved permanently to Supabase! isActive = ${updatedCampaign.isActive}`);
+        }
+      } catch (sErr: any) {
+        console.warn('Supabase campaign_banner sync note:', sErr.message);
+      }
+    }
+
+    res.json({ success: true, campaignBanner: updatedCampaign });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get Campaign Banner Strip
+app.get('/api/admin/campaign-banner', async (req, res) => {
+  try {
+    const db = await getDb();
+    res.json({ success: true, campaignBanner: db.adminSettings?.campaignBanner || {} });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
