@@ -214,12 +214,17 @@ export default function UserOrders({
     const handleOrderCreated = (e: any) => {
       fetchMyOrders();
     };
+    const handleStatusUpdate = (e: any) => {
+      fetchMyOrders();
+    };
     window.addEventListener('bazaarpulse-order-created', handleOrderCreated);
+    window.addEventListener('bazaarpulse-order-status-updated', handleStatusUpdate);
 
     if (!supabase) {
       return () => {
         clearInterval(pollInterval);
         window.removeEventListener('bazaarpulse-order-created', handleOrderCreated);
+        window.removeEventListener('bazaarpulse-order-status-updated', handleStatusUpdate);
       };
     }
 
@@ -257,6 +262,7 @@ export default function UserOrders({
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('bazaarpulse-order-created', handleOrderCreated);
+      window.removeEventListener('bazaarpulse-order-status-updated', handleStatusUpdate);
       if (supabase) {
         supabase.removeChannel(channel);
       }

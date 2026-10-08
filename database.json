@@ -175,6 +175,36 @@
   ],
   "orders": [
     {
+      "id": "ORD-MZVL7KUO",
+      "customerId": "u-1791470092100",
+      "user_id": "u-1791470092100",
+      "customerName": "Ritu",
+      "customerEmail": "sheuliakter1432@gmail.com",
+      "customerPhone": "01320404180",
+      "phone": "01320404180",
+      "shippingAddress": "Goila temar, থানা: মুলাদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "Goila temar, থানা: মুলাদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "shipped",
+      "totalAmount": 1550,
+      "subtotal": 1400,
+      "deliveryFee": 150,
+      "createdAt": "2026-10-08T15:29:08.923352+00:00",
+      "items": [
+        {
+          "productId": "p-1790996700786",
+          "title": "Coteci Magic Crystal mouse",
+          "price": 1400,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790996700786"
+        }
+      ]
+    },
+    {
       "id": "ORD-PRFVNNEK",
       "customerId": "u-1791470092100",
       "user_id": "u-1791470092100",
@@ -186,7 +216,7 @@
       "address": "Goila temar, থানা: Agailjhara, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
       "paymentMethod": "cod",
       "paymentStatus": "unpaid",
-      "status": "delivered",
+      "status": "cancelled",
       "totalAmount": 5149,
       "subtotal": 4999,
       "deliveryFee": 150,
@@ -243,5 +273,24 @@
     "maintenanceMode": false
   },
   "reviews": [],
-  "cartItems": []
+  "cartItems": [],
+  "notifications": [
+    {
+      "id": "notif-1791474133735-1cyv",
+      "order_id": "ORD-MZVL7KUO",
+      "orderId": "ORD-MZVL7KUO",
+      "user_id": "u-1791470092100",
+      "userId": "u-1791470092100",
+      "user_email": "sheuliakter1432@gmail.com",
+      "userEmail": "sheuliakter1432@gmail.com",
+      "type": "status_update",
+      "title": "অর্ডার স্ট্যাটাস আপডেট: #ORD-MZVL7KUO",
+      "message": "আপনার অর্ডার #ORD-MZVL7KUO এর বর্তমান অবস্থা পরিবর্তন হয়ে \"ডেলিভারির পথে (Shipped)\" হয়েছে। (Your order #ORD-MZVL7KUO status has been updated to shipped)",
+      "status": "shipped",
+      "is_read": false,
+      "read": false,
+      "timestamp": 1791474133735,
+      "created_at": "2026-10-08T15:42:13.735Z"
+    }
+  ]
 }

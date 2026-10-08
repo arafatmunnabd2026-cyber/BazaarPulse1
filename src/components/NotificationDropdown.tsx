@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   OrderNotification, 
   getStoredNotifications, 
+  saveNotifications,
   markAllNotificationsAsRead, 
   markNotificationAsRead, 
   deleteNotification, 
@@ -27,12 +28,16 @@ import {
 
 interface NotificationDropdownProps {
   userId?: string;
+  userEmail?: string;
+  authToken?: string;
   onOpenOrders?: (orderId?: string) => void;
   notify?: (msg: string) => void;
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   userId,
+  userEmail,
+  authToken,
   onOpenOrders,
   notify
 }) => {
@@ -40,72 +45,79 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const [notifications, setNotifications] = useState<OrderNotification[]>(() => getStoredNotifications(userId));
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Sync notifications on mount, when custom event fires, or on periodic 1-minute 12-hour purge timer
+  // Sync isolated user notifications directly with backend database & Supabase
+  const syncWithBackend = async () => {
+    if (!userId && !userEmail) return;
+    try {
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+      if (!activeToken) return;
+
+      const res = await fetch('/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${activeToken}`
+        }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.notifications)) {
+          const localList = getStoredNotifications(userId);
+          const notifMap = new Map<string, OrderNotification>();
+          
+          localList.forEach(n => notifMap.set(n.id, n));
+          
+          json.notifications.forEach((n: any) => {
+            notifMap.set(n.id, {
+              id: n.id,
+              orderId: n.orderId || n.order_id,
+              userId: n.userId || n.user_id,
+              type: n.type || 'status_update',
+              title: n.title,
+              message: n.message,
+              status: n.status,
+              timestamp: typeof n.timestamp === 'number' ? n.timestamp : new Date(n.created_at || Date.now()).getTime(),
+              read: Boolean(n.read || n.is_read)
+            });
+          });
+
+          const merged = Array.from(notifMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+          saveNotifications(merged);
+          setNotifications(merged.filter(n => !userId || n.userId === userId || n.userId === 'all'));
+        }
+      }
+    } catch (e) {
+      // silent network fallback
+    }
+  };
+
+  // Sync notifications on mount, when custom event fires, or on periodic 8s real-time timer
   useEffect(() => {
     const handleUpdate = () => {
       setNotifications(getStoredNotifications(userId));
     };
 
-    // 1. Fetch remote notifications from API
-    const fetchRemote = async () => {
-      try {
-        const token = localStorage.getItem('bazaarpulse_token');
-        if (!token) return;
-        const res = await fetch('/api/notifications', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.notifications)) {
-            const currentLocal = getStoredNotifications(userId);
-            const map = new Map<string, OrderNotification>();
-            json.notifications.forEach((n: OrderNotification) => {
-              if (n && n.id) map.set(n.id, n);
-            });
-            currentLocal.forEach(n => {
-              if (n && n.id && !map.has(n.id)) {
-                map.set(n.id, n);
-              }
-            });
-            const merged = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
-            setNotifications(merged);
-            saveNotifications(merged);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch remote notifications:', err);
-      }
-    };
-
-    fetchRemote();
-
-    // 2. Window event listeners
-    const handleOrderStatusEvent = (e: any) => {
-      const detail = e.detail;
-      if (!detail) return;
-      const targetUserId = String(detail.userId || '');
-      if (targetUserId === String(userId) || targetUserId === 'all') {
-        addOrderStatusNotification(detail.orderId, detail.status, targetUserId);
-        setNotifications(getStoredNotifications(userId));
-      }
+    const handleOrderStatusEvent = () => {
+      syncWithBackend();
+      handleUpdate();
     };
 
     window.addEventListener('bazaarpulse-notifications-updated', handleUpdate);
     window.addEventListener('bazaarpulse-order-status-updated', handleOrderStatusEvent);
     window.addEventListener('storage', handleUpdate);
+    window.addEventListener('focus', syncWithBackend);
 
-    // 1-minute interval to keep relative time and 12-hour purge fresh
-    const interval = setInterval(() => {
-      setNotifications(getStoredNotifications(userId));
-    }, 60000);
+    // Initial fetch from backend database
+    syncWithBackend();
 
-    // 3. Supabase Realtime Channel Subscription for User-Isolated Live Notifications
-    let notifChannel: any = null;
-    let orderChannel: any = null;
+    // 8-second real-time sync timer so the counter and list update without page refresh
+    const pollInterval = setInterval(() => {
+      syncWithBackend();
+    }, 8000);
 
-    if (supabase && userId) {
-      notifChannel = supabase
-        .channel(`user-notifications-${userId}`)
+    // Supabase Realtime Channel Subscription for User-Isolated Live Notifications
+    if (supabase && (userId || userEmail)) {
+      const channelId = `user-notifications-${userId || userEmail}`;
+      const channel = supabase
+        .channel(channelId)
         .on(
           'postgres_changes',
           {
@@ -117,10 +129,17 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             const newNotif = payload.new as any;
             if (!newNotif) return;
             const targetUserId = String(newNotif.user_id || newNotif.userId || '');
+            const targetEmail = String(newNotif.user_email || newNotif.userEmail || '').toLowerCase();
+            const myEmail = (userEmail || '').toLowerCase();
 
             // Strict User Isolation Check
-            if (targetUserId === String(userId) || targetUserId === 'all') {
-              const formatted: OrderNotification = {
+            const isMatch = 
+              (userId && targetUserId === String(userId)) ||
+              (myEmail && targetEmail && targetEmail === myEmail) ||
+              targetUserId === 'all';
+
+            if (isMatch) {
+              const incoming: OrderNotification = {
                 id: newNotif.id,
                 orderId: newNotif.order_id || newNotif.orderId,
                 userId: targetUserId,
@@ -133,57 +152,40 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               };
 
               setNotifications(prev => {
-                if (prev.some(n => n.id === formatted.id)) return prev;
-                const updated = [formatted, ...prev];
-                saveNotifications(updated);
-                return updated;
+                if (prev.some(n => n.id === newNotif.id)) return prev;
+                return [incoming, ...prev];
               });
 
-              if (notify) {
-                notify(`🔔 ${formatted.title}`);
+              // Also persist in local storage
+              const currentLocal = getStoredNotifications(userId);
+              if (!currentLocal.some(n => n.id === newNotif.id)) {
+                saveNotifications([incoming, ...currentLocal]);
               }
             }
           }
         )
         .subscribe();
 
-      // Listen directly to orders table updates in Supabase for instant real-time sync
-      orderChannel = supabase
-        .channel(`user-order-status-sync-${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload: any) => {
-            const updated = payload.new as any;
-            if (!updated) return;
-            const orderOwner = String(updated.user_id || updated.customer_id || '');
-            if (orderOwner === String(userId)) {
-              addOrderStatusNotification(updated.id, updated.status, String(userId));
-              setNotifications(getStoredNotifications(userId));
-              if (notify) {
-                notify(`🔔 অর্ডার #${updated.id} এর স্ট্যাটাস আপডেট: ${updated.status}`);
-              }
-            }
-          }
-        )
-        .subscribe();
+      return () => {
+        window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
+        window.removeEventListener('bazaarpulse-order-status-updated', handleOrderStatusEvent);
+        window.removeEventListener('storage', handleUpdate);
+        window.removeEventListener('focus', syncWithBackend);
+        clearInterval(pollInterval);
+        if (supabase) {
+          supabase.removeChannel(channel);
+        }
+      };
     }
 
     return () => {
       window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
       window.removeEventListener('bazaarpulse-order-status-updated', handleOrderStatusEvent);
       window.removeEventListener('storage', handleUpdate);
-      clearInterval(interval);
-      if (supabase) {
-        if (notifChannel) supabase.removeChannel(notifChannel);
-        if (orderChannel) supabase.removeChannel(orderChannel);
-      }
+      window.removeEventListener('focus', syncWithBackend);
+      clearInterval(pollInterval);
     };
-  }, [userId]);
+  }, [userId, userEmail, authToken]);
 
   // Close on outside click
   useEffect(() => {
@@ -203,13 +205,33 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleToggle = () => {
-    setIsOpen(prev => !prev);
+    setIsOpen(prev => {
+      const nextState = !prev;
+      if (nextState) {
+        syncWithBackend();
+      }
+      return nextState;
+    });
   };
 
   const handleMarkAllRead = () => {
     const updated = markAllNotificationsAsRead(userId);
     setNotifications(updated);
     if (notify) notify('✅ সব নোটিফিকেশন পঠিত হিসেবে চিহ্নিত করা হয়েছে');
+
+    try {
+      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+      if (activeToken) {
+        fetch('/api/notifications/read', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeToken}`
+          },
+          body: JSON.stringify({})
+        }).catch(() => {});
+      }
+    } catch (e) {}
   };
 
   const handleClearAll = () => {
@@ -222,6 +244,20 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     if (!notif.read) {
       const updated = markNotificationAsRead(notif.id);
       setNotifications(updated);
+
+      try {
+        const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || '';
+        if (activeToken) {
+          fetch('/api/notifications/read', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${activeToken}`
+            },
+            body: JSON.stringify({ notificationId: notif.id })
+          }).catch(() => {});
+        }
+      } catch (e) {}
     }
     if (notif.orderId && onOpenOrders) {
       setIsOpen(false);

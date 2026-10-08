@@ -2518,6 +2518,8 @@ function CustomerView({
 
                 <NotificationDropdown
                   userId={authUser?.id}
+                  userEmail={authUser?.email}
+                  authToken={authToken}
                   onOpenOrders={handleOpenMyOrders}
                   notify={notify}
                 />

@@ -145,13 +145,11 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
       });
       const json = await res.json();
       if (json.success) {
-        const orderOwnerId = json.order?.user_id || json.order?.customerId || editingOrder.user_id || editingOrder.customerId;
-        if (orderOwnerId && editingOrder.status) {
+        const orderOwnerId = json.order?.user_id || json.order?.customerId || (editingOrder as any).customerId || (editingOrder as any).user_id;
+        if (editingOrder.status && orderOwnerId) {
           addOrderStatusNotification(editingOrder.id, editingOrder.status, orderOwnerId);
         }
-        window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { 
-          detail: { orderId: editingOrder.id, status: editingOrder.status, userId: orderOwnerId } 
-        }));
+        window.dispatchEvent(new CustomEvent('bazaarpulse-order-status-updated', { detail: { orderId: editingOrder.id, status: editingOrder.status, userId: orderOwnerId } }));
         notify(`✅ Order ${editingOrder.id} details updated!`);
         setEditingOrder(null);
         fetchOrders();

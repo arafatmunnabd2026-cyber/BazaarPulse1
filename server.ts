@@ -399,6 +399,19 @@ async function initDatabase() {
         CONSTRAINT single_row CHECK (id = 1)
       );
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS cart_banner JSONB;
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        user_email VARCHAR(255),
+        order_id VARCHAR(255),
+        type VARCHAR(50) DEFAULT 'status_update',
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status VARCHAR(50),
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     
     // Seed initial database state if users table is empty
@@ -2931,7 +2944,115 @@ const handleWithdrawalCreate = async (req: any, res: any) => {
 app.post('/api/vendor/withdrawals', authMiddleware, verifyVendor, handleWithdrawalCreate);
 app.post('/api/withdrawals', authMiddleware, verifyVendor, handleWithdrawalCreate);
 
-// Vendor Order status update
+// Helper to create and dispatch real-time order status notifications to users
+async function createOrderStatusNotification(orderId: string, newStatus: string, existingOrder?: any) {
+  try {
+    if (!orderId || !newStatus) return;
+
+    let targetOrder = existingOrder;
+    if (!targetOrder) {
+      if (isDbConfigured) {
+        const oRes = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]).catch(() => ({ rows: [] }));
+        targetOrder = oRes.rows[0];
+      } else {
+        const db = await getDb();
+        targetOrder = (db.orders || []).find((o: any) => o.id === orderId);
+      }
+    }
+
+    const targetUserId = targetOrder?.customer_id || targetOrder?.customerId || targetOrder?.user_id || targetOrder?.userId;
+    const targetUserEmail = (targetOrder?.customer_email || targetOrder?.customerEmail || '').toLowerCase();
+
+    // Map status into standard Bengali and English labels
+    const statusMap: Record<string, string> = {
+      pending: 'অপেক্ষমাণ (Pending)',
+      processing: 'প্রক্রিয়াধীন (Processing)',
+      confirmed: 'নিশ্চিত করা হয়েছে (Confirmed)',
+      shipped: 'ডেলিভারির পথে (Shipped)',
+      in_transit: 'ট্রানজিটে আছে (In Transit)',
+      delivered: 'ডেলিভারি সম্পন্ন (Delivered)',
+      cancelled: 'বাতিল করা হয়েছে (Cancelled)',
+      canceled: 'বাতিল করা হয়েছে (Cancelled)'
+    };
+    const statusLabel = statusMap[newStatus.toLowerCase().trim()] || newStatus;
+
+    const resolvedUserId = targetUserId ? String(targetUserId) : (targetUserEmail ? targetUserEmail : 'all');
+    const notifId = 'notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+    const title = `অর্ডার স্ট্যাটাস আপডেট: #${orderId}`;
+    const message = `আপনার অর্ডার #${orderId} এর বর্তমান অবস্থা পরিবর্তন হয়ে "${statusLabel}" হয়েছে। (Your order #${orderId} status has been updated to ${newStatus})`;
+
+    const notifPayload = {
+      id: notifId,
+      order_id: String(orderId),
+      orderId: String(orderId),
+      user_id: resolvedUserId,
+      userId: resolvedUserId,
+      user_email: targetUserEmail,
+      userEmail: targetUserEmail,
+      type: 'status_update',
+      title,
+      message,
+      status: newStatus,
+      is_read: false,
+      read: false,
+      timestamp: Date.now(),
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Save to in-memory / local JSON database
+    const db = await getDb();
+    if (!db.notifications) db.notifications = [];
+    
+    // Prevent duplicate within 15 seconds for exact order and status
+    const isDup = db.notifications.some((n: any) => 
+      (n.orderId === orderId || n.order_id === orderId) && 
+      n.status === newStatus && 
+      (Date.now() - (typeof n.timestamp === 'number' ? n.timestamp : new Date(n.created_at || 0).getTime())) < 15000
+    );
+
+    if (!isDup) {
+      db.notifications.unshift(notifPayload);
+      if (db.notifications.length > 300) {
+        db.notifications = db.notifications.slice(0, 300);
+      }
+      saveDb(db);
+    }
+
+    // 2. Save to PostgreSQL if configured
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO notifications (id, user_id, user_email, order_id, type, title, message, status, is_read, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)`,
+        [notifId, resolvedUserId, targetUserEmail, orderId, 'status_update', title, message, newStatus, false]
+      ).catch((e: any) => console.warn('Postgres notification insert warning:', e.message));
+    }
+
+    // 3. Insert into Supabase notifications table for instant Supabase Realtime trigger
+    if (supabase) {
+      try {
+        await supabase.from('notifications').insert({
+          id: notifId,
+          user_id: resolvedUserId,
+          user_email: targetUserEmail,
+          order_id: String(orderId),
+          type: 'status_update',
+          title,
+          message,
+          status: newStatus,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+        console.log(`📡 Real-time notification inserted into Supabase for user ${resolvedUserId} on order #${orderId}`);
+      } catch (supaErr: any) {
+        console.warn('Supabase notification insert note:', supaErr.message);
+      }
+    }
+  } catch (err: any) {
+    console.error('Error generating order status notification:', err.message);
+  }
+}
+
+// Order status update handler
 const handleOrderStatusUpdate = async (req: any, res: any) => {
   try {
     const { id } = req.params;
@@ -2956,6 +3077,7 @@ const handleOrderStatusUpdate = async (req: any, res: any) => {
         [status, id]
       );
       if (result.rowCount === 0) return res.status(404).json({ error: 'Order not found' });
+      await createOrderStatusNotification(id, status, result.rows[0]);
       res.json({ success: true, order: result.rows[0] });
     } else {
       const db = await getDb();
@@ -2964,6 +3086,7 @@ const handleOrderStatusUpdate = async (req: any, res: any) => {
       
       order.status = status;
       saveDb(db);
+      await createOrderStatusNotification(id, status, order);
       res.json({ success: true, order });
     }
   } catch (error: any) {
@@ -2988,6 +3111,7 @@ app.post('/api/orders/:id/cancel', authMiddleware, async (req: any, res: any) =>
         return res.status(400).json({ success: false, error: 'শিপিং সম্পন্ন হওয়ায় অর্ডারটি আর বাতিল করা সম্ভব নয়।' });
       }
       await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = $1", [id]);
+      await createOrderStatusNotification(id, 'cancelled', order);
       res.json({ success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' });
     } else {
       const db = await getDb();
@@ -2998,6 +3122,7 @@ app.post('/api/orders/:id/cancel', authMiddleware, async (req: any, res: any) =>
       }
       order.status = 'cancelled';
       saveDb(db);
+      await createOrderStatusNotification(id, 'cancelled', order);
       res.json({ success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' });
     }
   } catch (error: any) {
@@ -3023,6 +3148,10 @@ app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res)
       );
       if (result.rowCount === 0) return res.status(404).json({ error: 'Order not found' });
       
+      if (status) {
+        await createOrderStatusNotification(id, status, result.rows[0]);
+      }
+
       // Sync update to Supabase orders table for real-time tracking
       if (supabase) {
         try {
@@ -3054,6 +3183,10 @@ app.patch('/api/admin/orders/:id', authMiddleware, verifyAdmin, async (req, res)
       if (customerName) order.customerName = customerName;
       
       saveDb(db);
+
+      if (status) {
+        await createOrderStatusNotification(id, status, order);
+      }
 
       // Sync update to Supabase orders table for real-time tracking (local DB branch)
       if (supabase) {
@@ -3180,6 +3313,8 @@ app.post('/api/admin/orders/:id/steadfast', authMiddleware, verifyAdmin, async (
         saveDb(db);
       }
     }
+
+    await createOrderStatusNotification(id, 'shipped', order);
 
     // Sync to Supabase orders table for real-time tracking
     if (supabase) {
@@ -3558,7 +3693,49 @@ app.get('/api/notifications', authMiddleware, async (req, res) => {
           (userEmail && nEmail && nEmail === userEmail) ||
           nUserId === 'all'
         );
-      });
+      }).map((n: any) => ({
+        id: n.id,
+        orderId: n.orderId || n.order_id,
+        userId: n.userId || n.user_id,
+        type: n.type || 'status_update',
+        title: n.title,
+        message: n.message,
+        status: n.status,
+        timestamp: typeof n.timestamp === 'number' ? n.timestamp : new Date(n.created_at || Date.now()).getTime(),
+        read: Boolean(n.read || n.is_read)
+      }));
+    }
+
+    // Merge notifications from Supabase table if configured
+    if (supabase) {
+      try {
+        const { data: supaNotifs } = await supabase
+          .from('notifications')
+          .select('*')
+          .or(`user_id.eq.${userId},user_email.eq.${userEmail},user_id.eq.all`)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (Array.isArray(supaNotifs) && supaNotifs.length > 0) {
+          const map = new Map<string, any>();
+          notifications.forEach(n => map.set(String(n.id), n));
+          supaNotifs.forEach((sn: any) => {
+            const mapped = {
+              id: sn.id,
+              orderId: sn.order_id || sn.orderId,
+              userId: sn.user_id || sn.userId,
+              type: sn.type || 'status_update',
+              title: sn.title,
+              message: sn.message,
+              status: sn.status,
+              timestamp: new Date(sn.created_at || sn.timestamp || Date.now()).getTime(),
+              read: Boolean(sn.is_read || sn.read)
+            };
+            map.set(String(sn.id), mapped);
+          });
+          notifications = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+        }
+      } catch (e) {}
     }
 
     res.json({ success: true, notifications });
@@ -3592,9 +3769,20 @@ app.post('/api/notifications/read', authMiddleware, async (req, res) => {
       db.notifications.forEach((n: any) => {
         if ((!notificationId || n.id === notificationId) && (n.userId === userId || n.userId === 'all')) {
           n.read = true;
+          n.is_read = true;
         }
       });
       saveDb(db);
+    }
+
+    if (supabase) {
+      try {
+        if (notificationId) {
+          await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+        } else if (userId) {
+          await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId);
+        }
+      } catch (e) {}
     }
 
     res.json({ success: true });
