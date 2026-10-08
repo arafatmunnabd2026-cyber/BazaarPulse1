@@ -56,6 +56,66 @@
   ],
   "products": [
     {
+      "id": "p-1790997611124",
+      "title": "JisuLife Handheld Fan Ultra2 – The Most Powerful and Versatile Handheld Cooling Solution",
+      "slug": "jisulife-handheld-fan-ultra2-the-most-powerful-and-versatile-handheld-cooling-solution",
+      "price": 8500,
+      "discountPrice": 4999,
+      "stock": 1,
+      "categoryId": "c1",
+      "categoryName": "Electronics",
+      "vendorId": "v1",
+      "vendorName": "Platform Administrator",
+      "images": [
+        "https://rokbucket.rokomari.io/ProductNew20190903/260X372/_JisuLife_Handheld_Fan_Ultra2__The_Most_-JISULIFE-8bb23-487205.png",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790997607957-t68y97.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790997607957-jm4y4k.webp"
+      ],
+      "galleryImages": [
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790997607957-t68y97.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790997607957-jm4y4k.webp"
+      ],
+      "description": "ভ্রমণ, অফিস বা যেকোনো আউটডোর ব্যবহারে এটি আপনার স্টাইল ও স্বাচ্ছন্দ্য বজায় রাখবে। ছোট কিন্তু অত্যন্ত শক্তিশালী এই ফ্যানটি পকেটে বা ব্যাগে সহজেই বহনযোগ্য, তাই গরমকে বিদায় জানিয়ে যেখানেই যান পান একদম চাঙ্গা অনুভূতি",
+      "rating": 5,
+      "reviewsCount": 0,
+      "totalSold": 0,
+      "isFlashSale": false,
+      "flashSaleEnds": null,
+      "status": "active",
+      "sizes": [],
+      "colors": []
+    },
+    {
+      "id": "p-1790996700786",
+      "title": "Coteci Magic Crystal mouse",
+      "slug": "coteci-magic-crystal-mouse",
+      "price": 1590,
+      "discountPrice": 1400,
+      "stock": 7,
+      "categoryId": "c1",
+      "categoryName": "Electronics",
+      "vendorId": "v1",
+      "vendorName": "Platform Administrator",
+      "images": [
+        "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790996653889-kau7xj.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790996697053-53qgcf.webp"
+      ],
+      "galleryImages": [
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790996653889-kau7xj.webp",
+        "https://mhpmwsafqrjgsodnztll.supabase.co/storage/v1/object/public/product-images/products/1790996697053-53qgcf.webp"
+      ],
+      "description": "স্মার্ট ব্যাটারি ও DPI ইন্ডিকেটর: এতে রয়েছে রিয়েল-টাইম ব্যাটারি লেভেল পার্সেন্টেজ ডিসপ্লে এবং সুবিধাজনক DPI অ্যাডজাস্টমেন্ট বাটন, যা ব্যবহারে এনে দেয় সর্বোচ্চ নিখুঁত অভিজ্ঞতা।",
+      "rating": 5,
+      "reviewsCount": 0,
+      "totalSold": 0,
+      "isFlashSale": false,
+      "flashSaleEnds": null,
+      "status": "active",
+      "sizes": [],
+      "colors": []
+    },
+    {
       "id": "p-1790600161282",
       "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
       "slug": "ulanzi-mt-78-quick-release-tripod-with-cold-shoe-mount",
@@ -115,332 +175,32 @@
   ],
   "orders": [
     {
-      "id": "ORD-OEBC1N9E",
-      "customerId": "u1",
-      "user_id": "u1",
-      "customerName": "Arafat",
-      "customerEmail": "arafatmunna14620022@gmail.com",
-      "customerPhone": "01733948510",
-      "phone": "01733948510",
-      "shippingAddress": "vhadrapara, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "vhadrapara, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T16:54:28.481094+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-TT8BF9BU",
-      "customerId": "u1",
-      "user_id": "u1",
-      "customerName": "Arafat",
-      "customerEmail": "arafatmunna14620022@gmail.com",
-      "customerPhone": "01733948510",
-      "phone": "01733948510",
-      "shippingAddress": "vhadrapara, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "vhadrapara, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T16:53:45.033258+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-KMBFMQO9",
-      "customerId": "u1",
-      "user_id": "u1",
-      "customerName": "Arafat",
-      "customerEmail": "arafatmunna14620022@gmail.com",
-      "customerPhone": "01733948510",
-      "phone": "01733948510",
-      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 2500,
-      "subtotal": 2350,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T15:15:17.595832+00:00",
-      "items": [
-        {
-          "productId": "p-1790600161282",
-          "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
-          "price": 2350,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790600161282"
-        }
-      ]
-    },
-    {
-      "id": "ORD-MMSQJO9H",
-      "customerId": "u-1790860660342",
-      "user_id": "u-1790860660342",
-      "customerName": "Arafat Munna",
-      "customerEmail": "arafatmunna845@gmail.com",
-      "customerPhone": "01820096098",
-      "phone": "01820096098",
-      "shippingAddress": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "id": "ORD-PRFVNNEK",
+      "customerId": "u-1791470092100",
+      "user_id": "u-1791470092100",
+      "customerName": "Ritu ",
+      "customerEmail": "sheuliakter1432@gmail.com",
+      "customerPhone": "01320404180",
+      "phone": "01320404180",
+      "shippingAddress": "Goila temar, থানা: Agailjhara, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "Goila temar, থানা: Agailjhara, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
       "paymentMethod": "cod",
       "paymentStatus": "unpaid",
       "status": "delivered",
-      "totalAmount": 2500,
-      "subtotal": 2350,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T07:43:42.837202+00:00",
+      "totalAmount": 5149,
+      "subtotal": 4999,
+      "deliveryFee": 150,
+      "createdAt": "2026-10-08T14:39:24.138873+00:00",
       "items": [
         {
-          "productId": "p-1790600161282",
-          "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
-          "price": 2350,
+          "productId": "p-1790997611124",
+          "title": "JisuLife Handheld Fan Ultra2 – The Most Powerful and Versatile Handheld Cooling Solution",
+          "price": 4999,
           "quantity": 1,
           "size": null,
           "color": null,
-          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790600161282"
-        }
-      ]
-    },
-    {
-      "id": "ORD-BOSA2X3C",
-      "customerId": "u-1790860660342",
-      "user_id": "u-1790860660342",
-      "customerName": "Arafat Munna",
-      "customerEmail": "arafatmunna845@gmail.com",
-      "customerPhone": "01820096098",
-      "phone": "01820096098",
-      "shippingAddress": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T07:27:48.141125+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-LWPMEVCW",
-      "customerId": "u-1790860660342",
-      "user_id": "u-1790860660342",
-      "customerName": "Arafat Munna",
-      "customerEmail": "arafatmunna845@gmail.com",
-      "customerPhone": "01820096098",
-      "phone": "01820096098",
-      "shippingAddress": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 2778,
-      "subtotal": 2628,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T07:16:51.356742+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 12,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-9MITIB6F",
-      "customerId": "u1",
-      "user_id": "u1",
-      "customerName": "Arafat",
-      "customerEmail": "arafatmunna14620022@gmail.com",
-      "customerPhone": "01733948510",
-      "phone": "01733948510",
-      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "processing",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-02T07:04:49.037883+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-SAV146N2",
-      "customerId": "u-1790843762603",
-      "user_id": "u-1790843762603",
-      "customerName": "ritu",
-      "customerEmail": "shawlinjannat172@gmail.com",
-      "customerPhone": "01756482014",
-      "phone": "01756482014",
-      "shippingAddress": "পেকুয়া, থানা: পেকুয়া, জেলা: Cox's Bazar, বাংলাদেশ (টাইপ: Home)",
-      "address": "পেকুয়া, থানা: পেকুয়া, জেলা: Cox's Bazar, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "delivered",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-10-01T08:52:36.641799+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-35BRY5B7",
-      "customerId": "115103491460329761676",
-      "user_id": "115103491460329761676",
-      "customerName": "Arafat Munna",
-      "customerEmail": "arafatmunna796@gmail.com",
-      "customerPhone": "01820096098",
-      "phone": "01820096098",
-      "shippingAddress": "  ভদ্রপাড়া, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "  ভদ্রপাড়া, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "card",
-      "paymentStatus": "unpaid",
-      "status": "delivered",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-09-30T11:58:54.121436+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-BOIBVDXI",
-      "customerId": "115103491460329761676",
-      "user_id": "115103491460329761676",
-      "customerName": "Arafat Munna",
-      "customerEmail": "arafatmunna796@gmail.com",
-      "customerPhone": "8801756482001",
-      "phone": "8801756482001",
-      "shippingAddress": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "address": "goila, থানা: গৌরনদী, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "delivered",
-      "totalAmount": 369,
-      "subtotal": 219,
-      "deliveryFee": 80,
-      "createdAt": "2026-09-30T10:44:41.435578+00:00",
-      "items": [
-        {
-          "productId": "p-1790486363194",
-          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
-          "price": 219,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
-        }
-      ]
-    },
-    {
-      "id": "ORD-LON6N6E9",
-      "customerId": "112176515742370058989",
-      "user_id": "112176515742370058989",
-      "customerName": "Yeasin Talha",
-      "customerEmail": "yeasintalha594@gmail.com",
-      "customerPhone": "01933873167",
-      "phone": "01933873167",
-      "shippingAddress": "বাখরের কান্দি, থানা: শিবচর, জেলা: Madaripur, বাংলাদেশ (টাইপ: Home)",
-      "address": "বাখরের কান্দি, থানা: শিবচর, জেলা: Madaripur, বাংলাদেশ (টাইপ: Home)",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "status": "pending",
-      "totalAmount": 2500,
-      "subtotal": 2350,
-      "deliveryFee": 80,
-      "createdAt": "2026-09-30T10:33:28.66972+00:00",
-      "items": [
-        {
-          "productId": "p-1790600161282",
-          "title": "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
-          "price": 2350,
-          "quantity": 1,
-          "size": null,
-          "color": null,
-          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png",
-          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790600161282"
+          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/_JisuLife_Handheld_Fan_Ultra2__The_Most_-JISULIFE-8bb23-487205.png",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790997611124"
         }
       ]
     }
@@ -451,18 +211,35 @@
     "platformName": "BazaarPulse",
     "heroBannerTitle": "Welcome",
     "heroBannerSubtitle": "",
+    "banners": [
+      {
+        "id": "banner-1",
+        "link": "https://rokbucket.rokomari.io/banner/DESKTOPceb599bd-9932-4da0-ab50-b266d1040886.webp",
+        "image": "https://rokbucket.rokomari.io/banner/DESKTOPceb599bd-9932-4da0-ab50-b266d1040886.webp"
+      },
+      {
+        "id": "b-1791427843053",
+        "image": "https://rokbucket.rokomari.io/banner/DESKTOPaf98bf29-bebb-4e15-8f43-9e8cc1ae9709.webp",
+        "link": "#"
+      },
+      {
+        "id": "b-1791427996810",
+        "image": "https://rokbucket.rokomari.io/banner/DESKTOP9ee36a83-2e63-4e52-ae52-d32c9fecc82a.webp",
+        "link": "#"
+      }
+    ],
     "campaignBanner": {
-      "badge": "OFFER",
-      "title": "Mega Discounts",
-      "subtitle": "Grab top deals today",
-      "buttonText": "Shop Now",
-      "linkText": "#products-section",
-      "bgColor": "#f85606",
-      "textColor": "#ffffff",
-      "buttonBgColor": "#ffffff",
-      "buttonTextColor": "#111827"
+      "badge": "PAYDAY SALE",
+      "title": "Mega Discounts up to 70% Off",
+      "linkText": "#flash-sale",
+      "subtitle": "Grab top deals across all categories with lightning fast delivery",
+      "buttonText": "Grab Deals Now"
     },
-    "banners": [],
+    "cartBanner": {
+      "isActive": true,
+      "termsText": "শর্ত প্রযোজ্য",
+      "bannerText": "৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি"
+    },
     "maintenanceMode": false
   },
   "reviews": [],

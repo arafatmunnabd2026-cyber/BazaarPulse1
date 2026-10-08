@@ -46,7 +46,52 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setNotifications(getStoredNotifications(userId));
     };
 
+    // 1. Fetch remote notifications from API
+    const fetchRemote = async () => {
+      try {
+        const token = localStorage.getItem('bazaarpulse_token');
+        if (!token) return;
+        const res = await fetch('/api/notifications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.notifications)) {
+            const currentLocal = getStoredNotifications(userId);
+            const map = new Map<string, OrderNotification>();
+            json.notifications.forEach((n: OrderNotification) => {
+              if (n && n.id) map.set(n.id, n);
+            });
+            currentLocal.forEach(n => {
+              if (n && n.id && !map.has(n.id)) {
+                map.set(n.id, n);
+              }
+            });
+            const merged = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+            setNotifications(merged);
+            saveNotifications(merged);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch remote notifications:', err);
+      }
+    };
+
+    fetchRemote();
+
+    // 2. Window event listeners
+    const handleOrderStatusEvent = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+      const targetUserId = String(detail.userId || '');
+      if (targetUserId === String(userId) || targetUserId === 'all') {
+        addOrderStatusNotification(detail.orderId, detail.status, targetUserId);
+        setNotifications(getStoredNotifications(userId));
+      }
+    };
+
     window.addEventListener('bazaarpulse-notifications-updated', handleUpdate);
+    window.addEventListener('bazaarpulse-order-status-updated', handleOrderStatusEvent);
     window.addEventListener('storage', handleUpdate);
 
     // 1-minute interval to keep relative time and 12-hour purge fresh
@@ -54,9 +99,12 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setNotifications(getStoredNotifications(userId));
     }, 60000);
 
-    // Supabase Realtime Channel Subscription for User-Isolated Live Notifications
+    // 3. Supabase Realtime Channel Subscription for User-Isolated Live Notifications
+    let notifChannel: any = null;
+    let orderChannel: any = null;
+
     if (supabase && userId) {
-      const channel = supabase
+      notifChannel = supabase
         .channel(`user-notifications-${userId}`)
         .on(
           'postgres_changes',
@@ -72,42 +120,68 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
             // Strict User Isolation Check
             if (targetUserId === String(userId) || targetUserId === 'all') {
+              const formatted: OrderNotification = {
+                id: newNotif.id,
+                orderId: newNotif.order_id || newNotif.orderId,
+                userId: targetUserId,
+                type: newNotif.type || 'status_update',
+                title: newNotif.title,
+                message: newNotif.message,
+                status: newNotif.status,
+                timestamp: new Date(newNotif.created_at || newNotif.timestamp || Date.now()).getTime(),
+                read: Boolean(newNotif.is_read || newNotif.read)
+              };
+
               setNotifications(prev => {
-                if (prev.some(n => n.id === newNotif.id)) return prev;
-                return [
-                  {
-                    id: newNotif.id,
-                    orderId: newNotif.order_id || newNotif.orderId,
-                    userId: targetUserId,
-                    type: newNotif.type || 'status_update',
-                    title: newNotif.title,
-                    message: newNotif.message,
-                    status: newNotif.status,
-                    timestamp: new Date(newNotif.created_at || newNotif.timestamp || Date.now()).getTime(),
-                    read: Boolean(newNotif.is_read || newNotif.read)
-                  },
-                  ...prev
-                ];
+                if (prev.some(n => n.id === formatted.id)) return prev;
+                const updated = [formatted, ...prev];
+                saveNotifications(updated);
+                return updated;
               });
+
+              if (notify) {
+                notify(`🔔 ${formatted.title}`);
+              }
             }
           }
         )
         .subscribe();
 
-      return () => {
-        window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
-        window.removeEventListener('storage', handleUpdate);
-        clearInterval(interval);
-        if (supabase) {
-          supabase.removeChannel(channel);
-        }
-      };
+      // Listen directly to orders table updates in Supabase for instant real-time sync
+      orderChannel = supabase
+        .channel(`user-order-status-sync-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders'
+          },
+          (payload: any) => {
+            const updated = payload.new as any;
+            if (!updated) return;
+            const orderOwner = String(updated.user_id || updated.customer_id || '');
+            if (orderOwner === String(userId)) {
+              addOrderStatusNotification(updated.id, updated.status, String(userId));
+              setNotifications(getStoredNotifications(userId));
+              if (notify) {
+                notify(`🔔 অর্ডার #${updated.id} এর স্ট্যাটাস আপডেট: ${updated.status}`);
+              }
+            }
+          }
+        )
+        .subscribe();
     }
 
     return () => {
       window.removeEventListener('bazaarpulse-notifications-updated', handleUpdate);
+      window.removeEventListener('bazaarpulse-order-status-updated', handleOrderStatusEvent);
       window.removeEventListener('storage', handleUpdate);
       clearInterval(interval);
+      if (supabase) {
+        if (notifChannel) supabase.removeChannel(notifChannel);
+        if (orderChannel) supabase.removeChannel(orderChannel);
+      }
     };
   }, [userId]);
 
