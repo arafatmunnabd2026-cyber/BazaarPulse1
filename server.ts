@@ -904,6 +904,34 @@ async function getDb(): Promise<InitialData> {
           db.orders = formattedOrders;
         }
 
+        // 3. Fetch live admin_settings (banners, campaign banner, etc.) from Supabase
+        try {
+          const { data: supaSettings, error: setErr } = await supabase
+            .from('admin_settings')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+
+          if (!setErr && supaSettings) {
+            const parsedBanners = parseJsonSafe(supaSettings.banners, null);
+            const parsedCampaign = parseJsonSafe(supaSettings.campaign_banner, null);
+            const parsedCart = parseJsonSafe(supaSettings.cart_banner, null);
+
+            db.adminSettings = {
+              globalCommissionRate: Number(supaSettings.global_commission_rate || db.adminSettings?.globalCommissionRate || 10),
+              platformName: supaSettings.platform_name || db.adminSettings?.platformName || 'BazaarPulse',
+              heroBannerTitle: supaSettings.hero_banner_title || db.adminSettings?.heroBannerTitle || '',
+              heroBannerSubtitle: supaSettings.hero_banner_subtitle || db.adminSettings?.heroBannerSubtitle || '',
+              banners: Array.isArray(parsedBanners) ? parsedBanners : (Array.isArray(supaSettings.banners) ? supaSettings.banners : db.adminSettings?.banners || []),
+              campaignBanner: parsedCampaign || supaSettings.campaign_banner || db.adminSettings?.campaignBanner || {},
+              cartBanner: parsedCart || supaSettings.cart_banner || db.adminSettings?.cartBanner || {},
+              maintenanceMode: !!supaSettings.maintenance_mode
+            };
+          }
+        } catch (supaSetErr) {
+          console.warn('Supabase admin_settings fetch note:', supaSetErr);
+        }
+
         // Persist to local database.json cache so file is never out of sync!
         saveDb(db);
       } catch (err) {
@@ -2017,7 +2045,7 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
         return res.status(500).json({ success: false, error: 'Database persistence failed: ' + dbError.message });
       }
     } else {
-      // Fallback for non-Postgres environments
+      // Fallback for non-Postgres environments with live Supabase persistence
       const db = await getDb();
       if (banners !== undefined) db.adminSettings.banners = banners;
       if (globalCommissionRate !== undefined) db.adminSettings.globalCommissionRate = Number(globalCommissionRate);
@@ -2025,7 +2053,35 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
       if (heroBannerTitle !== undefined) db.adminSettings.heroBannerTitle = heroBannerTitle;
       if (heroBannerSubtitle !== undefined) db.adminSettings.heroBannerSubtitle = heroBannerSubtitle;
       if (maintenanceMode !== undefined) db.adminSettings.maintenanceMode = !!maintenanceMode;
+      if (campaignBanner !== undefined) db.adminSettings.campaignBanner = campaignBanner;
+
       saveDb(db);
+
+      if (supabase) {
+        try {
+          const { error: supaErr } = await supabase
+            .from('admin_settings')
+            .upsert({
+              id: 1,
+              global_commission_rate: db.adminSettings.globalCommissionRate,
+              platform_name: db.adminSettings.platformName,
+              hero_banner_title: db.adminSettings.heroBannerTitle,
+              hero_banner_subtitle: db.adminSettings.heroBannerSubtitle,
+              banners: JSON.stringify(db.adminSettings.banners || []),
+              campaign_banner: JSON.stringify(db.adminSettings.campaignBanner || {}),
+              maintenance_mode: db.adminSettings.maintenanceMode
+            }, { onConflict: 'id' });
+
+          if (supaErr) {
+            console.error('Supabase admin_settings upsert error:', supaErr);
+          } else {
+            console.log('✅ Banners saved permanently to Supabase admin_settings table!');
+          }
+        } catch (sErr) {
+          console.error('Supabase admin_settings sync catch:', sErr);
+        }
+      }
+
       return res.json({ success: true, adminSettings: db.adminSettings });
     }
   } catch (error: any) {
