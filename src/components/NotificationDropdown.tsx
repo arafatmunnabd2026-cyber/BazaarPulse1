@@ -325,7 +325,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                   <button
                     onClick={handleMarkAllRead}
                     title="সব পঠিত করুন"
-                    className="p-1.5 text-xs text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-bold"
+                    className="p-1.5 text-xs text-slate-500 hover:text-[#f85606] hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-bold"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[11px]">পঠিত</span>
@@ -376,9 +376,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                           : notif.type === 'order_success' 
                           ? 'bg-emerald-100 text-emerald-700' 
                           : notif.status === 'delivered'
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-emerald-100 text-emerald-700' 
                           : notif.status === 'cancelled'
-                          ? 'bg-rose-100 text-rose-700'
+                          ? 'bg-rose-100 text-rose-700' 
                           : 'bg-blue-100 text-blue-700'
                       }`}>
                         {notif.type === 'system' || notif.message.includes('স্বাগতম') ? (
@@ -436,7 +436,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
                       {/* Unread Indicator Dot */}
                       {!notif.read && (
-                        <div className="absolute top-3 right-2.5 w-2 h-2 rounded-full bg-orange-600 shadow-xs ring-2 ring-white" />
+                        <div className="absolute top-3 right-2.5 w-2 h-2 rounded-full bg-[#f85606] shadow-xs ring-2 ring-white" />
                       )}
                     </div>
                   );
@@ -453,7 +453,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     setIsOpen(false);
                     if (onOpenOrders) onOpenOrders();
                   }}
-                  className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#f85606] hover:text-[#e04d05] transition-colors inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Package className="w-3.5 h-3.5" />
                   আমার সকল অর্ডার ও ট্র্যাকিং দেখুন →

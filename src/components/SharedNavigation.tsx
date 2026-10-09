@@ -111,7 +111,7 @@ export const SharedNavigation = ({
               <button onClick={onNotificationClick} className="relative p-1.5 sm:p-2 text-gray-700 hover:text-[#f85606] transition-all duration-300 ease-out flex items-center justify-center rounded-full hover:bg-orange-50 hover:scale-110 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0" title="Notifications">
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
-              <button onClick={onAiAdvisorClick} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0" title="AI Advisor">
+              <button onClick={onAiAdvisorClick} className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white p-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition-all duration-300 ease-out hover:shadow-lg hover:shadow-orange-500/25 hover:scale-105 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer shrink-0" title="AI Advisor">
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">AI Advisor</span>
               </button>
@@ -161,7 +161,7 @@ export const SharedNavigation = ({
         </button>
         <div ref={scrollRef} className="max-w-7xl mx-auto px-8 flex items-center gap-4 overflow-x-auto py-1 scrollbar-none scroll-smooth">
           {displayCategories.map((cat: any, index: number) => (
-              <button
+              <button 
               key={`nav-${cat.id}-${index}`}
               onClick={(e) => {
                 e.preventDefault();

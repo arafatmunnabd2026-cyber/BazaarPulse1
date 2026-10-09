@@ -175,6 +175,36 @@
   ],
   "orders": [
     {
+      "id": "ORD-N5ZZBR8N",
+      "customerId": "u1",
+      "user_id": "u1",
+      "customerName": "Arafat",
+      "customerEmail": "arafatmunna14620022@gmail.com",
+      "customerPhone": "01733948510",
+      "phone": "01733948510",
+      "shippingAddress": "vhadrapara, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "vhadrapara, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "processing",
+      "totalAmount": 369,
+      "subtotal": 219,
+      "deliveryFee": 150,
+      "createdAt": "2026-10-08T16:12:35.592415+00:00",
+      "items": [
+        {
+          "productId": "p-1790486363194",
+          "title": "Charger Battery Charger 1.2 Volt Battery Charger AA & AAA Battery Charger 4 Slot",
+          "price": 219,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmFWvnDBnGiBrfEUYhWWFwOjD9pTRaGNuwsJr5NJoug&s=10",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790486363194"
+        }
+      ]
+    },
+    {
       "id": "ORD-MZVL7KUO",
       "customerId": "u-1791470092100",
       "user_id": "u-1791470092100",
@@ -263,7 +293,8 @@
       "title": "Mega Discounts up to 70% Off",
       "linkText": "#flash-sale",
       "subtitle": "Grab top deals across all categories with lightning fast delivery",
-      "buttonText": "Grab Deals Now"
+      "buttonText": "Grab Deals Now",
+      "isActive": true
     },
     "cartBanner": {
       "isActive": true,

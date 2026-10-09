@@ -124,7 +124,7 @@ export function Navbar() {
                 placeholder="Search products, brands and categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border-0 rounded-l-xl py-2.5 sm:py-3.5 px-5 text-sm sm:text-base focus:ring-4 focus:ring-orange-500/20 outline-none text-gray-900 transition-all placeholder:text-gray-400 font-medium"
+                className="w-full bg-white border-0 rounded-l-xl py-2.5 sm:py-3.5 px-5 text-sm sm:text-base focus:ring-4 focus:ring-[#f85606]/20 outline-none text-gray-900 transition-all placeholder:text-gray-400 font-medium"
               />
               <button 
                 type="submit"
@@ -189,7 +189,7 @@ export function Navbar() {
                         >
                           <div className="p-5 bg-gradient-to-br from-orange-50 to-white border-b border-slate-100">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500/20 shadow-sm bg-white shrink-0 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#f85606]/20 shadow-sm bg-white shrink-0 flex items-center justify-center">
                                 {authUser.avatar ? <img src={authUser.avatar} alt={authUser.name} className="w-full h-full object-cover" /> : <User className="w-7 h-7 text-slate-400" />}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -207,12 +207,12 @@ export function Navbar() {
                               {wishlist.length > 0 && <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2 py-0.5 rounded-full">{wishlist.length}</span>}
                             </button>
                             <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-all text-left cursor-pointer">
-                              <Package className="w-5 h-5 text-orange-600" />
+                              <Package className="w-5 h-5 text-[#f85606]" />
                               <span>আমার অর্ডারসমূহ</span>
                             </button>
                             {authUser.role === 'admin' && (
-                              <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs sm:text-sm font-bold text-purple-700 hover:bg-purple-50 rounded-xl transition-all text-left cursor-pointer">
-                                <ShieldCheck className="w-5 h-5 text-purple-600" />
+                              <button onClick={() => { setIsProfileDropdownOpen(false); navigate('/admin'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs sm:text-sm font-bold text-orange-700 hover:bg-orange-50 rounded-xl transition-all text-left cursor-pointer">
+                                <ShieldCheck className="w-5 h-5 text-orange-600" />
                                 <span>অ্যাডমিন ড্যাশবোর্ড</span>
                               </button>
                             )}
@@ -257,12 +257,12 @@ export function Navbar() {
           <div className="flex-1 flex items-center gap-6 overflow-hidden">
             {data?.categories?.slice(0, 8).map((cat: any) => (
               <button 
-                key={`subnav-${cat.id}`}
-                onClick={() => handleCategoryChange(cat.id)}
+                key={`subnav-${cat.id}`} 
+                onClick={() => handleCategoryChange(cat.id)} 
                 className={`text-[13px] font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${selectedCategory === cat.id ? 'text-[#f85606]' : 'text-slate-500 hover:text-[#f85606]'}`}
               >
                 <CategoryIcon categoryId={cat.id} className="w-3.5 h-3.5 opacity-70" />
-                {cat.name}
+                <span>{cat.name}</span>
               </button>
             ))}
           </div>

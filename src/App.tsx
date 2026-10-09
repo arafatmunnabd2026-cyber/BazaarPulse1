@@ -599,7 +599,7 @@ export default function App() {
           }
         }
       }
-      
+
       setData(json);
       setLoading(false);
     } catch (err) {
