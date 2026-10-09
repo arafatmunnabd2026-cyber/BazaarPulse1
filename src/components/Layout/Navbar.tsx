@@ -90,7 +90,7 @@ export function Navbar() {
               className="text-white font-black text-2xl sm:text-3xl tracking-tighter flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95 group" 
               onClick={() => navigate('/')}
             >
-              <img src="/logo.png?v=2" alt="বাজার প্লাস লোগো" className="h-10 w-auto sm:h-12 object-contain" />
+              <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 text-white transition-transform duration-300 group-hover:rotate-12" />
               <h1 className="hidden sm:inline-block text-2xl sm:text-3xl font-black m-0 p-0 tracking-tight text-white uppercase italic">বাজার প্লাস</h1>
             </div>
 
