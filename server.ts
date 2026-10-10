@@ -150,6 +150,11 @@ const defaultData: InitialData = {
       buttonBgColor: '#ffffff',
       buttonTextColor: '#111827'
     },
+    cartBanner: {
+      isActive: false,
+      bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+      termsText: 'শর্ত প্রযোজ্য'
+    },
     banners: [],
     maintenanceMode: false
   },
@@ -396,9 +401,26 @@ async function initDatabase() {
         cart_banner JSONB DEFAULT '{"isActive": true, "bannerText": "৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি", "termsText": "শর্ত প্রযোজ্য"}'::jsonb,
         visual_overrides JSONB DEFAULT '{}'::jsonb,
         maintenance_mode BOOLEAN DEFAULT false,
+        meta_pixel_id VARCHAR(255),
+        meta_capi_access_token TEXT,
+        meta_test_event_code VARCHAR(100),
+        meta_tracking_enabled BOOLEAN DEFAULT true,
         CONSTRAINT single_row CHECK (id = 1)
       );
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS cart_banner JSONB;
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_pixel_id VARCHAR(255);
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_capi_access_token TEXT;
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_test_event_code VARCHAR(100);
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_tracking_enabled BOOLEAN DEFAULT true;
+
+      CREATE TABLE IF NOT EXISTS meta_pixel_events (
+        event_id VARCHAR(255) PRIMARY KEY,
+        event_name VARCHAR(100) NOT NULL,
+        status VARCHAR(50) DEFAULT 'success',
+        payload JSONB,
+        response JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
       CREATE TABLE IF NOT EXISTS notifications (
         id VARCHAR(255) PRIMARY KEY,
@@ -912,7 +934,7 @@ async function getDb(): Promise<InitialData> {
             }
 
             let resolvedCart: any = db.adminSettings?.cartBanner || {
-              isActive: true,
+              isActive: false,
               bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
               termsText: 'শর্ত প্রযোজ্য'
             };
@@ -1084,7 +1106,7 @@ async function getDb(): Promise<InitialData> {
       heroBannerSubtitle: rawSettings.hero_banner_subtitle || '',
       campaignBanner: typeof rawSettings.campaign_banner === 'string' ? JSON.parse(rawSettings.campaign_banner) : rawSettings.campaign_banner || {},
       banners: typeof rawSettings.banners === 'string' ? JSON.parse(rawSettings.banners) : rawSettings.banners || [],
-      cartBanner: typeof rawSettings.cart_banner === 'string' ? JSON.parse(rawSettings.cart_banner) : rawSettings.cart_banner || { isActive: true, bannerText: '', termsText: '' },
+      cartBanner: typeof rawSettings.cart_banner === 'string' ? JSON.parse(rawSettings.cart_banner) : rawSettings.cart_banner || { isActive: false, bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি', termsText: 'শর্ত প্রযোজ্য' },
       maintenanceMode: !!rawSettings.maintenance_mode
     };
     
@@ -2185,7 +2207,7 @@ app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
     const db = await getDb();
     if (!db.adminSettings.cartBanner) {
       db.adminSettings.cartBanner = {
-        isActive: true,
+        isActive: false,
         bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
         termsText: 'শর্ত প্রযোজ্য'
       };
@@ -2250,6 +2272,214 @@ app.get('/api/admin/banner', async (req, res) => {
     res.json({ success: true, cartBanner: db.adminSettings?.cartBanner || {} });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// Meta Pixel & Conversions API (CAPI) Integration Module
+// ==========================================
+import crypto from 'crypto';
+import axios from 'axios';
+
+function hashUserData(val: string): string {
+  if (!val) return '';
+  return crypto.createHash('sha256').update(val.trim().toLowerCase()).digest('hex');
+}
+
+async function sendMetaCapiEvent(eventPayload: {
+  event_name: string;
+  event_id: string;
+  event_source_url?: string;
+  custom_data?: any;
+  user_data?: any;
+  client_ip?: string;
+  client_agent?: string;
+}) {
+  try {
+    const db = await getDb();
+    const settings: any = db.adminSettings || {};
+    const pixelId = settings.metaPixelId || process.env.META_PIXEL_ID || '123456789012345';
+    const accessToken = settings.metaCapiAccessToken || process.env.META_CAPI_ACCESS_TOKEN || '';
+    const testEventCode = settings.metaTestEventCode || process.env.META_TEST_EVENT_CODE;
+    const isEnabled = settings.metaTrackingEnabled !== false;
+
+    if (!isEnabled || !accessToken) {
+      console.log(`[Meta CAPI] Skipped (Enabled: ${isEnabled}, Access Token configured: ${!!accessToken})`);
+      return { success: false, reason: 'disabled_or_no_token' };
+    }
+
+    const userData = eventPayload.user_data || {};
+    const hashedUserData: any = {};
+    if (userData.email) hashedUserData.em = [hashUserData(userData.email)];
+    if (userData.phone) hashedUserData.ph = [hashUserData(userData.phone)];
+    if (userData.first_name) hashedUserData.fn = [hashUserData(userData.first_name)];
+    if (userData.last_name) hashedUserData.ln = [hashUserData(userData.last_name)];
+    
+    if (eventPayload.client_ip) hashedUserData.client_ip_address = eventPayload.client_ip;
+    if (eventPayload.client_agent) hashedUserData.client_user_agent = eventPayload.client_agent;
+
+    const capiBody: any = {
+      data: [
+        {
+          event_name: eventPayload.event_name,
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: eventPayload.event_id,
+          event_source_url: eventPayload.event_source_url || 'https://bazaarpulse.com',
+          action_source: 'website',
+          user_data: hashedUserData,
+          custom_data: eventPayload.custom_data || {}
+        }
+      ]
+    };
+
+    if (testEventCode) {
+      capiBody.test_event_code = testEventCode;
+    }
+
+    const url = `https://graph.facebook.com/v18.0/${pixelId}/events?access_token=${accessToken}`;
+
+    let attempts = 0;
+    let success = false;
+    let lastError = null;
+    let responseData = null;
+
+    while (attempts < 3 && !success) {
+      attempts++;
+      try {
+        const response = await axios.post(url, capiBody, { timeout: 10000 });
+        responseData = response.data;
+        success = true;
+        console.log(`✅ [Meta CAPI] Successfully dispatched ${eventPayload.event_name} (ID: ${eventPayload.event_id}) on attempt ${attempts}`);
+      } catch (err: any) {
+        lastError = err.response?.data || err.message;
+        console.warn(`⚠️ [Meta CAPI] Attempt ${attempts} failed for ${eventPayload.event_name}:`, lastError);
+        if (attempts < 3) {
+          await new Promise(res => setTimeout(res, attempts * 1000));
+        }
+      }
+    }
+
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO meta_pixel_events (event_id, event_name, status, payload, response)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (event_id) DO UPDATE SET status = EXCLUDED.status, response = EXCLUDED.response`,
+        [eventPayload.event_id, eventPayload.event_name, success ? 'success' : 'failed', JSON.stringify(capiBody), JSON.stringify(responseData || lastError)]
+      ).catch(() => {});
+    }
+
+    return { success, response: responseData, error: lastError };
+  } catch (ex: any) {
+    console.error('❌ [Meta CAPI] Service exception:', ex.message);
+    return { success: false, error: ex.message };
+  }
+}
+
+// Ingestion endpoint for client-side events with canonical event_id deduplication
+app.post('/api/v1/tracking/event', async (req, res) => {
+  try {
+    const { event_name, event_id, event_source_url, custom_data, user_data } = req.body;
+    if (!event_name || !event_id) {
+      return res.status(400).json({ success: false, error: 'event_name and event_id are required' });
+    }
+
+    if (isDbConfigured) {
+      const existing = await pool.query('SELECT event_id FROM meta_pixel_events WHERE event_id = $1', [event_id]);
+      if (existing.rows.length > 0) {
+        return res.json({ success: true, deduped: true, message: 'Event already recorded' });
+      }
+    }
+
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const clientIp = Array.isArray(rawIp) ? rawIp[0] : (rawIp || undefined);
+    const clientAgent = req.headers['user-agent'];
+
+    const result = await sendMetaCapiEvent({
+      event_name,
+      event_id,
+      event_source_url,
+      custom_data,
+      user_data,
+      client_ip: clientIp,
+      client_agent: clientAgent
+    });
+
+    res.json({ success: true, capi_result: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Meta CAPI Settings & Diagnostics
+app.get('/api/admin/meta-settings', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const db = await getDb();
+    const settings: any = db.adminSettings || {};
+    
+    let recentEvents: any[] = [];
+    if (isDbConfigured) {
+      const evRes = await pool.query('SELECT * FROM meta_pixel_events ORDER BY created_at DESC LIMIT 20');
+      recentEvents = evRes.rows.map(r => ({
+        eventId: r.event_id,
+        eventName: r.event_name,
+        status: r.status,
+        createdAt: r.created_at
+      }));
+    }
+
+    res.json({
+      success: true,
+      metaSettings: {
+        metaPixelId: settings.metaPixelId || process.env.META_PIXEL_ID || '',
+        metaCapiAccessToken: settings.metaCapiAccessToken ? '••••••••configured••••••••' : '',
+        metaTestEventCode: settings.metaTestEventCode || process.env.META_TEST_EVENT_CODE || '',
+        metaTrackingEnabled: settings.metaTrackingEnabled !== false
+      },
+      recentEvents
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Meta CAPI Settings
+app.put('/api/admin/meta-settings', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const { metaPixelId, metaCapiAccessToken, metaTestEventCode, metaTrackingEnabled } = req.body;
+    const db = await getDb();
+    if (!db.adminSettings) {
+      db.adminSettings = {
+        globalCommissionRate: 10,
+        platformName: 'BazaarPulse',
+        heroBannerTitle: '',
+        heroBannerSubtitle: '',
+        banners: [],
+        campaignBanner: {} as any,
+        cartBanner: { isActive: false, bannerText: '', termsText: '' },
+        maintenanceMode: false
+      };
+    }
+    const settings: any = db.adminSettings;
+
+    if (metaPixelId !== undefined) settings.metaPixelId = metaPixelId.trim();
+    if (metaCapiAccessToken !== undefined && !metaCapiAccessToken.includes('••••')) {
+      settings.metaCapiAccessToken = metaCapiAccessToken.trim();
+    }
+    if (metaTestEventCode !== undefined) settings.metaTestEventCode = metaTestEventCode.trim();
+    if (metaTrackingEnabled !== undefined) settings.metaTrackingEnabled = Boolean(metaTrackingEnabled);
+
+    saveDb(db);
+
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO admin_settings (id, cart_banner) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET cart_banner = EXCLUDED.cart_banner`,
+        [JSON.stringify(db.adminSettings.cartBanner || {})]
+      ).catch(() => {});
+    }
+
+    res.json({ success: true, message: 'Meta CAPI settings updated successfully', metaSettings: db.adminSettings });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -4323,6 +4553,34 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       // Automated Invoice Email Dispatch Hook (runs asynchronously in background without blocking checkout)
       dispatchAutomatedInvoiceEmail(createdOrder, createdOrder.customerEmail, req.body.invoiceConfig)
         .catch(emailErr => console.warn('Background automated invoice email dispatch warning:', emailErr));
+
+      // Authoritative CAPI Purchase Event Trigger
+      const canonicalPurchaseEventId = `bp_purchase_${orderId}_${Date.now()}`;
+      const contentIds = (items || []).map((item: any) => String(item.id || item.productId || 'prod'));
+      
+        const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const clientIp = Array.isArray(rawIp) ? rawIp[0] : (rawIp || undefined);
+        sendMetaCapiEvent({
+          event_name: 'Purchase',
+          event_id: canonicalPurchaseEventId,
+          event_source_url: req.headers.referer || 'https://bazaarpulse.com/checkout',
+          client_ip: clientIp,
+          client_agent: req.headers['user-agent'],
+        custom_data: {
+          currency: 'BDT',
+          value: Number(totalAmount),
+          order_id: orderId,
+          content_ids: contentIds,
+          content_type: 'product',
+          num_items: (items || []).reduce((acc: number, item: any) => acc + Number(item.quantity || 1), 0)
+        },
+        user_data: {
+          email: createdOrder.customerEmail,
+          phone: createdOrder.customerPhone,
+          first_name: createdOrder.customerName?.split(' ')[0],
+          last_name: createdOrder.customerName?.split(' ').slice(1).join(' ')
+        }
+      }).catch(err => console.warn('CAPI Purchase event dispatch warning:', err));
 
       res.json({ 
         success: true, 

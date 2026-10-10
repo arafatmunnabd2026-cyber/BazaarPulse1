@@ -287,28 +287,7 @@ export function AdminMarketplacePlugins({ notify }: { notify: (msg: string) => v
                 </p>
 
                 {plugin.key === 'facebook-pixel' && isActive && (
-                  <div className="mt-3 p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2">
-                    <div className="text-[11px] font-bold text-indigo-900 flex items-center justify-between">
-                      <span>Meta Pixel ID Configuration</span>
-                      <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">Live</span>
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        defaultValue={localStorage.getItem('bazaarpulse_fb_pixel_id') || '123456789012345'}
-                        placeholder="Enter Pixel ID (e.g. 1234567890)"
-                        onChange={(e) => {
-                          try {
-                            localStorage.setItem('bazaarpulse_fb_pixel_id', e.target.value.trim());
-                          } catch (err) {
-                            // ignore
-                          }
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                      />
-                    </div>
-                    <p className="text-[10px] text-indigo-700/80">Injected globally across all storefront pages.</p>
-                  </div>
+                  <MetaCapiConfigPanel notify={notify} />
                 )}
 
                 {plugin.key === 'urgencyFlashBanner' && isActive && (
@@ -1188,6 +1167,171 @@ export function AdminMarketplacePlugins({ notify }: { notify: (msg: string) => v
           notify={notify}
         />
       )}
+    </div>
+  );
+}
+
+function MetaCapiConfigPanel({ notify }: { notify: (msg: string) => void }) {
+  const [metaPixelId, setMetaPixelId] = useState('');
+  const [metaCapiAccessToken, setMetaCapiAccessToken] = useState('');
+  const [metaTestEventCode, setMetaTestEventCode] = useState('');
+  const [metaTrackingEnabled, setMetaTrackingEnabled] = useState(true);
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchMetaSettings = async () => {
+      try {
+        const token = localStorage.getItem('bazaarpulse_token') || localStorage.getItem('bazaarpulse_admin_token') || '';
+        const res = await fetch('/api/admin/meta-settings', {
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.metaSettings) {
+            setMetaPixelId(json.metaSettings.metaPixelId || '');
+            setMetaCapiAccessToken(json.metaSettings.metaCapiAccessToken || '');
+            setMetaTestEventCode(json.metaSettings.metaTestEventCode || '');
+            setMetaTrackingEnabled(json.metaSettings.metaTrackingEnabled !== false);
+          }
+          if (Array.isArray(json.recentEvents)) {
+            setRecentEvents(json.recentEvents);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch Meta CAPI settings:', err);
+      }
+    };
+    fetchMetaSettings();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('bazaarpulse_token') || localStorage.getItem('bazaarpulse_admin_token') || '';
+      const res = await fetch('/api/admin/meta-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          metaPixelId,
+          metaCapiAccessToken,
+          metaTestEventCode,
+          metaTrackingEnabled
+        })
+      });
+      if (res.ok) {
+        notify('✅ Meta Pixel & CAPI settings saved successfully!');
+      } else {
+        notify('❌ Failed to save Meta settings');
+      }
+    } catch (err) {
+      notify('❌ Failed to save Meta settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 p-4 bg-[#451086]/5 rounded-2xl border border-[#451086]/20 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-xs font-black uppercase text-[#451086]">Meta Pixel & Conversions API (CAPI)</span>
+        </div>
+        <span className="text-[10px] bg-[#451086] text-white px-2 py-0.5 rounded-md font-mono">Server-Side Active</span>
+      </div>
+
+      <form onSubmit={handleSave} className="space-y-3">
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Meta Pixel ID</label>
+          <input
+            type="text"
+            value={metaPixelId}
+            onChange={(e) => setMetaPixelId(e.target.value)}
+            placeholder="e.g. 123456789012345"
+            className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#451086] font-mono"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Meta CAPI Access Token (Graph API)</label>
+          <input
+            type="password"
+            value={metaCapiAccessToken}
+            onChange={(e) => setMetaCapiAccessToken(e.target.value)}
+            placeholder="EAAB... (Keep secure on server)"
+            className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#451086] font-mono"
+          />
+          <p className="text-[10px] text-slate-500 mt-0.5">Stored securely on server. Never exposed to client browsers.</p>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold text-slate-700 mb-1">Test Event Code (Meta Events Manager)</label>
+          <input
+            type="text"
+            value={metaTestEventCode}
+            onChange={(e) => setMetaTestEventCode(e.target.value)}
+            placeholder="e.g. TEST12345"
+            className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#451086] font-mono"
+          />
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={metaTrackingEnabled}
+              onChange={(e) => setMetaTrackingEnabled(e.target.checked)}
+              className="w-4 h-4 text-[#451086] rounded border-slate-300 focus:ring-[#451086]"
+            />
+            <span className="text-xs font-bold text-slate-800">Enable CAPI Event Relay</span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="bg-[#451086] hover:bg-[#350c68] text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : 'Save Meta Settings'}
+          </button>
+        </div>
+      </form>
+
+      {/* Recent Delivery Diagnostics Log */}
+      <div className="pt-2 border-t border-[#451086]/10">
+        <div className="text-[11px] font-bold text-slate-800 mb-2 flex items-center justify-between">
+          <span>Recent Event Ingestion & CAPI Log</span>
+          <span className="text-[10px] text-slate-500">{recentEvents.length} events logged</span>
+        </div>
+        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+          {recentEvents.length === 0 ? (
+            <div className="text-[11px] text-slate-400 text-center py-3 bg-white/50 rounded-xl">
+              No tracking events recorded yet. Place an order or browse products to test.
+            </div>
+          ) : (
+            recentEvents.map((ev, idx) => (
+              <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${ev.status === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                  <span className="font-bold text-slate-900 font-mono">{ev.eventName}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-slate-400 font-mono">{ev.createdAt ? ev.createdAt.split('T')[1]?.split('.')[0] : ''}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                    ev.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {ev.status}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

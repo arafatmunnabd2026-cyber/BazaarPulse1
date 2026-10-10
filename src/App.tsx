@@ -589,8 +589,34 @@ export default function App() {
       if (!json.withdrawals) json.withdrawals = [];
       if (!json.reviews) json.reviews = [];
       if (!json.adminSettings) {
-        json.adminSettings = { banners: [], globalCommissionRate: 10, platformName: 'BazaarPulse' };
+        json.adminSettings = { 
+          banners: [], 
+          globalCommissionRate: 10, 
+          platformName: 'BazaarPulse',
+          cartBanner: {
+            isActive: false,
+            bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+            termsText: 'শর্ত প্রযোজ্য'
+          }
+        };
       } else {
+        if (!json.adminSettings.cartBanner) {
+          json.adminSettings.cartBanner = {
+            isActive: false,
+            bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+            termsText: 'শর্ত প্রযোজ্য'
+          };
+        } else if (typeof json.adminSettings.cartBanner === 'string') {
+          try {
+            json.adminSettings.cartBanner = JSON.parse(json.adminSettings.cartBanner);
+          } catch {
+            json.adminSettings.cartBanner = {
+              isActive: false,
+              bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+              termsText: 'শর্ত প্রযোজ্য'
+            };
+          }
+        }
         if (!Array.isArray(json.adminSettings.banners)) {
           try {
             json.adminSettings.banners = typeof json.adminSettings.banners === 'string' ? JSON.parse(json.adminSettings.banners) : [];
@@ -3473,7 +3499,32 @@ function AdminControlCenter({
   const [dbKey, setDbKey] = useState(() => localStorage.getItem('custom_supabase_key') || '');
   const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState<'all' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
   const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
-  const [isBannerActive, setIsBannerActive] = useState<boolean>(Boolean(data?.adminSettings?.cartBanner?.isActive));
+  const [isBannerActive, setIsBannerActive] = useState<boolean>(() => {
+    if (data?.adminSettings?.cartBanner?.isActive !== undefined) {
+      return Boolean(data.adminSettings.cartBanner.isActive);
+    }
+    return false;
+  });
+
+  // Always fetch fresh cart banner status directly from the server on mount to prevent any stale cache or race condition
+  useEffect(() => {
+    let isSubscribed = true;
+    const fetchFreshStatus = async () => {
+      try {
+        const res = await fetch('/api/admin/banner');
+        if (res.ok) {
+          const resJson = await res.json();
+          if (isSubscribed && resJson?.cartBanner?.isActive !== undefined) {
+            setIsBannerActive(Boolean(resJson.cartBanner.isActive));
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully to data props
+      }
+    };
+    fetchFreshStatus();
+    return () => { isSubscribed = false; };
+  }, []);
 
   useEffect(() => {
     if (data?.adminSettings?.cartBanner?.isActive !== undefined) {
