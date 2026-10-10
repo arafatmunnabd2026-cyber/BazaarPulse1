@@ -4986,11 +4986,12 @@ function AdminControlCenter({
                 const form = e.currentTarget;
                 const bannerText = (form.elements.namedItem('bannerText') as HTMLInputElement).value;
                 const termsText = (form.elements.namedItem('termsText') as HTMLInputElement).value;
+                const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || localStorage.getItem('bazaarpulse_admin_token') || '';
 
                 try {
                   const res = await fetch('/api/admin/banner', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': activeToken ? `Bearer ${activeToken}` : '' },
                     body: JSON.stringify({ isActive: isBannerActive, bannerText, termsText })
                   });
                   if (res.ok) {
@@ -5010,7 +5011,45 @@ function AdminControlCenter({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsBannerActive(!isBannerActive)}
+                    onClick={async () => {
+                      const currentActive = isBannerActive !== undefined ? isBannerActive : Boolean(data?.adminSettings?.cartBanner?.isActive);
+                      const newActive = !currentActive;
+
+                      // 1. Optimistic UI update
+                      setIsBannerActive(newActive);
+
+                      // 2. Persist to backend and Supabase
+                      const activeToken = authToken || localStorage.getItem('bazaarpulse_token') || localStorage.getItem('bazaarpulse_admin_token') || '';
+                      try {
+                        const res = await fetch('/api/admin/banner', {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': activeToken ? `Bearer ${activeToken}` : ''
+                          },
+                          body: JSON.stringify({ isActive: newActive })
+                        });
+                        const json = await res.json();
+                        if (res.status === 403 || res.status === 401) {
+                          notify(`🛡️ RBAC Blocked (${res.status}): ${json.error || 'Access Denied'}`);
+                          setIsBannerActive(currentActive);
+                          refreshData();
+                          return;
+                        }
+                        if (json.success) {
+                          notify(newActive ? '✅ Promotional Cart Banner enabled (ON)!' : '⏸️ Promotional Cart Banner disabled (OFF)!');
+                          refreshData();
+                        } else {
+                          notify('Failed to update banner status');
+                          setIsBannerActive(currentActive);
+                          refreshData();
+                        }
+                      } catch (err) {
+                        notify('Failed to update banner status');
+                        setIsBannerActive(currentActive);
+                        refreshData();
+                      }
+                    }}
                     className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none shadow-inner cursor-pointer ${
                       isBannerActive ? 'bg-emerald-600' : 'bg-slate-300'
                     }`}

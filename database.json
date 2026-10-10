@@ -294,7 +294,7 @@
       "linkText": "#flash-sale",
       "subtitle": "Grab top deals across all categories with lightning fast delivery",
       "buttonText": "Grab Deals Now",
-      "isActive": true
+      "isActive": false
     },
     "cartBanner": {
       "isActive": true,

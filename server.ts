@@ -911,6 +911,24 @@ async function getDb(): Promise<InitialData> {
               }
             }
 
+            let resolvedCart: any = db.adminSettings?.cartBanner || {
+              isActive: true,
+              bannerText: '৯৯৯ টাকার ইসলামিক বই কিনলেই পাচ্ছেন ফ্রি ডেলিভারি',
+              termsText: 'শর্ত প্রযোজ্য'
+            };
+            const activeCartObj = (parsedCart && typeof parsedCart === 'object')
+              ? parsedCart
+              : (supaSettings.cart_banner && typeof supaSettings.cart_banner === 'object' ? supaSettings.cart_banner : null);
+            if (activeCartObj) {
+              resolvedCart = {
+                ...resolvedCart,
+                ...activeCartObj
+              };
+              if (activeCartObj.isActive !== undefined) {
+                resolvedCart.isActive = Boolean(activeCartObj.isActive);
+              }
+            }
+
             db.adminSettings = {
               globalCommissionRate: Number(supaSettings.global_commission_rate || db.adminSettings?.globalCommissionRate || 10),
               platformName: supaSettings.platform_name || db.adminSettings?.platformName || 'BazaarPulse',
@@ -918,7 +936,7 @@ async function getDb(): Promise<InitialData> {
               heroBannerSubtitle: supaSettings.hero_banner_subtitle || db.adminSettings?.heroBannerSubtitle || '',
               banners: Array.isArray(parsedBanners) ? parsedBanners : (Array.isArray(supaSettings.banners) ? supaSettings.banners : db.adminSettings?.banners || []),
               campaignBanner: resolvedCampaign,
-              cartBanner: parsedCart || supaSettings.cart_banner || db.adminSettings?.cartBanner || {},
+              cartBanner: resolvedCart,
               maintenanceMode: !!supaSettings.maintenance_mode
             };
           }
@@ -1960,7 +1978,7 @@ app.get('/api/admin/stats', authMiddleware, verifyAdmin, async (req, res) => {
 // Update Admin Settings
 app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => {
   try {
-    const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode, campaignBanner } = req.body;
+    const { globalCommissionRate, platformName, heroBannerTitle, heroBannerSubtitle, banners, maintenanceMode, campaignBanner, cartBanner } = req.body;
     
     // Strict Logic: If database is configured, prioritize Supabase and avoid local file as primary storage
     if (isDbConfigured) {
@@ -2048,6 +2066,7 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
       if (heroBannerSubtitle !== undefined) db.adminSettings.heroBannerSubtitle = heroBannerSubtitle;
       if (maintenanceMode !== undefined) db.adminSettings.maintenanceMode = !!maintenanceMode;
       if (campaignBanner !== undefined) db.adminSettings.campaignBanner = campaignBanner;
+      if (cartBanner !== undefined) db.adminSettings.cartBanner = cartBanner;
 
       saveDb(db);
 
@@ -2063,6 +2082,7 @@ app.put('/api/admin/settings', authMiddleware, verifyAdmin, async (req, res) => 
               hero_banner_subtitle: db.adminSettings.heroBannerSubtitle,
               banners: JSON.stringify(db.adminSettings.banners || []),
               campaign_banner: JSON.stringify(db.adminSettings.campaignBanner || {}),
+              cart_banner: db.adminSettings.cartBanner || {},
               maintenance_mode: db.adminSettings.maintenanceMode
             }, { onConflict: 'id' });
 
@@ -2160,7 +2180,6 @@ app.get('/api/admin/campaign-banner', async (req, res) => {
 app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
   try {
     const { isActive, bannerText, termsText } = req.body;
-    const isAct = isActive === true || isActive === 'true';
 
     // 1. Update database.json cache
     const db = await getDb();
@@ -2173,31 +2192,63 @@ app.put('/api/admin/banner', authMiddleware, verifyAdmin, async (req, res) => {
     }
     
     const updatedCartBanner = {
-      isActive: isAct,
-      bannerText: bannerText !== undefined ? bannerText : db.adminSettings.cartBanner.bannerText,
-      termsText: termsText !== undefined ? termsText : db.adminSettings.cartBanner.termsText
+      ...db.adminSettings.cartBanner,
+      ...(bannerText !== undefined ? { bannerText } : {}),
+      ...(termsText !== undefined ? { termsText } : {})
     };
+
+    if (isActive !== undefined) {
+      updatedCartBanner.isActive = Boolean(isActive === true || isActive === 'true');
+    }
     
     db.adminSettings.cartBanner = updatedCartBanner;
     saveDb(db);
 
-    // 2. Update PostgreSQL database
+    // 2. Update PostgreSQL database if configured
     if (isDbConfigured) {
-      const currentRes = await pool.query('SELECT cart_banner FROM admin_settings WHERE id = 1');
-      const result = await pool.query(
+      await pool.query(
         `INSERT INTO admin_settings (id, cart_banner)
          VALUES (1, $1)
          ON CONFLICT (id) DO UPDATE SET
          cart_banner = EXCLUDED.cart_banner
          RETURNING *`,
         [JSON.stringify(updatedCartBanner)]
-      );
-      console.log('✅ Cart banner updated in Supabase');
+      ).catch((err: any) => console.warn('Postgres cart_banner update error:', err.message));
+    }
+
+    // 3. Save permanently to Supabase admin_settings table so reload never resets state
+    if (supabase) {
+      try {
+        const { error: supaErr } = await supabase
+          .from('admin_settings')
+          .upsert({
+            id: 1,
+            cart_banner: updatedCartBanner
+          }, { onConflict: 'id' });
+
+        if (supaErr) {
+          console.error('Supabase cart_banner upsert note:', supaErr.message);
+        } else {
+          console.log(`✅ Cart promotional banner saved permanently to Supabase! isActive = ${updatedCartBanner.isActive}`);
+        }
+      } catch (sErr: any) {
+        console.warn('Supabase cart_banner sync note:', sErr.message);
+      }
     }
 
     res.json({ success: true, cartBanner: updatedCartBanner });
   } catch (error: any) {
     console.error('❌ Cart banner update failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get Cart Promotional Banner
+app.get('/api/admin/banner', async (req, res) => {
+  try {
+    const db = await getDb();
+    res.json({ success: true, cartBanner: db.adminSettings?.cartBanner || {} });
+  } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
