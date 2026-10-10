@@ -20,6 +20,7 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import { useAuth } from './context/AuthContext';
 import { usePlugins } from './plugins/PluginContext';
 import { AdminMarketplacePlugins } from './components/AdminMarketplacePlugins';
+import { MetaCapiConfigPanel } from './components/MetaCapiConfigPanel';
 import { ProductQuickView } from './components/ProductQuickView';
 import { SharedNavigation } from './components/SharedNavigation';
 import { WishlistModal } from './components/WishlistModal';
@@ -3486,7 +3487,7 @@ function AdminControlCenter({
     );
   }
 
-  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders' | 'plugins'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders' | 'plugins' | 'capi'>('overview');
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
   const [vendorSearch, setVendorSearch] = useState('');
   const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
@@ -4012,12 +4013,27 @@ function AdminControlCenter({
           >
             🧩 Marketplace Plugins
           </button>
+          <button
+            onClick={() => setAdminTab('capi')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              adminTab === 'capi' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            🎯 Meta CAPI Settings
+          </button>
         </div>
 
         {/* Marketplace Plugins Tab */}
         {adminTab === 'plugins' && (
           <div className="mt-6 space-y-6">
             <AdminMarketplacePlugins notify={notify} />
+          </div>
+        )}
+
+        {/* Meta CAPI Settings Tab */}
+        {adminTab === 'capi' && (
+          <div className="mt-6 space-y-6">
+            <MetaCapiConfigPanel notify={notify} />
           </div>
         )}
 
