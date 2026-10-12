@@ -138,7 +138,7 @@ export const ProductQuickView = ({
   const availableColors = useMemo(() => normalizeList(selectedProduct?.colors), [selectedProduct?.colors]);
   const availableSizes = useMemo(() => normalizeList(selectedProduct?.sizes), [selectedProduct?.sizes]);
 
-  // Reset quantity and state when product changes
+  // Reset quantity and state when product changes & trigger GTM view_item event
   useEffect(() => {
     if (selectedProduct) {
       setQuantity(1);
@@ -151,6 +151,24 @@ export const ProductQuickView = ({
       setIsDescExpanded(false);
       // Set scroll lock
       document.body.style.overflow = 'hidden';
+
+      // GTM Enhanced E-commerce view_item event
+      if (typeof window !== 'undefined') {
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        (window as any).dataLayer.push({
+          event: 'view_item',
+          ecommerce: {
+            currency: 'BDT',
+            value: selectedProduct.price,
+            items: [{
+              item_id: selectedProduct.id || selectedProduct._id,
+              item_name: selectedProduct.name || selectedProduct.title,
+              price: selectedProduct.price,
+              quantity: 1
+            }]
+          }
+        });
+      }
     } else {
       document.body.style.overflow = 'unset';
     }
