@@ -149,6 +149,25 @@ export const ShopProvider: React.FC<{
       }
       return [...prev, { product, quantity, size, color, isSelected: true }];
     });
+
+    if (typeof window !== 'undefined') {
+      const w = window as any;
+      w.dataLayer = w.dataLayer || [];
+      w.dataLayer.push({
+        event: 'add_to_cart',
+        ecommerce: {
+          currency: 'BDT',
+          value: Number(product?.price || 0) * Number(quantity || 1),
+          items: [{
+            item_id: product?.id || product?._id,
+            item_name: product?.name || product?.title,
+            price: Number(product?.price || 0),
+            quantity: Number(quantity || 1)
+          }]
+        }
+      });
+    }
+
     notify('🛍️ কার্টে পণ্য যোগ করা হয়েছে!');
   };
 

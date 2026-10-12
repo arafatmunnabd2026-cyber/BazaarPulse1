@@ -2284,6 +2284,24 @@ function CustomerView({
       return [...prev, { product, quantity: qty, size, color }];
     });
 
+    if (typeof window !== 'undefined') {
+      const w = window as any;
+      w.dataLayer = w.dataLayer || [];
+      w.dataLayer.push({
+        event: 'add_to_cart',
+        ecommerce: {
+          currency: 'BDT',
+          value: Number(product?.price || 0) * Number(qty || 1),
+          items: [{
+            item_id: product?.id || product?._id,
+            item_name: product?.name || product?.title,
+            price: Number(product?.price || 0),
+            quantity: Number(qty || 1)
+          }]
+        }
+      });
+    }
+
     // Sync with database if logged in
     if (authUser) {
       try {
