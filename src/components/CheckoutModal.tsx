@@ -338,6 +338,27 @@ export default function CheckoutModal({
   const promoDiscountAmount = appliedPromo ? appliedPromo.discount : 0;
   const payableTotal = Math.max(0, subtotalForCalc + deliveryCharge - promoDiscountAmount);
 
+  // Push begin_checkout event to window.dataLayer on load with items
+  useEffect(() => {
+    if (typeof window !== 'undefined' && itemsToCheckout.length > 0) {
+      const w = window as any;
+      w.dataLayer = w.dataLayer || [];
+      w.dataLayer.push({
+        event: 'begin_checkout',
+        ecommerce: {
+          currency: 'BDT',
+          value: payableTotal,
+          items: itemsToCheckout.map((item: any) => ({
+            item_id: item.product?.id || item.product?._id,
+            item_name: item.product?.name || item.product?.title,
+            price: Number(item.product?.discountPrice || item.product?.price || 0),
+            quantity: Number(item.quantity || 1)
+          }))
+        }
+      });
+    }
+  }, []);
+
   const handleDistrictChange = (selectedDistrict: string) => {
     const thanas = BD_DISTRICTS_DATA[selectedDistrict] || ["সদর"];
     setShippingInfo({
