@@ -208,153 +208,7 @@ const compressImageFile = async (file: File, maxWidth = 1000, maxHeight = 1000, 
 
 const storefrontCategoryScrollRef = { current: null as any };
 
-const DEFAULT_STORE_PRODUCTS = [
-  {
-    id: "p-1790997611124",
-    title: "JisuLife Handheld Fan Ultra2 – The Most Powerful and Versatile Handheld Cooling Solution",
-    slug: "jisulife-handheld-fan-ultra2",
-    price: 8500,
-    discountPrice: 4999,
-    stock: 15,
-    categoryId: "c1",
-    categoryName: "Gadgets",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/_JisuLife_Handheld_Fan_Ultra2__The_Most_-JISULIFE-8bb23-487205.png",
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"
-    ],
-    galleryImages: [],
-    description: "ভ্রমণ, অফিস বা যেকোনো আউটডোর ব্যবহারে এটি আপনার স্টাইল ও স্বাচ্ছন্দ্য বজায় রাখবে। ছোট কিন্তু অত্যন্ত শক্তিশালী এই ফ্যানটি পকেটে বা ব্যাগে সহজেই বহনযোগ্য।",
-    rating: 5.0,
-    reviewsCount: 12,
-    totalSold: 28,
-    isFlashSale: true,
-    status: "active",
-    sizes: [],
-    colors: ["Black", "White", "Navy"]
-  },
-  {
-    id: "p-1790996700786",
-    title: "Coteci Magic Crystal Mouse - Ultra Precision Wireless Gaming & Office Mouse",
-    slug: "coteci-magic-crystal-mouse",
-    price: 1590,
-    discountPrice: 1400,
-    stock: 25,
-    categoryId: "c1",
-    categoryName: "Gadgets",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png"
-    ],
-    galleryImages: [],
-    description: "স্মার্ট ব্যাটারি ও DPI ইন্ডিকেটর: এতে রয়েছে রিয়েল-টাইম ব্যাটারি লেভেল পার্সেন্টেজ ডিসপ্লে এবং সুবিধাজনক DPI অ্যাডজাস্টমেন্ট বাটন।",
-    rating: 4.9,
-    reviewsCount: 8,
-    totalSold: 45,
-    isFlashSale: false,
-    status: "active",
-    sizes: [],
-    colors: []
-  },
-  {
-    id: "p-1790600161282",
-    title: "Ulanzi MT-78 Quick-Release Tripod with Cold Shoe Mount",
-    slug: "ulanzi-mt-78-quick-release-tripod",
-    price: 3500,
-    discountPrice: 2350,
-    stock: 10,
-    categoryId: "c1",
-    categoryName: "Gadgets",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Ulanzi_MT_78_Quick_Release_Tripod_with_C-Ulanzi-433a5-462583.png"
-    ],
-    galleryImages: [],
-    description: "Professional tripod with ultra-durable carbon aluminum frame, 360 panoramic ball head, and smartphone/camera universal mount.",
-    rating: 4.8,
-    reviewsCount: 19,
-    totalSold: 54,
-    isFlashSale: true,
-    status: "active",
-    sizes: [],
-    colors: []
-  },
-  {
-    id: "p-1790486363194",
-    title: "Smart Fast Charger 1.2 Volt AA & AAA Battery Charger 4-Slot Multi-Port",
-    slug: "smart-fast-battery-charger-4-slot",
-    price: 650,
-    discountPrice: 420,
-    stock: 30,
-    categoryId: "c1",
-    categoryName: "Gadgets",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600"
-    ],
-    galleryImages: [],
-    description: "High speed intelligent multi-slot charger with auto-cutoff and LED charging indicators.",
-    rating: 4.7,
-    reviewsCount: 14,
-    totalSold: 88,
-    isFlashSale: false,
-    status: "active",
-    sizes: [],
-    colors: []
-  },
-  {
-    id: "p-1790486363195",
-    title: "Premium Men's Casual Slim-Fit Denim Shirt",
-    slug: "mens-casual-slim-fit-denim-shirt",
-    price: 1850,
-    discountPrice: 1250,
-    stock: 20,
-    categoryId: "c2",
-    categoryName: "Fashion & Apparel",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600"
-    ],
-    galleryImages: [],
-    description: "100% Breathable cotton denim fabric with tailored modern fit.",
-    rating: 4.9,
-    reviewsCount: 22,
-    totalSold: 65,
-    isFlashSale: true,
-    status: "active",
-    sizes: ["M", "L", "XL"],
-    colors: ["Blue", "Dark Navy"]
-  },
-  {
-    id: "p-1790486363196",
-    title: "Minimalist Modern Ceramic Table Vase & Home Decor",
-    slug: "minimalist-modern-ceramic-table-vase",
-    price: 1200,
-    discountPrice: 890,
-    stock: 14,
-    categoryId: "c3",
-    categoryName: "Home & Living",
-    vendorId: "v1",
-    vendorName: "BazaarPulse Official Store",
-    images: [
-      "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600"
-    ],
-    galleryImages: [],
-    description: "Handcrafted Scandinavian matte ceramic vase for living room and dining tabletop decor.",
-    rating: 4.8,
-    reviewsCount: 11,
-    totalSold: 37,
-    isFlashSale: false,
-    status: "active",
-    sizes: [],
-    colors: ["White", "Terracotta"]
-  }
-];
+const DEFAULT_STORE_PRODUCTS: any[] = [];
 
 const DEFAULT_STORE_BANNERS: any[] = [
   {
@@ -412,7 +266,7 @@ export default function App() {
 
   const [currentVendorId, setCurrentVendorId] = useState('v1');
   const [data, setData] = useState<any>({
-    products: DEFAULT_STORE_PRODUCTS,
+    products: [],
     categories: [
       { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
       { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
@@ -563,10 +417,7 @@ export default function App() {
           categoryId: normalizeCategoryId(p.categoryId, p.categoryName)
         }));
       } else {
-        json.products = DEFAULT_STORE_PRODUCTS.map((p: any) => ({
-          ...p,
-          categoryId: normalizeCategoryId(p.categoryId, p.categoryName)
-        }));
+        json.products = [];
       }
 
       // Ensure absolute data integrity for UI stability
@@ -632,7 +483,7 @@ export default function App() {
     } catch (err) {
       console.warn('Note while loading platform data, ensuring fallback state:', err);
       setData((prev: any) => prev || {
-        products: DEFAULT_STORE_PRODUCTS,
+        products: [],
         categories: [
           { id: 'c1', name: 'Gadgets', slug: 'gadgets', icon: 'Cpu' },
           { id: 'c2', name: 'Fashion & Apparel', slug: 'fashion', icon: 'Shirt' },
@@ -2194,7 +2045,7 @@ function CustomerView({
     } catch {}
   };
 
-  const rawProductsList = (Array.isArray(data?.products) && data.products.length > 0) ? data.products : DEFAULT_STORE_PRODUCTS;
+  const rawProductsList = Array.isArray(data?.products) ? data.products : [];
   const filteredProducts = rawProductsList.filter((p: any) => {
     const normP = normalizeCategoryId(p.categoryId, p.categoryName);
     const matchesCat = selectedCategory === 'all' || normP === selectedCategory || p.categoryId === selectedCategory;
