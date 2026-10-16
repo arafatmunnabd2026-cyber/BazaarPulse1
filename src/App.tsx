@@ -39,6 +39,8 @@ import { VisualEditorToolbar } from './components/VisualEditor/VisualEditorToolb
 import { VisualEditDrawer } from './components/VisualEditor/VisualEditDrawer';
 import { useVisualEditor } from './context/VisualEditorContext';
 import { MobileBottomNav } from './components/Layout/MobileBottomNav';
+import { Footer } from './components/Footer';
+import { FooterAdminConfig } from './components/FooterAdminConfig';
 import { createClient } from '@supabase/supabase-js';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
@@ -2912,6 +2914,9 @@ function CustomerView({
         authUser={authUser}
       />
 
+      {/* Desktop 5-Column Footer */}
+      <Footer />
+
       </>
       )}
 
@@ -3374,7 +3379,7 @@ function AdminControlCenter({
     );
   }
 
-  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders' | 'plugins' | 'capi'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'vendors' | 'withdrawals' | 'products' | 'settings' | 'orders' | 'plugins' | 'capi' | 'footer'>('overview');
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
   const [vendorSearch, setVendorSearch] = useState('');
   const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
@@ -3908,6 +3913,14 @@ function AdminControlCenter({
           >
             🎯 Meta CAPI Settings
           </button>
+          <button
+            onClick={() => setAdminTab('footer')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              adminTab === 'footer' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            📋 Footer Management
+          </button>
         </div>
 
         {/* Marketplace Plugins Tab */}
@@ -3921,6 +3934,13 @@ function AdminControlCenter({
         {adminTab === 'capi' && (
           <div className="mt-6 space-y-6">
             <MetaCapiConfigPanel notify={notify} />
+          </div>
+        )}
+
+        {/* Footer Management Tab */}
+        {adminTab === 'footer' && (
+          <div className="mt-6 space-y-6">
+            <FooterAdminConfig notify={notify} />
           </div>
         )}
 

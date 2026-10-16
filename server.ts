@@ -112,9 +112,11 @@ interface InitialData {
     banners: { id: string; title: string; subtitle: string; image: string; link: string; badge?: string }[];
     maintenanceMode: boolean;
     visualOverrides?: Record<string, any>;
+    footerConfig?: any;
   };
   reviews: any[];
   cartItems: { userId: string; productId: string; quantity: number; size?: string; color?: string; addedAt: string }[];
+  subscribers?: string[];
 }
 
 const defaultData: InitialData = {
@@ -405,6 +407,7 @@ async function initDatabase() {
         meta_capi_access_token TEXT,
         meta_test_event_code VARCHAR(100),
         meta_tracking_enabled BOOLEAN DEFAULT true,
+        footer_config JSONB DEFAULT '{}'::jsonb,
         CONSTRAINT single_row CHECK (id = 1)
       );
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS cart_banner JSONB;
@@ -412,6 +415,13 @@ async function initDatabase() {
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_capi_access_token TEXT;
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_test_event_code VARCHAR(100);
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_tracking_enabled BOOLEAN DEFAULT true;
+      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS footer_config JSONB DEFAULT '{}'::jsonb;
+
+      CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
       CREATE TABLE IF NOT EXISTS meta_pixel_events (
         event_id VARCHAR(255) PRIMARY KEY,
@@ -2480,6 +2490,85 @@ app.put('/api/admin/meta-settings', authMiddleware, verifyAdmin, async (req, res
     res.json({ success: true, message: 'Meta CAPI settings updated successfully', metaSettings: db.adminSettings });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- Footer & Newsletter Endpoints ---
+
+app.get('/api/footer', async (req, res) => {
+  try {
+    if (isDbConfigured) {
+      const resDb = await pool.query('SELECT footer_config FROM admin_settings WHERE id = 1');
+      const row = resDb.rows[0];
+      const footer = row?.footer_config ? (typeof row.footer_config === 'string' ? JSON.parse(row.footer_config) : row.footer_config) : null;
+      return res.json({ success: true, footer });
+    }
+    const db: any = await getDb();
+    const footer = db.adminSettings?.footerConfig || null;
+    res.json({ success: true, footer });
+  } catch (error: any) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/footer', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const footerConfig = req.body;
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO admin_settings (id, footer_config) VALUES (1, $1)
+         ON CONFLICT (id) DO UPDATE SET footer_config = EXCLUDED.footer_config`,
+        [JSON.stringify(footerConfig)]
+      );
+    }
+    const db: any = await getDb();
+    if (!db.adminSettings) db.adminSettings = {} as any;
+    db.adminSettings.footerConfig = footerConfig;
+    await saveDb(db);
+
+    res.json({ success: true, footer: footerConfig });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'দয়া করে একটি সঠিক ইমেইল দিন' });
+    }
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO newsletter_subscribers (email) VALUES ($1) ON CONFLICT (email) DO NOTHING`,
+        [email.trim().toLowerCase()]
+      );
+    }
+    const db = await getDb();
+    if (!db.subscribers) db.subscribers = [];
+    if (!db.subscribers.includes(email.trim().toLowerCase())) {
+      db.subscribers.push(email.trim().toLowerCase());
+      await saveDb(db);
+    }
+    res.json({ success: true, message: 'সফলভাবে সাবস্ক্রাইব হয়েছে' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/admin/subscribers', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    let subscribers = [];
+    if (isDbConfigured) {
+      const resDb = await pool.query('SELECT * FROM newsletter_subscribers ORDER BY subscribed_at DESC');
+      subscribers = resDb.rows;
+    } else {
+      const db = await getDb();
+      subscribers = (db.subscribers || []).map((email: string, idx: number) => ({ id: idx + 1, email, subscribed_at: new Date().toISOString() }));
+    }
+    res.json({ success: true, subscribers });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

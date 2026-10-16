@@ -175,6 +175,66 @@
   ],
   "orders": [
     {
+      "id": "ORD-THG8JISC",
+      "customerId": "115103491460329761676",
+      "user_id": "115103491460329761676",
+      "customerName": "লাফিম",
+      "customerEmail": "arafatmunna796@gmail.com",
+      "customerPhone": "01712816080",
+      "phone": "01712816080",
+      "shippingAddress": "ভদ্রপাড়া , থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "ভদ্রপাড়া , থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 1550,
+      "subtotal": 1400,
+      "deliveryFee": 150,
+      "createdAt": "2026-10-13T14:54:42.29699+00:00",
+      "items": [
+        {
+          "productId": "p-1790996700786",
+          "title": "Coteci Magic Crystal mouse",
+          "price": 1400,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790996700786"
+        }
+      ]
+    },
+    {
+      "id": "ORD-9NEUWDKP",
+      "customerId": "u1",
+      "user_id": "u1",
+      "customerName": "Arafat",
+      "customerEmail": "arafatmunna14620022@gmail.com",
+      "customerPhone": "01733948510",
+      "phone": "01733948510",
+      "shippingAddress": "vhadrapara, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "address": "vhadrapara, থানা: বরিশাল সদর, জেলা: Barishal, বাংলাদেশ (টাইপ: Home)",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "status": "pending",
+      "totalAmount": 1550,
+      "subtotal": 1400,
+      "deliveryFee": 150,
+      "createdAt": "2026-10-13T13:50:50.515455+00:00",
+      "items": [
+        {
+          "productId": "p-1790996700786",
+          "title": "Coteci Magic Crystal mouse",
+          "price": 1400,
+          "quantity": 1,
+          "size": null,
+          "color": null,
+          "image": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/Coteci_Magic_Crystal_mouse_II_-Coteci-d7b66-509198.png",
+          "productUrl": "https://bazaarpulse-1ty4.onrender.com/product/p-1790996700786"
+        }
+      ]
+    },
+    {
       "id": "ORD-N5ZZBR8N",
       "customerId": "u1",
       "user_id": "u1",
@@ -323,5 +383,8 @@
       "timestamp": 1791474133735,
       "created_at": "2026-10-08T15:42:13.735Z"
     }
+  ],
+  "subscribers": [
+    "test@example.com"
   ]
 }
