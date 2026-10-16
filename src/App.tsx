@@ -791,7 +791,7 @@ export default function App() {
       refreshData={loadData}
       notify={notify}
     >
-      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20 selection:bg-orange-500 selection:text-white">
+      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-12 md:pb-0 selection:bg-orange-500 selection:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
@@ -2344,7 +2344,7 @@ function CustomerView({
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-gray-100 pb-12 md:pb-0 overflow-x-hidden w-full max-w-full">
       {/* Visual Page Builder Toolbar & Live Edit Drawer */}
       {isPluginActive('visual-page-builder') && (
         <>
@@ -3804,7 +3804,7 @@ function AdminControlCenter({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-20">
+    <div className="min-h-screen bg-slate-100 pb-12 md:pb-6">
       {/* Admin Header */}
       <header className="bg-slate-900 text-white shadow-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
