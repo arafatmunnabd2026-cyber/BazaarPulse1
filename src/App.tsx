@@ -2804,124 +2804,136 @@ function CustomerView({
           </div>
 
           <div className="flex items-center gap-2.5">
-            {isFilterPluginActive && (
-              <button
-                type="button"
-                onClick={() => setIsMobileFilterOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
-              >
-                <Sliders className="w-3.5 h-3.5 text-orange-600" />
-                <span>ফিল্টার ও সর্ট</span>
-                {(filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') && (
-                  <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></span>
-                )}
-              </button>
-            )}
+            {(() => {
+              const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
+              const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+              return shouldShowFilterPanel ? (
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFilterOpen(true)}
+                  className="lg:hidden flex items-center gap-1.5 px-3.5 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-orange-600" />
+                  <span>ফিল্টার ও সর্ট</span>
+                  {(filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') && (
+                    <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></span>
+                  )}
+                </button>
+              ) : null;
+            })()}
           </div>
         </div>
 
         {/* Active Filter Chips Strip */}
-        {isFilterPluginActive && (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') && (
-          <div className="flex items-center gap-1.5 flex-wrap mb-5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-            <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">সক্রিয় ফিল্টার:</span>
-            
-            {filters.minPrice > 0 && (
-              <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
-                মিন ৳{filters.minPrice}
-                <button type="button" onClick={() => handleFilterChange({ ...filters, minPrice: 0 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            )}
+        {(() => {
+          const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
+          const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+          return shouldShowFilterPanel && (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') ? (
+            <div className="flex items-center gap-1.5 flex-wrap mb-5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">সক্রিয় ফিল্টার:</span>
+              
+              {filters.minPrice > 0 && (
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                  মিন ৳{filters.minPrice}
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, minPrice: 0 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
-            {filters.maxPrice < 50000 && (
-              <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
-                ম্যাক্স ৳{filters.maxPrice}
-                <button type="button" onClick={() => handleFilterChange({ ...filters, maxPrice: 50000 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            )}
+              {filters.maxPrice < 50000 && (
+                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                  ম্যাক্স ৳{filters.maxPrice}
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, maxPrice: 50000 })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
-            {filters.brands.map(b => (
-              <span key={b} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
-                {b}
-                <button type="button" onClick={() => handleFilterChange({ ...filters, brands: filters.brands.filter(x => x !== b) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            ))}
+              {filters.brands.map(b => (
+                <span key={b} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                  {b}
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, brands: filters.brands.filter(x => x !== b) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              ))}
 
-            {filters.sizes.map(s => (
-              <span key={s} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
-                সাইজ: {s}
-                <button type="button" onClick={() => handleFilterChange({ ...filters, sizes: filters.sizes.filter(x => x !== s) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            ))}
+              {filters.sizes.map(s => (
+                <span key={s} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                  সাইজ: {s}
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, sizes: filters.sizes.filter(x => x !== s) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              ))}
 
-            {filters.colors.map(c => (
-              <span key={c} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
-                রং: {c}
-                <button type="button" onClick={() => handleFilterChange({ ...filters, colors: filters.colors.filter(x => x !== c) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            ))}
+              {filters.colors.map(c => (
+                <span key={c} className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-slate-800 font-bold">
+                  রং: {c}
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, colors: filters.colors.filter(x => x !== c) })} className="text-slate-400 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              ))}
 
-            {filters.minRating > 0 && (
-              <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-amber-900 font-bold">
-                {filters.minRating}★+
-                <button type="button" onClick={() => handleFilterChange({ ...filters, minRating: 0 })} className="text-amber-500 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            )}
+              {filters.minRating > 0 && (
+                <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-amber-900 font-bold">
+                  {filters.minRating}★+
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, minRating: 0 })} className="text-amber-500 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
-            {filters.inStockOnly && (
-              <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-emerald-900 font-bold">
-                ইন-স্টক
-                <button type="button" onClick={() => handleFilterChange({ ...filters, inStockOnly: false })} className="text-emerald-500 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            )}
+              {filters.inStockOnly && (
+                <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-emerald-900 font-bold">
+                  ইন-স্টক
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, inStockOnly: false })} className="text-emerald-500 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
-            {filters.discountedOnly && (
-              <span className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg text-rose-900 font-bold">
-                অন সেল
-                <button type="button" onClick={() => handleFilterChange({ ...filters, discountedOnly: false })} className="text-rose-500 hover:text-red-600 cursor-pointer">✕</button>
-              </span>
-            )}
+              {filters.discountedOnly && (
+                <span className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg text-rose-900 font-bold">
+                  অন সেল
+                  <button type="button" onClick={() => handleFilterChange({ ...filters, discountedOnly: false })} className="text-rose-500 hover:text-red-600 cursor-pointer">✕</button>
+                </span>
+              )}
 
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="text-[11px] font-bold text-red-600 hover:underline ml-auto cursor-pointer"
-            >
-              সব ক্লিয়ার করুন
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="text-[11px] font-bold text-red-600 hover:underline ml-auto cursor-pointer"
+              >
+                সব ক্লিয়ার করুন
+              </button>
+            </div>
+          ) : null;
+        })()}
 
         {/* Sidebar + Products Grid Container */}
-        <div className={isFilterPluginActive ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
-          {isFilterPluginActive && (
-            <AdvancedFilterSidebar
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onResetFilters={handleResetFilters}
-              allProducts={data?.products || []}
-              isMobileOpen={isMobileFilterOpen}
-              onCloseMobile={() => setIsMobileFilterOpen(false)}
-            />
-          )}
+        {(() => {
+          const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
+          const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+          return (
+            <div className={shouldShowFilterPanel ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
+              {shouldShowFilterPanel && (
+                <AdvancedFilterSidebar
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onResetFilters={handleResetFilters}
+                  allProducts={data?.products || []}
+                  isMobileOpen={isMobileFilterOpen}
+                  onCloseMobile={() => setIsMobileFilterOpen(false)}
+                />
+              )}
 
-          <div className={isFilterPluginActive ? 'flex-1 min-w-0 w-full' : 'w-full'}>
-            {filteredProducts.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
-                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <h4 className="font-bold text-gray-800 text-lg">কোনো পণ্য পাওয়া যায়নি (No products found)</h4>
-                <p className="text-sm text-gray-500 mt-1">ফিল্টারের মান পরিবর্তন করুন অথবা রিসেট বাটন চাপুন।</p>
-                {isFilterPluginActive && (
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
-                  >
-                    ফিল্টার রিসেট করুন
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className={isFilterPluginActive ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6' : 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6'}>
+              <div className={shouldShowFilterPanel ? 'flex-1 min-w-0 w-full' : 'w-full'}>
+                {filteredProducts.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
+                    <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h4 className="font-bold text-gray-800 text-lg">কোনো পণ্য পাওয়া যায়নি (No products found)</h4>
+                    <p className="text-sm text-gray-500 mt-1">ফিল্টারের মান পরিবর্তন করুন অথবা রিসেট বাটন চাপুন।</p>
+                    {shouldShowFilterPanel && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                      >
+                        ফিল্টার রিসেট করুন
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className={shouldShowFilterPanel ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6' : 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6'}>
                 {filteredProducts.map((product: any) => {
                   const discountPercent = product.discountPrice 
                     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
@@ -2971,9 +2983,22 @@ function CustomerView({
                           <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
                             {product.title}
                           </h4>
-                          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5">
-                            <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center"><Store className="w-2.5 h-2.5" /></div>
-                            <span className="truncate">{product.vendorName}</span>
+                          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><Store className="w-2.5 h-2.5" /></div>
+                              <span className="truncate">{product.vendorName}</span>
+                            </div>
+                            {product.stock !== undefined && product.stock !== null && (
+                              <span className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 shadow-xs tracking-wide uppercase ${
+                                product.stock <= 0 
+                                  ? 'bg-rose-100 text-rose-700 border border-rose-300' 
+                                  : product.stock <= 5 
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              }`}>
+                                {product.stock <= 0 ? 'Stock Out' : product.stock <= 5 ? `${product.stock} Left` : 'In Stock'}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -2988,16 +3013,7 @@ function CustomerView({
                               </span>
                             )}
                           </div>
-                          
-                          {/* Rating Preview */}
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="flex text-amber-400">
-                              {[...Array(5)].map((_, i) => (
-                                <Sparkles key={i} className={`w-2.5 h-2.5 ${i < Math.round(product.rating || 5) ? 'fill-current' : 'opacity-20'}`} />
-                              ))}
-                            </div>
-                            <span className="text-[9px] font-bold text-slate-400">({product.reviewsCount || 0})</span>
-                          </div>
+
 
                           <button
                             type="button"
@@ -3029,8 +3045,10 @@ function CustomerView({
             )}
           </div>
         </div>
-      </div>
-      )}
+      );
+    })()}
+  </div>
+)}
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
