@@ -2541,6 +2541,8 @@ const INITIAL_DATABASE_FOOTER = {
   ]
 };
 
+const FOOTER_JSON_FILE = path.resolve(__dirname, 'footer_settings.json');
+
 app.get('/api/footer', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -2553,6 +2555,16 @@ app.get('/api/footer', async (req, res) => {
       }
     }
 
+    if (fs.existsSync(FOOTER_JSON_FILE)) {
+      try {
+        const raw = fs.readFileSync(FOOTER_JSON_FILE, 'utf-8');
+        const footer = JSON.parse(raw);
+        if (footer && typeof footer === 'object' && Object.keys(footer).length > 0) {
+          return res.json({ success: true, footer });
+        }
+      } catch {}
+    }
+
     const db: any = await getDb();
     if (db.adminSettings?.footerConfig && Object.keys(db.adminSettings.footerConfig).length > 0) {
       return res.json({ success: true, footer: db.adminSettings.footerConfig });
@@ -2562,6 +2574,9 @@ app.get('/api/footer', async (req, res) => {
     if (!db.adminSettings) db.adminSettings = {} as any;
     db.adminSettings.footerConfig = INITIAL_DATABASE_FOOTER;
     saveDb(db);
+    try {
+      fs.writeFileSync(FOOTER_JSON_FILE, JSON.stringify(INITIAL_DATABASE_FOOTER, null, 2));
+    } catch {}
 
     if (supabase) {
       try {
@@ -2613,6 +2628,11 @@ const saveFooterConfig = async (req: any, res: any) => {
     if (!db.adminSettings) db.adminSettings = {} as any;
     db.adminSettings.footerConfig = footerConfig;
     saveDb(db);
+    try {
+      fs.writeFileSync(FOOTER_JSON_FILE, JSON.stringify(footerConfig, null, 2));
+    } catch (e) {
+      console.warn('Error saving footer_settings.json:', e);
+    }
 
     console.log('✅ Footer settings persisted to database');
     res.json({ success: true, footer: footerConfig, message: 'Footer configuration saved successfully' });

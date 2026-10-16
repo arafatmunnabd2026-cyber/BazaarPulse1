@@ -63,31 +63,21 @@ export const FooterAdminConfig: React.FC<{ notify: (msg: string) => void }> = ({
     setSaving(true);
     try {
       const token = localStorage.getItem('bazaarpulse_admin_token');
-      let res = await fetch('/api/admin/footer', {
+      // Direct REST API save to PostgreSQL database
+      const res = await fetch('/api/footer', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify(config)
       });
-
-      if (!res.ok && (res.status === 401 || res.status === 403)) {
-        res = await fetch('/api/footer', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config)
-        });
-      }
 
       const json = await res.json();
       if (json.success) {
         const savedData = json.footer || config;
         notify('✅ ফুটার সেটিংস ডাটাবেসে সফলভাবে সংরক্ষিত হয়েছে!');
         window.dispatchEvent(new CustomEvent('bazaarpulse_footer_updated', { detail: savedData }));
-        try {
-          localStorage.setItem('bazaarpulse_footer_synced', JSON.stringify(savedData));
-        } catch {}
       } else {
         notify('❌ সংরক্ষণ করতে সমস্যা হয়েছে: ' + (json.error || ''));
       }

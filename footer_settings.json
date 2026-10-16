@@ -1,0 +1,104 @@
+{
+  "contact": {
+    "email": "support@bazaarpulse.com",
+    "phone": "+880 9612-345678",
+    "address": "House 42, Road 11, Banani, Dhaka-1213",
+    "mapUrl": "https://maps.google.com",
+    "liveChatUrl": "#livechat"
+  },
+  "policyLinks": [
+    {
+      "title": "রিটার্ন ও রিফান্ড পলিসি",
+      "url": "/page/return-policy"
+    },
+    {
+      "title": "শিপিং ও ডেলিভারি পলিসি",
+      "url": "/page/shipping-policy"
+    },
+    {
+      "title": "টার্মস অ্যান্ড কন্ডিশনস",
+      "url": "/page/terms"
+    },
+    {
+      "title": "প্রাইভেসি পলিসি",
+      "url": "/page/privacy"
+    }
+  ],
+  "quickLinks": [
+    {
+      "title": "আমাদের সম্পর্কে",
+      "url": "/page/about"
+    },
+    {
+      "title": "ব্লগ বা নিউজ",
+      "url": "/page/blog"
+    },
+    {
+      "title": "অর্ডার ট্র্যাকিং",
+      "url": "/orders"
+    },
+    {
+      "title": "সাইটম্যাপ",
+      "url": "/sitemap"
+    }
+  ],
+  "social": {
+    "facebook": "https://facebook.com/bazaarpulse",
+    "instagram": "https://instagram.com/bazaarpulse",
+    "youtube": "https://youtube.com/@bazaarpulse",
+    "linkedin": "https://linkedin.com/company/bazaarpulse",
+    "enabled": {
+      "facebook": true,
+      "instagram": true,
+      "youtube": true,
+      "linkedin": true
+    }
+  },
+  "paymentMethods": [
+    {
+      "id": "bkash",
+      "name": "bKash",
+      "image": "/payments/bkash.png"
+    },
+    {
+      "id": "nagad",
+      "name": "Nagad",
+      "image": "/payments/nagad.png"
+    },
+    {
+      "id": "rocket",
+      "name": "Rocket",
+      "image": "/payments/rocket.png"
+    },
+    {
+      "id": "visa",
+      "name": "VISA",
+      "image": "/payments/visa.png"
+    },
+    {
+      "id": "mastercard",
+      "name": "Mastercard",
+      "image": "/payments/mastercard.svg"
+    },
+    {
+      "id": "upay",
+      "name": "upay",
+      "image": "/payments/upay.svg"
+    },
+    {
+      "id": "cellfin",
+      "name": "CellFin",
+      "image": "/payments/cellfin.svg"
+    },
+    {
+      "id": "cod",
+      "name": "Cash on Delivery",
+      "image": "/payments/cod.svg"
+    },
+    {
+      "id": "qcash",
+      "name": "Q-Cash",
+      "image": "/payments/qcash.png"
+    }
+  ]
+}

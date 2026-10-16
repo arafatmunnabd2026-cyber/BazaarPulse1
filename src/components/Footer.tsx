@@ -41,7 +41,7 @@ export const Footer: React.FC = () => {
   useEffect(() => {
     fetchFooterData();
 
-    // 1. Real-time window custom event listener
+    // Real-time window custom event listener triggered upon Admin save
     const handleFooterUpdate = (e: any) => {
       if (e?.detail) {
         setFooterData(e.detail);
@@ -51,25 +51,8 @@ export const Footer: React.FC = () => {
     };
     window.addEventListener('bazaarpulse_footer_updated', handleFooterUpdate);
 
-    // 2. Real-time cross-tab storage listener
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'bazaarpulse_footer_synced') {
-        try {
-          if (e.newValue) {
-            setFooterData(JSON.parse(e.newValue));
-          } else {
-            fetchFooterData();
-          }
-        } catch {
-          fetchFooterData();
-        }
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
     return () => {
       window.removeEventListener('bazaarpulse_footer_updated', handleFooterUpdate);
-      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 
