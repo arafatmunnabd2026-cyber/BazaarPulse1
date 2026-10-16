@@ -35,15 +35,42 @@ export const Footer: React.FC = () => {
   const [footerData, setFooterData] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     fetchFooterData();
-    // Listen for custom event or poll when admin updates footer
-    const handleFooterUpdate = () => fetchFooterData();
+
+    // 1. Real-time window custom event listener
+    const handleFooterUpdate = (e: any) => {
+      if (e?.detail) {
+        setFooterData(e.detail);
+      } else {
+        fetchFooterData();
+      }
+    };
     window.addEventListener('bazaarpulse_footer_updated', handleFooterUpdate);
-    return () => window.removeEventListener('bazaarpulse_footer_updated', handleFooterUpdate);
+
+    // 2. Real-time cross-tab storage listener
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'bazaarpulse_footer_synced') {
+        try {
+          if (e.newValue) {
+            setFooterData(JSON.parse(e.newValue));
+          } else {
+            fetchFooterData();
+          }
+        } catch {
+          fetchFooterData();
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('bazaarpulse_footer_updated', handleFooterUpdate);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const fetchFooterData = async () => {
@@ -55,6 +82,8 @@ export const Footer: React.FC = () => {
       }
     } catch (e) {
       console.error('Failed to fetch footer config:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,42 +115,43 @@ export const Footer: React.FC = () => {
     }
   };
 
-  const defaultConfig = {
-    contact: {
-      email: "support@bazaarpulse.com",
-      phone: "+880 9612-345678",
-      address: "House 42, Road 11, Banani, Dhaka-1213",
-      mapUrl: "https://maps.google.com",
-      liveChatUrl: "#livechat"
-    },
-    policyLinks: [
-      { title: "রিটার্ন ও রিফান্ড পলিসি", url: "/page/return-policy" },
-      { title: "শিপিং ও ডেলিভারি পলিসি", url: "/page/shipping-policy" },
-      { title: "টার্মস অ্যান্ড কন্ডিশনস", url: "/page/terms" },
-      { title: "প্রাইভেসি পলিসি", url: "/page/privacy" }
-    ],
-    quickLinks: [
-      { title: "আমাদের সম্পর্কে", url: "/page/about" },
-      { title: "ব্লগ বা নিউজ", url: "/page/blog" },
-      { title: "অর্ডার ট্র্যাকিং", url: "/orders" },
-      { title: "সাইটম্যাপ", url: "/sitemap" }
-    ],
-    social: {
-      facebook: "https://facebook.com/bazaarpulse",
-      instagram: "https://instagram.com/bazaarpulse",
-      youtube: "https://youtube.com/@bazaarpulse",
-      linkedin: "https://linkedin.com/company/bazaarpulse",
-      enabled: { facebook: true, instagram: true, youtube: true, linkedin: true }
-    },
-    paymentMethods: ["bKash", "Rocket", "Nagad", "VISA", "Mastercard", "Upay", "Cellfin", "COD"]
-  };
+  // Skeleton loading while live database data is fetching (Zero mock/demo data shown)
+  if (!footerData && loading) {
+    return (
+      <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-7 mb-6 animate-pulse">
+            {[1, 2, 3, 4, 5].map((col) => (
+              <div key={col} className="space-y-3">
+                <div className="h-4 bg-slate-800 rounded w-3/4"></div>
+                <div className="space-y-2 pt-1">
+                  <div className="h-3 bg-slate-800/60 rounded w-full"></div>
+                  <div className="h-3 bg-slate-800/60 rounded w-5/6"></div>
+                  <div className="h-3 bg-slate-800/60 rounded w-4/6"></div>
+                  <div className="h-3 bg-slate-800/60 rounded w-3/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-800/80 pt-4 flex justify-between items-center">
+            <div className="h-3 bg-slate-800/60 rounded w-48"></div>
+            <div className="h-3 bg-slate-800/60 rounded w-32"></div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
-  const config = footerData || defaultConfig;
-  const contact = config.contact || defaultConfig.contact;
-  const policyLinks = config.policyLinks || defaultConfig.policyLinks;
-  const quickLinks = config.quickLinks || defaultConfig.quickLinks;
-  const social = config.social || defaultConfig.social;
-  const paymentMethods = config.paymentMethods || defaultConfig.paymentMethods;
+  // If no database data could be loaded, do not pop demo data
+  if (!footerData) {
+    return null;
+  }
+
+  const contact = footerData.contact || {};
+  const policyLinks = footerData.policyLinks || footerData.policies || [];
+  const quickLinks = footerData.quickLinks || footerData.navigation || [];
+  const social = footerData.social || footerData.socials || {};
+  const paymentMethods = footerData.paymentMethods || footerData.payments || [];
 
   return (
     <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans">

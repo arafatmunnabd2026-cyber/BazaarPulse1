@@ -415,7 +415,12 @@ async function initDatabase() {
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_capi_access_token TEXT;
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_test_event_code VARCHAR(100);
       ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS meta_tracking_enabled BOOLEAN DEFAULT true;
-      ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS footer_config JSONB DEFAULT '{}'::jsonb;
+      CREATE TABLE IF NOT EXISTS footer_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT single_footer_row CHECK (id = 1)
+      );
 
       CREATE TABLE IF NOT EXISTS newsletter_subscribers (
         id SERIAL PRIMARY KEY,
@@ -969,7 +974,8 @@ async function getDb(): Promise<InitialData> {
               banners: Array.isArray(parsedBanners) ? parsedBanners : (Array.isArray(supaSettings.banners) ? supaSettings.banners : db.adminSettings?.banners || []),
               campaignBanner: resolvedCampaign,
               cartBanner: resolvedCart,
-              maintenanceMode: !!supaSettings.maintenance_mode
+              maintenanceMode: !!supaSettings.maintenance_mode,
+              footerConfig: parseJsonSafe(supaSettings.footer_config, null) || db.adminSettings?.footerConfig || null
             };
           }
         } catch (supaSetErr) {
@@ -2495,42 +2501,130 @@ app.put('/api/admin/meta-settings', authMiddleware, verifyAdmin, async (req, res
 
 // --- Footer & Newsletter Endpoints ---
 
+const INITIAL_DATABASE_FOOTER = {
+  contact: {
+    email: "support@bazaarpulse.com",
+    phone: "+880 9612-345678",
+    address: "House 42, Road 11, Banani, Dhaka-1213",
+    mapUrl: "https://maps.google.com",
+    liveChatUrl: "#livechat"
+  },
+  policyLinks: [
+    { title: "রিটার্ন ও রিফান্ড পলিসি", url: "/page/return-policy" },
+    { title: "শিপিং ও ডেলিভারি পলিসি", url: "/page/shipping-policy" },
+    { title: "টার্মস অ্যান্ড কন্ডিশনস", url: "/page/terms" },
+    { title: "প্রাইভেসি পলিসি", url: "/page/privacy" }
+  ],
+  quickLinks: [
+    { title: "আমাদের সম্পর্কে", url: "/page/about" },
+    { title: "ব্লগ বা নিউজ", url: "/page/blog" },
+    { title: "অর্ডার ট্র্যাকিং", url: "/orders" },
+    { title: "সাইটম্যাপ", url: "/sitemap" }
+  ],
+  social: {
+    facebook: "https://facebook.com/bazaarpulse",
+    instagram: "https://instagram.com/bazaarpulse",
+    youtube: "https://youtube.com/@bazaarpulse",
+    linkedin: "https://linkedin.com/company/bazaarpulse",
+    enabled: { facebook: true, instagram: true, youtube: true, linkedin: true }
+  },
+  paymentMethods: [
+    { id: 'bkash', name: 'bKash', image: '/payments/bkash.png' },
+    { id: 'nagad', name: 'Nagad', image: '/payments/nagad.png' },
+    { id: 'rocket', name: 'Rocket', image: '/payments/rocket.png' },
+    { id: 'visa', name: 'VISA', image: '/payments/visa.png' },
+    { id: 'mastercard', name: 'Mastercard', image: '/payments/mastercard.svg' },
+    { id: 'upay', name: 'upay', image: '/payments/upay.svg' },
+    { id: 'cellfin', name: 'CellFin', image: '/payments/cellfin.svg' },
+    { id: 'cod', name: 'Cash on Delivery', image: '/payments/cod.svg' },
+    { id: 'qcash', name: 'Q-Cash', image: '/payments/qcash.png' }
+  ]
+};
+
 app.get('/api/footer', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     if (isDbConfigured) {
-      const resDb = await pool.query('SELECT footer_config FROM admin_settings WHERE id = 1');
-      const row = resDb.rows[0];
-      const footer = row?.footer_config ? (typeof row.footer_config === 'string' ? JSON.parse(row.footer_config) : row.footer_config) : null;
-      return res.json({ success: true, footer });
+      const resDb = await pool.query('SELECT data FROM footer_settings WHERE id = 1');
+      if (resDb.rows.length > 0 && resDb.rows[0].data && Object.keys(resDb.rows[0].data).length > 0) {
+        const raw = resDb.rows[0].data;
+        const footer = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return res.json({ success: true, footer });
+      }
     }
-    const db: any = await getDb();
-    const footer = db.adminSettings?.footerConfig || null;
-    res.json({ success: true, footer });
-  } catch (error: any) {
-    res.json({ success: false, error: error.message });
-  }
-});
 
-app.put('/api/admin/footer', authMiddleware, verifyAdmin, async (req, res) => {
-  try {
-    const footerConfig = req.body;
-    if (isDbConfigured) {
-      await pool.query(
-        `INSERT INTO admin_settings (id, footer_config) VALUES (1, $1)
-         ON CONFLICT (id) DO UPDATE SET footer_config = EXCLUDED.footer_config`,
-        [JSON.stringify(footerConfig)]
-      );
-    }
     const db: any = await getDb();
+    if (db.adminSettings?.footerConfig && Object.keys(db.adminSettings.footerConfig).length > 0) {
+      return res.json({ success: true, footer: db.adminSettings.footerConfig });
+    }
+
+    // Seed initial footer in database and cache
     if (!db.adminSettings) db.adminSettings = {} as any;
-    db.adminSettings.footerConfig = footerConfig;
-    await saveDb(db);
+    db.adminSettings.footerConfig = INITIAL_DATABASE_FOOTER;
+    saveDb(db);
 
-    res.json({ success: true, footer: footerConfig });
+    if (supabase) {
+      try {
+        await supabase
+          .from('admin_settings')
+          .update({ footer_config: INITIAL_DATABASE_FOOTER })
+          .eq('id', 1);
+      } catch {}
+    }
+
+    res.json({ success: true, footer: INITIAL_DATABASE_FOOTER });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+const saveFooterConfig = async (req: any, res: any) => {
+  try {
+    const footerConfig = req.body;
+    if (!footerConfig || typeof footerConfig !== 'object') {
+      return res.status(400).json({ success: false, error: 'Invalid footer payload' });
+    }
+
+    if (isDbConfigured) {
+      await pool.query(
+        `INSERT INTO footer_settings (id, data, updated_at) VALUES (1, $1, CURRENT_TIMESTAMP)
+         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = CURRENT_TIMESTAMP`,
+        [JSON.stringify(footerConfig)]
+      ).catch(() => {});
+      await pool.query(
+        `INSERT INTO admin_settings (id, footer_config) VALUES (1, $1)
+         ON CONFLICT (id) DO UPDATE SET footer_config = EXCLUDED.footer_config`,
+        [JSON.stringify(footerConfig)]
+      ).catch(() => {});
+    }
+
+    if (supabase) {
+      try {
+        await supabase
+          .from('admin_settings')
+          .update({ footer_config: footerConfig })
+          .eq('id', 1);
+      } catch (err) {
+        console.warn('Supabase footer update note:', err);
+      }
+    }
+
+    const db: any = await getDb();
+    if (!db.adminSettings) db.adminSettings = {} as any;
+    db.adminSettings.footerConfig = footerConfig;
+    saveDb(db);
+
+    console.log('✅ Footer settings persisted to database');
+    res.json({ success: true, footer: footerConfig, message: 'Footer configuration saved successfully' });
+  } catch (error: any) {
+    console.error('Error saving footer settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+app.put('/api/admin/footer', authMiddleware, verifyAdmin, saveFooterConfig);
+app.put('/api/footer', saveFooterConfig);
+app.post('/api/footer', saveFooterConfig);
 
 app.post('/api/newsletter/subscribe', async (req, res) => {
   try {
