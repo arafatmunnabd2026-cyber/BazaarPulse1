@@ -118,7 +118,7 @@ export const Footer: React.FC = () => {
   // Skeleton loading while live database data is fetching (Zero mock/demo data shown)
   if (!footerData && loading) {
     return (
-      <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans">
+      <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans mt-12 md:mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-7 mb-6 animate-pulse">
             {[1, 2, 3, 4, 5].map((col) => (
@@ -154,7 +154,7 @@ export const Footer: React.FC = () => {
   const paymentMethods = footerData.paymentMethods || footerData.payments || [];
 
   return (
-    <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans">
+    <footer className="hidden md:block bg-slate-900 text-slate-300 py-8 border-t border-slate-800 text-xs font-sans mt-12 md:mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 5-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-7 mb-6">
