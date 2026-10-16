@@ -2978,7 +2978,7 @@ function CustomerView({
                         </div>
                       </div>
 
-                      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+                      <div className="p-3 sm:p-3.5 pb-2.5 sm:pb-3 flex-1 flex flex-col justify-between">
                         <div>
                           <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
                             {product.title}
