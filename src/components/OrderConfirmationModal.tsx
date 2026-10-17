@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Check, Copy, HelpCircle, X, Download, FileText, Printer, Mail, Sparkles, CheckCircle2, Loader2, Eye } from 'lucide-react';
 import { usePlugins } from '../plugins/PluginContext';
@@ -22,6 +22,31 @@ export default function OrderConfirmationModal({
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [autoEmailSent, setAutoEmailSent] = useState(false);
+  const dataLayerFired = useRef(false);
+
+  useEffect(() => {
+    if (order && !dataLayerFired.current) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'purchase',
+        ecommerce: {
+          transaction_id: order?.id || order?._id,
+          value: order?.totalAmount,
+          currency: 'BDT',
+          shipping: order?.shippingCost || order?.deliveryFee || 0,
+          tax: order?.tax || 0,
+          items: order?.items?.map((item: any) => ({
+            item_id: item.id || item._id || item.productId,
+            item_name: item.name || item.title,
+            price: item.price,
+            quantity: item.quantity || 1
+          }))
+        }
+      });
+      dataLayerFired.current = true;
+    }
+  }, [order]);
+
   let isInvoiceActive = true;
   try {
     const pluginCtx = usePlugins();
