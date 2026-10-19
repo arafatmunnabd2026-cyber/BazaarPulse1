@@ -26,32 +26,37 @@ export default function OrderConfirmationModal({
 
   useEffect(() => {
     if (order && !dataLayerFired.current) {
+      const fullName = order?.shippingAddress?.fullName || order?.fullName || order?.customerName || order?.name || "";
+      const nameParts = fullName.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({
         event: 'purchase',
         ecommerce: {
-          transaction_id: order?.id || order?._id || 'ORDER_12345',
-          value: order?.totalAmount || 0,
+          transaction_id: order?.id || order?._id || order?.orderId || 'ORDER_12345',
+          value: order?.totalAmount || order?.total || 0,
           currency: 'BDT',
           tax: order?.tax || 0,
-          shipping: order?.shippingCost || order?.deliveryFee || 0,
-          coupon: order?.couponCode || '',
+          shipping: order?.shippingCost || order?.shippingFee || order?.deliveryFee || 0,
+          coupon: order?.coupon || order?.couponCode || order?.discountCode || "",
           user_data: {
-            email_address: order?.customerEmail || '',
-            phone_number: order?.customerPhone || order?.phone || '',
-            first_name: order?.shippingAddress?.firstName || '',
-            last_name: order?.shippingAddress?.lastName || '',
-            country: order?.shippingAddress?.country || 'BD',
-            city: order?.shippingAddress?.city || '',
-            postal_code: order?.shippingAddress?.postalCode || ''
+            email_address: order?.customerEmail || order?.email || "",
+            phone_number: order?.customerPhone || order?.phone || "",
+            first_name: firstName || order?.shippingAddress?.firstName || "",
+            last_name: lastName || order?.shippingAddress?.lastName || "",
+            country: order?.shippingAddress?.country || "BD",
+            city: order?.shippingAddress?.city || order?.city || order?.address?.city || "",
+            postal_code: order?.shippingAddress?.postalCode || order?.zipCode || order?.postalCode || ""
           },
           items: (order?.items || []).map((item: any) => ({
-            item_id: item.id || item._id || item.productId,
-            item_name: item.name || item.title || 'Product',
-            price: Number(item.price || 0),
-            quantity: Number(item.quantity || 1),
-            item_brand: item.brand || 'BazaarPulse',
-            item_category: item.category || 'General'
+            item_id: item?.id || item?._id || item?.productId,
+            item_name: item?.name || item?.title || 'Product',
+            price: Number(item?.price || 0),
+            quantity: Number(item?.quantity || 1),
+            item_brand: item?.brand || 'BazaarPulse',
+            item_category: item?.category || 'General'
           }))
         }
       });
