@@ -157,6 +157,25 @@ export default function CheckoutModal({
   useEffect(() => {
     let isMounted = true;
 
+    // GTM begin_checkout event
+    if (isOpen && cart.length > 0) {
+      import('../lib/gtm').then(({ pushToDataLayer }) => {
+        pushToDataLayer({
+          event: 'begin_checkout',
+          ecommerce: {
+            currency: 'BDT',
+            value: cart.reduce((acc: number, item: any) => acc + (Number(item?.product?.price || item.price || 0) * (item.quantity || 1)), 0),
+            items: cart.map((item: any) => ({
+              item_id: item?.product?.id || item?.product?._id || item.id || item._id,
+              item_name: item?.product?.name || item?.product?.title || item.name || item.title || 'Product',
+              price: Number(item?.product?.price || item.price || 0),
+              quantity: Number(item.quantity || 1)
+            }))
+          }
+        });
+      });
+    }
+
     const fetchSavedAddress = async () => {
       try {
         const activeToken = localStorage.getItem('bazaarpulse_token') || '';
