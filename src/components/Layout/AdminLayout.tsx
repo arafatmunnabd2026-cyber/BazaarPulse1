@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Menu, Search, Bell, ChevronDown, LayoutDashboard, ShoppingBag, Users, Package, Settings, ChevronRight, DollarSign, Layers, ShieldCheck } from 'lucide-react';
 
-export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AdminLayout: React.FC<{ 
+  children: React.ReactNode, 
+  activeTab: string, 
+  onTabChange: (tab: string) => void 
+}> = ({ children, activeTab, onTabChange }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
@@ -21,20 +25,20 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">APPLICATION</p>
             <ul className="space-y-1">
-              <NavItem icon={<LayoutDashboard />} label="Platform Overview" active />
-              <NavItem icon={<Users />} label="Vendor Approvals" />
-              <NavItem icon={<DollarSign />} label="Payout Requests" />
-              <NavItem icon={<ShoppingBag />} label="Manage Products" />
-              <NavItem icon={<Package />} label="Orders History" />
+              <NavItem icon={<LayoutDashboard />} label="Platform Overview" active={activeTab === 'overview'} onClick={() => onTabChange('overview')} />
+              <NavItem icon={<Users />} label="Vendor Approvals" active={activeTab === 'vendors'} onClick={() => onTabChange('vendors')} hasSubmenu />
+              <NavItem icon={<DollarSign />} label="Payout Requests" active={activeTab === 'withdrawals'} onClick={() => onTabChange('withdrawals')} hasSubmenu />
+              <NavItem icon={<ShoppingBag />} label="Manage Products" active={activeTab === 'products'} onClick={() => onTabChange('products')} hasSubmenu />
+              <NavItem icon={<Package />} label="Orders History" active={activeTab === 'orders'} onClick={() => onTabChange('orders')} hasSubmenu />
             </ul>
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">PAGES</p>
             <ul className="space-y-1">
-              <NavItem icon={<Settings />} label="Platform Settings" />
-              <NavItem icon={<Layers />} label="Marketplace Plugins" />
-              <NavItem icon={<ShieldCheck />} label="Meta CAPI Settings" />
-              <NavItem icon={<Settings />} label="Footer Management" />
+              <NavItem icon={<Settings />} label="Platform Settings" active={activeTab === 'settings'} onClick={() => onTabChange('settings')} hasSubmenu />
+              <NavItem icon={<Layers />} label="Marketplace Plugins" active={activeTab === 'plugins'} onClick={() => onTabChange('plugins')} hasSubmenu />
+              <NavItem icon={<ShieldCheck />} label="Meta CAPI Settings" active={activeTab === 'capi'} onClick={() => onTabChange('capi')} hasSubmenu />
+              <NavItem icon={<Settings />} label="Footer Management" active={activeTab === 'footer'} onClick={() => onTabChange('footer')} hasSubmenu />
             </ul>
           </div>
         </nav>
@@ -78,8 +82,17 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 };
 
-const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean, hasSubmenu?: boolean }> = ({ icon, label, active, hasSubmenu }) => (
-  <li className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${active ? 'bg-yellow-500 text-black' : 'hover:bg-[#343a40] text-slate-300 hover:text-white'}`}>
+const NavItem: React.FC<{ 
+  icon: React.ReactNode, 
+  label: string, 
+  active?: boolean, 
+  hasSubmenu?: boolean,
+  onClick: () => void
+}> = ({ icon, label, active, hasSubmenu, onClick }) => (
+  <li 
+    onClick={onClick}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${active ? 'bg-yellow-500 text-black' : 'hover:bg-[#343a40] text-slate-300 hover:text-white'}`}
+  >
     {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
     {label}
     {hasSubmenu && <ChevronRight className={`w-3 h-3 ml-auto ${active ? 'text-black' : 'text-slate-500'}`} />}

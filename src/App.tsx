@@ -3849,7 +3849,8 @@ function AdminControlCenter({
         </div>
       </header>
 
-      {/* Tabs with proper vertical margin and structure */}
+      {/* No more tabs */}
+            {/* Tabs with proper vertical margin and structure */}
       <div className="max-w-7xl mx-auto px-4 mt-10 sm:mt-12">
         <div className="flex flex-wrap gap-3 border-b border-slate-200 pb-4">
           <button
