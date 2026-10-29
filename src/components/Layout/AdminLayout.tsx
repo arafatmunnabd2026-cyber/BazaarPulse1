@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Search, Bell, ChevronDown, LayoutDashboard, ShoppingBag, Users, Package, Settings, ChevronRight } from 'lucide-react';
+import { Menu, Search, Bell, ChevronDown, LayoutDashboard, ShoppingBag, Users, Package, Settings, ChevronRight, DollarSign, Layers, ShieldCheck } from 'lucide-react';
 
 export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -21,16 +21,20 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">APPLICATION</p>
             <ul className="space-y-1">
-              <NavItem icon={<LayoutDashboard />} label="Dashboard" active />
-              <NavItem icon={<ShoppingBag />} label="Catalog" hasSubmenu />
-              <NavItem icon={<Package />} label="Orders" hasSubmenu />
-              <NavItem icon={<Users />} label="Customers" hasSubmenu />
+              <NavItem icon={<LayoutDashboard />} label="Platform Overview" active />
+              <NavItem icon={<Users />} label="Vendor Approvals" />
+              <NavItem icon={<DollarSign />} label="Payout Requests" />
+              <NavItem icon={<ShoppingBag />} label="Manage Products" />
+              <NavItem icon={<Package />} label="Orders History" />
             </ul>
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">PAGES</p>
             <ul className="space-y-1">
-              <NavItem icon={<Settings />} label="Settings" hasSubmenu />
+              <NavItem icon={<Settings />} label="Platform Settings" />
+              <NavItem icon={<Layers />} label="Marketplace Plugins" />
+              <NavItem icon={<ShieldCheck />} label="Meta CAPI Settings" />
+              <NavItem icon={<Settings />} label="Footer Management" />
             </ul>
           </div>
         </nav>
