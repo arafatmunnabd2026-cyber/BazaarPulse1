@@ -321,43 +321,36 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '30px 16px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <div style={{ maxWidth: '680px', margin: '0 auto', background: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      {/* Metrics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <MetricCard title="Total Sells" value="৳ 125,430" change="+12%" positive />
+        <MetricCard title="Total Orders" value="1,204" change="+5%" positive />
+        <MetricCard title="Avg. Order Value" value="৳ 1,041" change="-2%" />
+        <MetricCard title="Active Users" value="842" change="+18%" positive />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #f85606 0%, #ea580c 100%)', padding: '24px 28px', color: '#ffffff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '24px' }}>📦</span>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Admin Dashboard - Add New Product</h2>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', opacity: 0.9 }}>Upload live products directly to Supabase Database & Gallery</p>
-            </div>
-          </div>
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900">Add New Product</h2>
+          <p className="text-sm text-gray-500">Upload live products directly to Supabase Database & Gallery</p>
         </div>
 
         {/* Message Banner */}
         {message && (
-          <div style={{
-            margin: '20px 28px 0',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 600,
-            background: message.type === 'success' ? '#ecfdf5' : '#fef2f2',
-            color: message.type === 'success' ? '#047857' : '#b91c1c',
-            border: `1px solid ${message.type === 'success' ? '#a7f3d0' : '#fecaca'}`
-          }}>
+          <div className={`mb-6 p-4 rounded-xl text-sm font-semibold border ${message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
             {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
           </div>
         )}
 
-        <form onSubmit={handlePublishProduct} style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handlePublishProduct} className="space-y-6">
+
           
           {/* Title */}
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
-              Product Title *
-            </label>
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Product Title *</label>
             <input 
               type="text" 
               name="title" 
@@ -365,16 +358,14 @@ export default function AdminDashboard() {
               onChange={handleChange} 
               required 
               placeholder="e.g. Smart LED TV 43 inch AMOLED" 
-              style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }} 
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
             />
           </div>
 
           {/* Pricing Grid: Current Price & Discount Price */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
-                Current Price (৳) *
-              </label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Current Price (৳) *</label>
               <input 
                 type="number" 
                 name="currentPrice" 
@@ -382,32 +373,27 @@ export default function AdminDashboard() {
                 onChange={handleChange} 
                 required 
                 placeholder="e.g. 24000" 
-                style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }} 
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
-                Discount Price (৳)
-              </label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Discount Price (৳)</label>
               <input 
                 type="number" 
                 name="discountPrice" 
                 value={formData.discountPrice} 
                 onChange={handleChange} 
-                placeholder="e.g. 19999 (Special offer)" 
-                style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }} 
+                placeholder="e.g. 19999" 
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
               />
-              <span style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', display: 'block' }}>Optional special discounted sale price</span>
             </div>
           </div>
 
           {/* Stock & Category */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
-                Stock Quantity *
-              </label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Stock Quantity *</label>
               <input 
                 type="number" 
                 name="stockQuantity" 
@@ -415,19 +401,17 @@ export default function AdminDashboard() {
                 onChange={handleChange} 
                 required 
                 placeholder="e.g. 25" 
-                style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc' }} 
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
-                Category *
-              </label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Category *</label>
               <select 
                 name="category" 
                 value={formData.category} 
                 onChange={handleChange} 
-                style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc', fontWeight: 600 }}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 outline-none font-bold"
               >
                 <option value="Electronics">Electronics</option>
                 <option value="Fashion & Apparel">Fashion & Apparel</option>
@@ -440,27 +424,27 @@ export default function AdminDashboard() {
           </div>
 
           {/* Main Product Image */}
-          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#334155', marginBottom: '8px' }}>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
               Main Product Image *
             </label>
             
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+            <div className="flex gap-2 items-center mb-2">
               <input
                 ref={mainImageInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleMainImageChange}
-                style={{ display: 'none' }}
+                className="hidden"
                 id="main-file-input"
               />
               <label 
                 htmlFor="main-file-input"
-                style={{ padding: '8px 16px', background: '#e2e8f0', color: '#1e293b', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg text-xs font-bold cursor-pointer inline-flex items-center gap-2 hover:bg-gray-300"
               >
                 📁 {uploadingMain ? 'Uploading...' : 'Choose from Device'}
               </label>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>or enter image URL below:</span>
+              <span className="text-xs text-gray-400">or enter image URL below:</span>
             </div>
 
             <input 
@@ -470,35 +454,35 @@ export default function AdminDashboard() {
               onChange={handleChange} 
               required
               placeholder="https://images.unsplash.com/..." 
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box', background: '#ffffff' }} 
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
             />
 
             {formData.imageUrl && (
-              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img src={formData.imageUrl} alt="Main Preview" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
-                <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>✓ Main image ready</span>
+              <div className="mt-3 flex items-center gap-3">
+                <img src={formData.imageUrl} alt="Main Preview" className="w-16 h-16 object-cover rounded-lg border border-gray-300" />
+                <span className="text-xs text-green-600 font-bold">✓ Main image ready</span>
               </div>
             )}
           </div>
 
-          {/* Multiple Gallery Image Upload: Device File Picker (Up to 8 Images) */}
-          <div style={{ background: '#fff7ed', padding: '18px', borderRadius: '16px', border: '1px solid #ffedd5' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          {/* Multiple Gallery Image Upload */}
+          <div className="bg-orange-50 p-6 rounded-xl border border-orange-100">
+            <div className="flex justify-between items-center mb-3">
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#9a3412' }}>
+                <label className="block text-xs font-bold uppercase text-orange-900">
                   Additional Gallery Photos (Max 8)
                 </label>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#c2410c' }}>
-                  Select multiple product photos from your phone or computer gallery
+                <p className="text-[11px] text-orange-700 mt-0.5">
+                  Select multiple product photos from your phone or computer
                 </p>
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#ea580c', background: '#ffedd5', padding: '3px 8px', borderRadius: '6px' }}>
+              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md">
                 {formData.galleryImages.length} / 8 Selected
               </span>
             </div>
 
             {formData.galleryImages.length < 8 && (
-              <div style={{ marginBottom: '14px' }}>
+              <div className="mb-4">
                 <input
                   ref={galleryInputRef}
                   type="file"
@@ -506,69 +490,41 @@ export default function AdminDashboard() {
                   accept="image/*"
                   onChange={handleGalleryFilesChange}
                   disabled={uploadingGallery}
-                  style={{ display: 'none' }}
+                  className="hidden"
                   id="gallery-file-input"
                 />
                 <label 
                   htmlFor="gallery-file-input"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px',
-                    border: '2px dashed #fdba74',
-                    borderRadius: '12px',
-                    background: '#ffffff',
-                    cursor: uploadingGallery ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
+                  className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-orange-200 rounded-xl bg-white ${uploadingGallery ? 'cursor-not-allowed' : 'cursor-pointer hover:border-orange-300'}`}
                 >
-                  <span style={{ fontSize: '24px', marginBottom: '6px' }}>📷</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#c2410c' }}>
-                    {uploadingGallery ? 'Uploading Gallery Photos to Supabase...' : 'Click to Pick Photos from Device / Gallery'}
+                  <span className="text-2xl mb-1.5">📷</span>
+                  <span className="text-xs font-bold text-orange-900">
+                    {uploadingGallery ? 'Uploading Gallery Photos...' : 'Click to Pick Photos'}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                    Select up to {8 - formData.galleryImages.length} more images (JPG, PNG, WebP)
+                  <span className="text-[10px] text-gray-400 mt-1">
+                    Select up to {8 - formData.galleryImages.length} more images
                   </span>
                 </label>
               </div>
             )}
 
-            {/* Gallery Previews Grid with Delete Buttons */}
+            {/* Gallery Previews */}
             {formData.galleryImages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '10px' }}>
+              <div className="grid grid-cols-4 gap-3 mt-3">
                 {formData.galleryImages.map((url, idx) => (
-                  <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '1px solid #fed7aa', background: '#ffffff', height: '80px' }}>
+                  <div key={idx} className="relative rounded-lg overflow-hidden border border-orange-200 bg-white h-20">
                     <img 
                       src={url} 
                       alt={`Gallery ${idx + 1}`} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      className="w-full h-full object-cover" 
                     />
-                    <span style={{ position: 'absolute', top: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', color: '#ffffff', fontSize: '9px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px' }}>
+                    <span className="absolute top-1 left-1 bg-black/50 text-white text-[9px] font-bold px-1 rounded">
                       #{idx + 1}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveGalleryImage(idx)}
-                      title="Remove image"
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        background: '#ef4444',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '20px',
-                        height: '20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        fontWeight: 900
-                      }}
+                      className="absolute top-1 right-1 bg-red-500 text-white border-none rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold"
                     >
                       ✕
                     </button>
@@ -580,7 +536,7 @@ export default function AdminDashboard() {
 
           {/* Product Description */}
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#475569', marginBottom: '6px' }}>
+            <label className="block text-xs font-bold uppercase text-gray-600 mb-2">
               Product Description *
             </label>
             <textarea 
@@ -590,7 +546,7 @@ export default function AdminDashboard() {
               required 
               rows={4}
               placeholder="Write detailed specifications or descriptions about this product..." 
-              style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', resize: 'vertical' }} 
+              className="w-full p-4 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-gray-50 resize-y" 
             />
           </div>
 
@@ -598,22 +554,9 @@ export default function AdminDashboard() {
           <button 
             type="submit" 
             disabled={loading || uploadingGallery || uploadingMain} 
-            style={{ 
-              padding: '16px', 
-              background: loading ? '#94a3b8' : '#f85606', 
-              color: '#ffffff', 
-              border: 'none', 
-              cursor: loading ? 'not-allowed' : 'pointer', 
-              fontWeight: 800, 
-              fontSize: '14px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              borderRadius: '14px',
-              boxShadow: '0 4px 12px rgba(248, 86, 6, 0.3)',
-              transition: 'all 0.2s ease'
-            }}
+            className={`w-full p-4 text-white font-bold text-sm uppercase tracking-wide rounded-xl shadow-lg transition-all ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#f85606] hover:bg-orange-700 hover:shadow-orange-500/20'}`}
           >
-            {loading ? 'Publishing to Supabase Store...' : 'Publish Product to Store'}
+            {loading ? 'Publishing...' : 'Publish Product to Store'}
           </button>
 
         </form>
@@ -621,3 +564,15 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+const MetricCard: React.FC<{ title: string, value: string, change: string, positive?: boolean }> = ({ title, value, change, positive }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+    <div className="flex items-end justify-between mt-2">
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <span className={`text-sm font-bold flex items-center ${positive ? 'text-green-500' : 'text-red-500'}`}>
+        {positive ? '↑' : '↓'} {change}
+      </span>
+    </div>
+  </div>
+);

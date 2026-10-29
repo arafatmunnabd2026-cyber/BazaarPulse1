@@ -20,6 +20,7 @@ import { ShopProvider, useShop } from './context/ShopContext';
 import { useAuth } from './context/AuthContext';
 import { usePlugins } from './plugins/PluginContext';
 import { AdminMarketplacePlugins } from './components/AdminMarketplacePlugins';
+import { AdminLayout } from './components/Layout/AdminLayout';
 import { MetaCapiConfigPanel } from './components/MetaCapiConfigPanel';
 import { ProductQuickView } from './components/ProductQuickView';
 import { SharedNavigation } from './components/SharedNavigation';
@@ -961,7 +962,9 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              <AdminDashboard />
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
             </div>
           </ErrorBoundary>
         </ProtectedRoute>
