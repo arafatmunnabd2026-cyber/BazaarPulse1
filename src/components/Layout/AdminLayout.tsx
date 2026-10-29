@@ -8,9 +8,12 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
     <div className="min-h-screen bg-[#f4f6f8] flex">
       {/* Sidebar */}
       <aside className={`bg-[#212529] text-slate-300 w-64 transition-all duration-300 flex flex-col ${isSidebarOpen ? '' : '-ml-64'}`}>
-        <div className="p-5 bg-yellow-500 flex items-center justify-between">
-          <h1 className="font-bold text-lg text-black">BazaarPulse <span className="text-black/70">Admin</span></h1>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-black hover:text-white">
+        <div className="p-5 flex items-center justify-between">
+          <h1 className="font-bold text-xl text-white tracking-wider">
+            BazaarPulse 
+            <span className="ml-2 text-[10px] bg-yellow-500 text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Admin</span>
+          </h1>
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-slate-400 hover:text-white">
             <Menu className="w-5 h-5" />
           </button>
         </div>
@@ -19,15 +22,15 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">APPLICATION</p>
             <ul className="space-y-1">
               <NavItem icon={<LayoutDashboard />} label="Dashboard" active />
-              <NavItem icon={<ShoppingBag />} label="Catalog" />
-              <NavItem icon={<Package />} label="Orders" />
-              <NavItem icon={<Users />} label="Customers" />
+              <NavItem icon={<ShoppingBag />} label="Catalog" hasSubmenu />
+              <NavItem icon={<Package />} label="Orders" hasSubmenu />
+              <NavItem icon={<Users />} label="Customers" hasSubmenu />
             </ul>
           </div>
           <div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 px-2">PAGES</p>
             <ul className="space-y-1">
-              <NavItem icon={<Settings />} label="Settings" />
+              <NavItem icon={<Settings />} label="Settings" hasSubmenu />
             </ul>
           </div>
         </nav>
@@ -37,13 +40,13 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
               <Menu className="w-5 h-5" />
             </button>
-            <div className="relative">
+            <div className="relative flex-1 max-w-lg">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 w-64" />
+              <input type="text" placeholder="Search for the truth..." className="pl-9 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 w-full" />
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -51,13 +54,13 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               <Bell className="w-5 h-5 text-gray-600" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </div>
-            <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+            <div className="flex items-center gap-2 pl-4">
               <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">AM</div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium text-gray-700">Arafat Munna</p>
-                <p className="text-xs text-gray-400">Admin</p>
+                <p className="text-sm font-medium text-gray-900">Arafat Munna</p>
+                <p className="text-xs text-gray-500">arafatmunna.bd2026@gmail.com</p>
               </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <ChevronDown className="w-4 h-4 text-gray-500 ml-1" />
             </div>
           </div>
         </header>
@@ -71,10 +74,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 };
 
-const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
+const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean, hasSubmenu?: boolean }> = ({ icon, label, active, hasSubmenu }) => (
   <li className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${active ? 'bg-yellow-500 text-black' : 'hover:bg-[#343a40] text-slate-300 hover:text-white'}`}>
     {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
     {label}
-    <ChevronRight className={`w-3 h-3 ml-auto ${active ? 'text-black' : 'text-slate-500'}`} />
+    {hasSubmenu && <ChevronRight className={`w-3 h-3 ml-auto ${active ? 'text-black' : 'text-slate-500'}`} />}
   </li>
 );
