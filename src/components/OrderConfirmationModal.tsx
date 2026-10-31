@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Check, Copy, HelpCircle, X, Download, FileText, Printer, Mail, Sparkles, CheckCircle2, Loader2, Eye } from 'lucide-react';
+import { Check, Copy, HelpCircle, X, Mail, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { usePlugins } from '../plugins/PluginContext';
-import { downloadInvoicePDF, sendInvoiceEmail, getInvoiceConfig } from '../lib/invoiceService';
-import { InvoiceModal } from './InvoiceModal';
 
 interface OrderConfirmationModalProps {
   order: any;
@@ -19,8 +17,6 @@ export default function OrderConfirmationModal({
   notify
 }: OrderConfirmationModalProps) {
   const [copied, setCopied] = useState(false);
-  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [autoEmailSent, setAutoEmailSent] = useState(false);
   const dataLayerFired = useRef(false);
 
@@ -64,18 +60,6 @@ export default function OrderConfirmationModal({
     }
   }, [order]);
 
-  let isInvoiceActive = true;
-  try {
-    const pluginCtx = usePlugins();
-    if (pluginCtx && typeof pluginCtx.isPluginActive === 'function') {
-      isInvoiceActive = pluginCtx.isPluginActive('automated-invoice');
-    }
-  } catch (e) {
-    console.warn('Plugin context safe catch:', e);
-  }
-
-  if (!order || typeof order !== 'object') return null;
-
   const orderNumber = String(order.id || order.orderId || '17168902806931');
   const customerName = typeof order.customerName === 'string' 
     ? order.customerName 
@@ -107,47 +91,12 @@ export default function OrderConfirmationModal({
   const deliveryFee = typeof order.deliveryFee !== 'undefined' && order.deliveryFee !== null ? Number(order.deliveryFee) : (typeof order.shippingFee !== 'undefined' && order.shippingFee !== null ? Number(order.shippingFee) : 80);
   const payableTotal = Number(order.totalAmount || order.total_amount || 0);
   const subtotal = Number(order.subtotal || (payableTotal + discountAmount - deliveryFee)) || 0;
-  const pointsEarned = Number(order.pointsEarned || Math.floor(payableTotal / 12) || 72);
-
-  // Auto trigger invoice email on successful checkout if configured
-  useEffect(() => {
-    if (isInvoiceActive && order && customerEmail && !autoEmailSent) {
-      const config = getInvoiceConfig();
-      if (config.autoEmailOnCheckout) {
-        sendInvoiceEmail(order, customerEmail, config)
-          .then((res) => {
-            if (res.success) {
-              setAutoEmailSent(true);
-            }
-          })
-          .catch((err) => {
-            console.warn('Auto invoice email dispatch note:', err);
-          });
-      }
-    }
-  }, [isInvoiceActive, order, customerEmail, autoEmailSent]);
 
   const handleCopyOrderNumber = () => {
     navigator.clipboard.writeText(String(orderNumber));
     setCopied(true);
     notify('📋 অর্ডার নম্বর কপি করা হয়েছে!');
     setTimeout(() => setCopied(false), 3000);
-  };
-
-  const handleDownloadPDF = async () => {
-    setIsDownloadingInvoice(true);
-    notify('⏳ ইনভয়েস পিডিএফ তৈরি হচ্ছে...');
-    try {
-      const success = await downloadInvoicePDF(order);
-      if (success) {
-        notify('✅ ডিজিটাল ইনভয়েস পিডিএফ ডাউনলোড সম্পন্ন হয়েছে!');
-      }
-    } catch (e) {
-      console.error(e);
-      notify('⚠️ ইনভয়েস প্রক্রিয়া সম্পন্ন হয়েছে।');
-    } finally {
-      setIsDownloadingInvoice(false);
-    }
   };
 
   return (
@@ -231,60 +180,7 @@ export default function OrderConfirmationModal({
                 </div>
               </div>
 
-              {/* Automated Invoice Banner & Actions */}
-              {isInvoiceActive && (
-                <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/5 border border-orange-200 rounded-2xl p-4 sm:p-5 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-extrabold text-slate-900">ডিজিটাল ভেরিফায়েড ইনভয়েস (Official PDF Invoice)</h4>
-                        <p className="text-xs text-slate-600">আপনার অর্ডারের সম্পূর্ণ রশিদ প্রস্তুত করা হয়েছে।</p>
-                      </div>
-                    </div>
-
-                    {autoEmailSent && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> ইমেইলে রসিদ পাঠানো হয়েছে
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Invoice Quick Buttons */}
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                    <button
-                      type="button"
-                      disabled={isDownloadingInvoice}
-                      onClick={handleDownloadPDF}
-                      className="flex-1 sm:flex-initial bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    >
-                      {isDownloadingInvoice ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>পিডিএফ তৈরি হচ্ছে...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3.5 h-3.5" />
-                          <span>PDF ইনভয়েস ডাউনলোড করুন</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsInvoiceModalOpen(true)}
-                      className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>ইনভয়েস প্রিভিউ ও প্রিন্ট</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
+              
               {/* Bottom Row: Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -350,15 +246,7 @@ export default function OrderConfirmationModal({
         </motion.div>
       </div>
 
-      {/* Full Digital Invoice Modal */}
-      {isInvoiceModalOpen && (
-        <InvoiceModal
-          isOpen={isInvoiceModalOpen}
-          order={order}
-          onClose={() => setIsInvoiceModalOpen(false)}
-          notify={notify}
-        />
-      )}
+
     </>
   );
 }

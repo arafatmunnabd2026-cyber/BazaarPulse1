@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X, Download, FileText, Eye, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { addOrderStatusNotification } from '../lib/notificationStore';
+import { downloadInvoicePDF } from '../lib/invoiceService';
+import { InvoiceModal } from './InvoiceModal';
 
 interface OrderItem {
   productId: string;
@@ -40,6 +42,24 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [sendingSteadfastId, setSendingSteadfastId] = useState<string | null>(null);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [invoiceModalOrder, setInvoiceModalOrder] = useState<Order | null>(null);
+
+  const handleDownloadPDF = async (order: Order) => {
+    setIsDownloadingInvoice(true);
+    notify('⏳ ইনভয়েস পিডিএফ তৈরি হচ্ছে...');
+    try {
+      const success = await downloadInvoicePDF(order);
+      if (success) {
+        notify('✅ ডিজিটাল ইনভয়েস পিডিএফ ডাউনলোড সম্পন্ন হয়েছে!');
+      }
+    } catch (e) {
+      console.error(e);
+      notify('⚠️ ইনভয়েস প্রক্রিয়া সম্পন্ন হয়েছে।');
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -354,7 +374,7 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                   </div>
 
                   {/* Delivery Details Block - Exactly like the Reference Image */}
-                  <div className="border-t border-slate-200 pt-5">
+                  <div className="border-t border-slate-200 pt-5 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Column 1: Contact */}
                       <div>
@@ -362,14 +382,10 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                         <p className="text-sm font-medium text-black leading-tight">{order.customerName},</p>
                         <p className="text-sm font-medium text-black leading-tight mt-0.5">{order.phone}</p>
                       </div>
-
-                      {/* Column 2: Shipping Address */}
                       <div>
                         <h4 className="text-sm font-bold text-black mb-1">Shipping Address</h4>
                         <p className="text-sm font-medium text-black leading-relaxed">{order.address}</p>
                       </div>
-
-                      {/* Column 3: Payment Method */}
                       <div>
                         <h4 className="text-sm font-bold text-black mb-1">Payment Method</h4>
                         <p className="text-sm font-medium text-black leading-tight">{order.paymentMethod}</p>
@@ -382,6 +398,27 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                           </span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* PDF Invoice Actions */}
+                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={isDownloadingInvoice}
+                        onClick={() => handleDownloadPDF(order)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isDownloadingInvoice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        <span>{isDownloadingInvoice ? 'Generating...' : 'Download PDF Invoice'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceModalOrder(order)}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Preview Invoice</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -493,6 +530,16 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
           </div>
         )}
       </AnimatePresence>
+
+      {/* Invoice Modal */}
+      {invoiceModalOrder && (
+        <InvoiceModal
+          isOpen={!!invoiceModalOrder}
+          order={invoiceModalOrder}
+          onClose={() => setInvoiceModalOrder(null)}
+          notify={notify}
+        />
+      )}
     </div>
   );
 }
