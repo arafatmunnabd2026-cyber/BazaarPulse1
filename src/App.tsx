@@ -42,12 +42,9 @@ import { useVisualEditor } from './context/VisualEditorContext';
 import { MobileBottomNav } from './components/Layout/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { FooterAdminConfig } from './components/FooterAdminConfig';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
 import { addOrderSuccessNotification, addOrderStatusNotification, addLoginWelcomeNotification, clearLoginWelcomeNotifications } from './lib/notificationStore';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mhpmwsafqrjgsodnztll.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_q5zax92UyLCrAIs7ZJDODQ_T93URdMc';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Category slug mapping and safe helpers
 const CATEGORY_SLUG_TO_ID: Record<string, string> = {

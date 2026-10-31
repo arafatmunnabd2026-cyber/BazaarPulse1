@@ -2543,7 +2543,7 @@ const INITIAL_DATABASE_FOOTER = {
 
 const FOOTER_JSON_FILE = path.resolve(__dirname, 'footer_settings.json');
 
-app.get('/api/footer', authMiddleware, verifyAdmin, async (req, res) => {
+app.get('/api/footer', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     if (isDbConfigured) {

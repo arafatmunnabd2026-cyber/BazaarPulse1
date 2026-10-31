@@ -14,10 +14,13 @@ const getSupabaseConfig = () => {
 const { url, key } = getSupabaseConfig();
 
 // Initial singleton instance
-export const supabase = (url && key) ? createClient(url, key) : null;
+export const supabase = (url && key) 
+  ? createClient(url, key, {
+      auth: {
+        persistSession: true,
+        storageKey: 'bazaarpulse-auth-token',
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
 
-// Dynamic getter to always fetch current instance in case keys are changed dynamically
-export const getActiveSupabase = () => {
-  const { url: activeUrl, key: activeKey } = getSupabaseConfig();
-  return (activeUrl && activeKey) ? createClient(activeUrl, activeKey) : null;
-};
