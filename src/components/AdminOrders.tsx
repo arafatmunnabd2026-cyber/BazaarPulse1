@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X, Download, FileText, Eye, Loader2 } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X, Download, FileText, Eye, Loader2, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { addOrderStatusNotification } from '../lib/notificationStore';
 import { downloadInvoicePDF, getInvoiceConfig } from '../lib/invoiceService';
