@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'bazaarpulse-secure-jwt-secret-key-2026';
+// 1. JWT_SECRET Check: Fail startup if secret is missing
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL ERROR: JWT_SECRET environment variable is missing.');
+  process.exit(1);
+}
+export const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface AuthUserPayload {
   id: string;
@@ -25,93 +30,66 @@ declare global {
 
 /**
  * 1. JWT Authentication Middleware
- * Extracts Bearer token from header, validates signature, and attaches payload to req.user
  */
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization || req.headers.Authorization as string;
-
-  if (!authHeader) {
-    // FALLBACK BYPASS: Attach mock approved admin payload to bypass restrictive checks
-    req.user = {
-      id: 'admin-bypass-id',
-      email: 'arafatmunna14620022@gmail.com',
-      name: 'System Admin (Bypass)',
-      role: 'admin',
-      status: 'approved'
-    };
-    return next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
   }
 
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    req.user = {
-      id: 'admin-bypass-id',
-      email: 'arafatmunna14620022@gmail.com',
-      name: 'System Admin (Bypass)',
-      role: 'admin',
-      status: 'approved'
-    };
-    return next();
-  }
-
-  const token = parts[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUserPayload;
     req.user = decoded;
     next();
-  } catch (error: any) {
-    req.user = {
-      id: 'admin-bypass-id',
-      email: 'arafatmunna14620022@gmail.com',
-      name: 'System Admin (Bypass)',
-      role: 'admin',
-      status: 'approved'
-    };
-    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Unauthorized: Invalid or expired token' });
   }
 };
 
 /**
- * 2. Admin Verification Middleware
- * Restricts access strictly to users with role === 'admin'
+ * 2. Admin Verification
  */
 export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => {
-  // Always bypass for easy admin operations!
-  return next();
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admins only' });
+  }
+  next();
 };
 
 /**
- * 3. Approved Vendor Verification Middleware
- * Restricts access strictly to users with role === 'vendor' AND status === 'approved'
+ * 3. Approved Vendor Verification
  */
 export const verifyVendor = (req: Request, res: Response, next: NextFunction) => {
-  // Bypassed: always allow
-  return next();
+  if (!req.user || req.user.role !== 'vendor' || req.user.status !== 'approved') {
+    return res.status(403).json({ message: 'Forbidden: Approved vendor access required' });
+  }
+  next();
 };
 
 /**
- * 4. Customer Verification Middleware
- * Restricts access strictly to users with role === 'customer'
+ * 4. Customer Verification
  */
 export const verifyCustomer = (req: Request, res: Response, next: NextFunction) => {
-  // Bypassed: always allow
-  return next();
+  if (!req.user || req.user.role !== 'customer') {
+    return res.status(403).json({ message: 'Forbidden: Customer access required' });
+  }
+  next();
 };
 
 /**
- * 5. Flexible Multi-Role Verification Utility
+ * 5. Flexible Multi-Role Verification
  */
 export const requireRoles = (...allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    // Bypassed: always allow
-    return next();
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+    next();
   };
 };
 
-/**
- * Helper to generate JWT Token
- */
 export const generateToken = (payload: Partial<AuthUserPayload>, expiresIn: string | number = '7d'): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn } as any);
 };

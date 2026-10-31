@@ -962,7 +962,7 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              <AdminLayout>
+              <AdminLayout activeTab="overview" onTabChange={(tab) => navigateTo(`/admin`)}>
                 <AdminDashboard />
               </AdminLayout>
             </div>

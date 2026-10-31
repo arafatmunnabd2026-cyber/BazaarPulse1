@@ -83,7 +83,7 @@ export const AdminLayout: React.FC<{
 };
 
 const NavItem: React.FC<{ 
-  icon: React.ReactNode, 
+  icon: React.ReactElement, 
   label: string, 
   active?: boolean, 
   hasSubmenu?: boolean,
@@ -93,7 +93,7 @@ const NavItem: React.FC<{
     onClick={onClick}
     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${active ? 'bg-yellow-500 text-black' : 'hover:bg-[#343a40] text-slate-300 hover:text-white'}`}
   >
-    {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
+    {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-4 h-4' })}
     {label}
     {hasSubmenu && <ChevronRight className={`w-3 h-3 ml-auto ${active ? 'text-black' : 'text-slate-500'}`} />}
   </li>
