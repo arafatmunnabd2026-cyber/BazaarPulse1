@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Package, Clock, Truck, CheckCircle, XCircle, ChevronDown, Search, Edit, X, Download, FileText, Eye, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { addOrderStatusNotification } from '../lib/notificationStore';
-import { downloadInvoicePDF } from '../lib/invoiceService';
+import { downloadInvoicePDF, getInvoiceConfig } from '../lib/invoiceService';
 import { InvoiceModal } from './InvoiceModal';
 
 interface OrderItem {
@@ -43,7 +43,38 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [sendingSteadfastId, setSendingSteadfastId] = useState<string | null>(null);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [invoiceModalOrder, setInvoiceModalOrder] = useState<Order | null>(null);
+
+  const handleSendEmail = async (order: Order) => {
+    setIsSendingEmail(true);
+    notify(`⏳ ${order.customerEmail} ঠিকানায় ইমেইল পাঠানো হচ্ছে...`);
+    try {
+      const config = getInvoiceConfig();
+      const res = await fetch('/api/send-invoice-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          order,
+          customerEmail: order.customerEmail,
+          config
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        notify('✅ ইমেইল সফলভাবে পাঠানো হয়েছে!');
+      } else {
+        notify(`❌ ইমেইল পাঠানো ব্যর্থ হয়েছে: ${data.error}`);
+      }
+    } catch (err: any) {
+      notify(`❌ ইমেইল পাঠানোর সময় ত্রুটি হয়েছে: ${err.message}`);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   const handleDownloadPDF = async (order: Order) => {
     setIsDownloadingInvoice(true);
@@ -418,6 +449,15 @@ export default function AdminOrders({ authToken, notify }: { authToken: string, 
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Preview Invoice</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSendingEmail}
+                        onClick={() => handleSendEmail(order)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isSendingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                        <span>{isSendingEmail ? 'পাঠানো হচ্ছে...' : 'ইমেইল করুন'}</span>
                       </button>
                     </div>
                   </div>

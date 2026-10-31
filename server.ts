@@ -4867,6 +4867,20 @@ app.post('/api/invoice/send-email', async (req, res) => {
   }
 });
 
+app.post('/api/send-invoice-email', authMiddleware, verifyAdmin, async (req, res) => {
+  try {
+    const { order, customerEmail, config } = req.body;
+    if (!order || !customerEmail) {
+      return res.status(400).json({ success: false, error: 'Order data and email are required' });
+    }
+    const result = await dispatchAutomatedInvoiceEmail(order, customerEmail, config);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Invoice email dispatch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Push Notification Endpoints
 let serverPushSubscribers: any[] = [
   { id: 'sub-01', userAgent: 'Chrome/122 (Windows)', deviceType: 'Desktop', subscribedAt: new Date().toISOString(), status: 'active' },
