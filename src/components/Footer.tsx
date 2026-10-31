@@ -288,7 +288,7 @@ export const Footer: React.FC = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="bg-[#f85606] hover:bg-orange-600 text-white px-3 py-1.5 rounded-r-xl font-bold transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                      className="bg-[#0634f8] hover:bg-[#0528c2] text-white px-3 py-1.5 rounded-r-xl font-bold transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </button>
@@ -308,20 +308,20 @@ export const Footer: React.FC = () => {
               <ShieldCheck className="w-4 h-4" />
               <span>১০০% নিরাপদ ও ভেরিফাইড চেকআউট</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="grid grid-cols-3 gap-1.5 pt-[3px]">
               {paymentMethods.map((method: any, idx: number) => {
                 const resolved = resolvePaymentItem(method);
                 if (!resolved) return null;
                 return (
                   <div 
                     key={idx} 
-                    className="bg-white rounded-lg p-1.5 flex items-center justify-center h-10 sm:h-11 shadow-xs border border-slate-700/40 hover:border-[#f85606] hover:shadow-sm hover:scale-105 transition-all"
+                    className="bg-white rounded-md p-1 flex items-center justify-center h-7 sm:h-8 shadow-2xs border border-slate-700/40 hover:border-[#f85606] hover:shadow-xs hover:scale-105 transition-all"
                     title={resolved.name}
                   >
                     <img 
                       src={resolved.image} 
                       alt={resolved.name} 
-                      className="h-6 sm:h-6.5 w-auto max-w-[85%] object-contain"
+                      className="h-4 sm:h-4.5 w-auto max-w-[85%] object-contain"
                       loading="lazy"
                     />
                   </div>

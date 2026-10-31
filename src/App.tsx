@@ -2653,7 +2653,6 @@ function CustomerView({
               as="h3"
               className="text-xl sm:text-2xl font-black text-gray-900 inline-block tracking-tight"
             />
-            <span className="text-[10px] sm:text-xs text-gray-500 block mt-0.5 font-bold uppercase tracking-wider">{filteredProducts.length}টি পণ্য পাওয়া গেছে</span>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -2813,7 +2812,7 @@ function CustomerView({
                           decoding="async"
                         />
                         {product.discountPrice && (
-                          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10 bg-[#f85606] text-white rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 flex flex-col items-center justify-center shadow-lg select-none">
+                          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10 bg-[#f80909] text-white rounded-lg pl-[7px] pr-[9px] pt-[6px] pb-1 ml-[1px] -mt-[1px] flex flex-col items-center justify-center shadow-lg select-none">
                             <span className="text-[10px] sm:text-xs font-black leading-none">
                               {discountPercent}%
                             </span>
@@ -2831,18 +2830,18 @@ function CustomerView({
                         </div>
                       </div>
 
-                      <div className="p-3 sm:p-3.5 pb-2.5 sm:pb-3 flex-1 flex flex-col justify-between">
+                      <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between gap-1.5">
                         <div>
-                          <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 group-hover:text-[#f85606] transition-colors leading-snug tracking-tight">
+                          <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 overflow-hidden h-8 sm:h-10 leading-4 sm:leading-5 group-hover:text-[#f85606] transition-colors tracking-tight">
                             {product.title}
                           </h4>
-                          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 flex items-center justify-between">
+                          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1 flex items-center justify-between">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><Store className="w-2.5 h-2.5" /></div>
+                              <div className="w-4.5 h-4.5 rounded-full bg-slate-100 flex items-center justify-center shrink-0"><Store className="w-3 h-3 text-slate-600" /></div>
                               <span className="truncate">{product.vendorName}</span>
                             </div>
                             {product.stock !== undefined && product.stock !== null && (
-                              <span className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 shadow-xs tracking-wide uppercase ${
+                              <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 shadow-2xs tracking-wide uppercase ${
                                 product.stock <= 0 
                                   ? 'bg-rose-100 text-rose-700 border border-rose-300' 
                                   : product.stock <= 5 
@@ -2855,18 +2854,17 @@ function CustomerView({
                           </div>
                         </div>
 
-                        <div className="mt-3">
+                        <div className="mt-1.5 sm:mt-2">
                           <div className="flex flex-wrap items-baseline gap-1.5">
-                            <span className="text-[#f85606] font-black text-sm sm:text-lg">
+                            <span className="text-[#100101] font-black text-sm sm:text-lg">
                               ৳{product.discountPrice || product.price}
                             </span>
                             {product.discountPrice && (
-                              <span className="text-[10px] sm:text-xs text-slate-400 line-through font-bold">
+                              <span className="text-[15px] text-[#f90000] line-through font-bold ml-[5px] pl-[3px]">
                                 ৳{product.price}
                               </span>
                             )}
                           </div>
-
 
                           <button
                             type="button"
@@ -2880,10 +2878,10 @@ function CustomerView({
                               addToCart(product); 
                             }}
                             disabled={product.stock !== undefined && product.stock !== null && product.stock <= 0}
-                            className={`w-full mt-3 font-black py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
+                            className={`w-full mt-2 font-black py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider transition-all duration-300 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
                               product.stock !== undefined && product.stock !== null && product.stock <= 0
                                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-slate-900 hover:bg-[#f85606] hover:shadow-orange-500/20 text-white active:scale-95'
+                                : 'bg-[#0941f1] hover:bg-[#0732be] hover:shadow-blue-500/20 text-white active:scale-95'
                             }`}
                           >
                             <ShoppingCart className="w-3.5 h-3.5" /> 

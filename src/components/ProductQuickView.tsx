@@ -489,7 +489,7 @@ export const ProductQuickView = ({
             </div>
             
             <div className="flex flex-col gap-2.5 sm:gap-3">
-              <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-[25px] font-bold text-slate-900 tracking-tight leading-[31.5px] text-center font-['Arial',sans-serif]">
                 {selectedProduct.title}
               </h1>
               <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-500 font-medium">
@@ -601,7 +601,7 @@ export const ProductQuickView = ({
                   </button>
                   <button 
                     onClick={handleAddToCartClick} 
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer uppercase tracking-wider text-sm"
+                    className="flex-1 bg-[#002dff] hover:bg-[#0024cc] text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer uppercase tracking-wider text-sm"
                   >
                     <ShoppingCart className="w-5 h-5" /> Add to Cart
                   </button>
@@ -612,7 +612,7 @@ export const ProductQuickView = ({
               <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[110] bg-white border-t border-gray-100 p-4 flex gap-3 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
                 <button 
                   onClick={handleAddToCartClick} 
-                  className="flex-1 bg-white border-2 border-blue-600 text-blue-600 font-black py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider"
+                  className="flex-1 bg-[#002dff] border-2 border-[#002dff] text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider shadow-md"
                 >
                   <ShoppingCart className="w-4 h-4" /> Cart
                 </button>
@@ -645,7 +645,7 @@ export const ProductQuickView = ({
               {/* Description */}
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <h3 className="font-black text-sm text-slate-900 uppercase tracking-widest mb-2">Product Description</h3>
-                <div className={`text-[13px] sm:text-base text-slate-700 transition-all leading-relaxed ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                <div className={`text-[13px] font-bold text-slate-700 transition-all leading-relaxed ${isDescExpanded ? '' : 'line-clamp-3'}`}>
                   {selectedProduct.description || `${selectedProduct.title} - এটি একটি প্রিমিয়াম কোয়ালিটিসম্পন্ন এবং দীর্ঘস্থায়ী পণ্য। আমাদের বিশেষ কালেকশন থেকে এটি আকর্ষণীয় মূল্যে সংগ্রহ করতে পারেন। এটি আপনার দৈনন্দিন জীবনে আরামদায়ক অভিজ্ঞতা ও আভিজাত্য এনে দেবে। আজই অর্ডার করুন বাজার প্লাস থেকে এবং উপভোগ করুন দ্রুততম ক্যাশ অন ডেলিভারি সুবিধা!`}
                 </div>
                 <button
