@@ -4571,9 +4571,8 @@ async function dispatchAutomatedInvoiceEmail(order: any, recipientEmail?: string
     }
 
     const targetEmail = recipientEmail || order.customerEmail || order.email || order.userEmail;
-    if (!targetEmail || !targetEmail.includes('@') || targetEmail.includes('@customer.com')) {
-      console.log(`ℹ️ [INVOICE EMAIL] Skipped automated dispatch (placeholder or missing email: "${targetEmail}")`);
-      return { success: true, message: 'Skipped for demo/phone placeholder email' };
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return { success: false, message: 'Invalid or missing email address.' };
     }
 
     const orderId = String(order.id || order.orderId || ('ORD-' + Date.now()));
