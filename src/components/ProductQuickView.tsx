@@ -463,7 +463,7 @@ export const ProductQuickView = ({
                   onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'; }}
                 />
                 {discountPercent > 0 && (
-                  <div className="absolute top-4 left-4 z-10 bg-[#e53935] text-white rounded-2xl w-12 h-12 sm:w-14 sm:h-14 flex flex-col items-center justify-center shadow-md select-none border border-red-400/30">
+                  <div className="absolute top-4 left-4 z-10 bg-[#ff0c05] text-white rounded-2xl w-12 h-12 sm:w-14 sm:h-14 flex flex-col items-center justify-center shadow-md select-none border border-red-400/30">
                     <span className="text-sm sm:text-base font-black leading-none">
                       {discountPercent}%
                     </span>
@@ -497,9 +497,9 @@ export const ProductQuickView = ({
                 <div className="text-gray-900 font-bold flex items-center gap-1.5"><Store className="w-3.5 h-3.5" /> <span className="text-[#f85606] underline cursor-pointer">{selectedProduct.vendorName || 'Bazaar Pulse Official'}</span></div>
               </div>
               <div className="flex items-center gap-3 flex-wrap pt-1">
-                <span className="text-3xl sm:text-4xl font-black text-[#f85606] tracking-tighter">৳{currentPrice}</span>
+                <span className="text-3xl sm:text-4xl font-black text-[#060606] tracking-tighter">৳{currentPrice}</span>
                 {originalPrice > currentPrice && (
-                  <span className="text-lg sm:text-xl text-gray-400 line-through font-medium">৳{originalPrice}</span>
+                  <span className="text-lg sm:text-xl text-[#f90000] line-through font-medium">৳{originalPrice}</span>
                 )}
                 {savings > 0 && (
                   <span className="text-[10px] sm:text-sm text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-flex items-center">

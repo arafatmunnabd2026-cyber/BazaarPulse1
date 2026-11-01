@@ -2658,7 +2658,7 @@ function CustomerView({
           <div className="flex items-center gap-2.5">
             {(() => {
               const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
-              const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+              const shouldShowFilterPanel = false;
               return shouldShowFilterPanel ? (
                 <button
                   type="button"
@@ -2679,7 +2679,7 @@ function CustomerView({
         {/* Active Filter Chips Strip */}
         {(() => {
           const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
-          const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+          const shouldShowFilterPanel = false;
           return shouldShowFilterPanel && (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0 || filters.minPrice > 0 || filters.minRating > 0 || filters.inStockOnly || filters.discountedOnly || filters.sortBy !== 'default') ? (
             <div className="flex items-center gap-1.5 flex-wrap mb-5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
               <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">সক্রিয় ফিল্টার:</span>
@@ -2754,7 +2754,7 @@ function CustomerView({
         {/* Sidebar + Products Grid Container */}
         {(() => {
           const isHomePage = location.pathname === '/' || location.pathname === '' || location.pathname === '/#';
-          const shouldShowFilterPanel = isFilterPluginActive && !isHomePage;
+          const shouldShowFilterPanel = false;
           return (
             <div className={shouldShowFilterPanel ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
               {shouldShowFilterPanel && (
@@ -2812,7 +2812,7 @@ function CustomerView({
                           decoding="async"
                         />
                         {product.discountPrice && (
-                          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10 bg-[#f80909] text-white rounded-lg pl-[7px] pr-[9px] pt-[6px] pb-1 ml-[1px] -mt-[1px] flex flex-col items-center justify-center shadow-lg select-none">
+                          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-10 bg-[#ff0c05] text-white rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 flex flex-col items-center justify-center shadow-lg select-none">
                             <span className="text-[10px] sm:text-xs font-black leading-none">
                               {discountPercent}%
                             </span>
