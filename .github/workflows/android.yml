@@ -21,7 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build Web App
         run: npm run build
@@ -62,4 +62,3 @@ jobs:
         with:
           name: BazaarPulse-PlayStore-AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
-
