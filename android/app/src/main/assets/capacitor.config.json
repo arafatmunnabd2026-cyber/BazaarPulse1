@@ -1,0 +1,14 @@
+{
+	"appId": "com.bazaarpulse.app",
+	"appName": "BazaarPulse",
+	"webDir": "dist",
+	"server": {
+		"url": "https://bazaarpulse-1ty4.onrender.com",
+		"cleartext": false,
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": true,
+		"webContentsDebuggingEnabled": false
+	}
+}

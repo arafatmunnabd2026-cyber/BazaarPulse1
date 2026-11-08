@@ -1535,7 +1535,7 @@ function CustomerView({
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        supabase?.removeChannel(channel);
       };
     }
   }, [trackedOrder?.id]);
